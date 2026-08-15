@@ -1,25 +1,22 @@
 """
-Standard Base Dialog Component for Anki Discord Toolkit.
-Provides unified padding, header hierarchy, and styling for all toolkit dialogs.
+Base Modal Dialog for Anki Wykiati Toolkit with iOS Liquid Glass styling.
+Provides clean English header layout, translucent action buttons, and responsive geometry.
 """
 
 from typing import Any, Optional
 
 try:
-    from ...core.constants import ADDON_NAME
-    from ...core.logger import logger
     from ...theme.palette import PALETTE
+    from ...theme.styles import generate_qss
 except (ImportError, ValueError):
     try:
-        from ..core.constants import ADDON_NAME
-        from ..core.logger import logger
         from ..theme.palette import PALETTE
+        from ..theme.styles import generate_qss
     except (ImportError, ValueError):
-        from core.constants import ADDON_NAME
-        from core.logger import logger
         from theme.palette import PALETTE
+        from theme.styles import generate_qss
 
-# Qt Imports with graceful fallback
+# Qt Imports
 try:
     from aqt.qt import (
         QDialog,
@@ -29,12 +26,10 @@ try:
         QPushButton,
         QVBoxLayout,
         QWidget,
-        Qt,
     )
     QT_AVAILABLE = True
 except ImportError:
     try:
-        from PyQt6.QtCore import Qt
         from PyQt6.QtWidgets import (
             QDialog,
             QFrame,
@@ -47,7 +42,6 @@ except ImportError:
         QT_AVAILABLE = True
     except ImportError:
         try:
-            from PyQt5.QtCore import Qt
             from PyQt5.QtWidgets import (
                 QDialog,
                 QFrame,
@@ -59,74 +53,75 @@ except ImportError:
             )
             QT_AVAILABLE = True
         except ImportError:
-            QDialog = object
+            QDialog = QFrame = QHBoxLayout = QLabel = QPushButton = QVBoxLayout = QWidget = object
             QT_AVAILABLE = False
 
 
-class BaseToolkitDialog(QDialog if QT_AVAILABLE else object):
+class BaseToolkitDialog(QDialog):
     """
-    Standardized base modal dialog with dark UI header and action buttons.
+    Standard base dialog with iOS Liquid Glass header, body layout, and footer actions.
     """
-    def __init__(self, parent: Optional[Any] = None, title: str = "Toolkit Dialog", subtitle: str = "") -> None:
+    def __init__(
+        self,
+        parent: Optional[Any] = None,
+        title: str = "Wykiati Toolkit",
+        subtitle: str = "",
+        width: int = 560,
+        height: int = 420,
+    ) -> None:
         if not QT_AVAILABLE:
-            logger.debug(f"[BaseDialog] Qt unavailable. Simulated dialog '{title}'")
             return
-
         super().__init__(parent)
-        self.setWindowTitle(f"{ADDON_NAME} — {title}")
-        self.setMinimumSize(560, 420)
-        if hasattr(Qt, "WindowType"):
-            self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
 
-        # Root Layout
-        self.root_layout = QVBoxLayout(self)
-        self.root_layout.setContentsMargins(20, 20, 20, 20)
-        self.root_layout.setSpacing(14)
+        self.setWindowTitle(title)
+        self.resize(width, height)
+        self.setMinimumSize(460, 320)
 
-        # Header Container
-        self.header_widget = QWidget(self)
-        header_layout = QVBoxLayout(self.header_widget)
-        header_layout.setContentsMargins(0, 0, 0, 4)
-        header_layout.setSpacing(4)
+        # Apply glass stylesheet
+        self.setStyleSheet(generate_qss())
 
-        self.title_label = QLabel(title, self.header_widget)
-        self.title_label.setStyleSheet("font-size: 18px; font-weight: 700; color: #FFFFFF;")
-        header_layout.addWidget(self.title_label)
+        self._root_layout = QVBoxLayout(self)
+        self._root_layout.setContentsMargins(18, 18, 18, 18)
+        self._root_layout.setSpacing(14)
+
+        # Header Frame
+        header_frame = QFrame(self)
+        header_frame.setStyleSheet(
+            f"background-color: {PALETTE.BACKGROUND_SURFACE}; "
+            f"border: 1px solid {PALETTE.BORDER_DEFAULT}; "
+            f"border-radius: 12px; padding: 12px;"
+        )
+        header_layout = QVBoxLayout(header_frame)
+        header_layout.setContentsMargins(8, 4, 8, 4)
+        header_layout.setSpacing(3)
+
+        self.lbl_title = QLabel(title, header_frame)
+        self.lbl_title.setStyleSheet("font-size: 16px; font-weight: bold; color: #FFFFFF;")
+        header_layout.addWidget(self.lbl_title)
 
         if subtitle:
-            self.subtitle_label = QLabel(subtitle, self.header_widget)
-            self.subtitle_label.setStyleSheet("font-size: 12px; color: #A0AAB4;")
-            header_layout.addWidget(self.subtitle_label)
+            self.lbl_subtitle = QLabel(subtitle, header_frame)
+            self.lbl_subtitle.setStyleSheet(f"font-size: 12px; color: {PALETTE.TEXT_MUTED};")
+            header_layout.addWidget(self.lbl_subtitle)
 
-        self.root_layout.addWidget(self.header_widget)
+        self._root_layout.addWidget(header_frame)
 
-        # Subtle Header Divider
-        divider = QFrame(self)
-        if hasattr(QFrame, "Shape"):
-            divider.setFrameShape(QFrame.Shape.HLine)
-        divider.setStyleSheet(f"background-color: {PALETTE.BORDER_SUBTLE}; max-height: 1px; margin-bottom: 6px;")
-        self.root_layout.addWidget(divider)
-
-        # Body Container
-        self.body_widget = QWidget(self)
-        self.body_layout = QVBoxLayout(self.body_widget)
-        self.body_layout.setContentsMargins(0, 0, 0, 0)
+        # Body Layout (subclasses insert content here)
+        self.body_layout = QVBoxLayout()
         self.body_layout.setSpacing(12)
-        self.root_layout.addWidget(self.body_widget, stretch=1)
+        self._root_layout.addLayout(self.body_layout, 1)
 
-        # Bottom Button Bar
-        self.button_layout = QHBoxLayout()
-        self.button_layout.setContentsMargins(0, 8, 0, 0)
-        self.button_layout.setSpacing(10)
-        self.button_layout.addStretch()
+        # Footer Actions
+        footer_layout = QHBoxLayout()
+        footer_layout.addStretch()
 
-        self.btn_cancel = QPushButton("Fechar", self)
+        self.btn_cancel = QPushButton("Cancel", self)
         self.btn_cancel.clicked.connect(self.reject)
-        self.button_layout.addWidget(self.btn_cancel)
+        footer_layout.addWidget(self.btn_cancel)
 
-        self.btn_save = QPushButton("Salvar", self)
-        self.btn_save.setDefault(True)
+        self.btn_save = QPushButton("Save Changes", self)
+        self.btn_save.setProperty("primary", "true")
         self.btn_save.clicked.connect(self.accept)
-        self.button_layout.addWidget(self.btn_save)
+        footer_layout.addWidget(self.btn_save)
 
-        self.root_layout.addLayout(self.button_layout)
+        self._root_layout.addLayout(footer_layout)

@@ -1,5 +1,5 @@
 """
-Deck Routing Rules Dialog.
+Smart Deck Routing Rules Dialog for Anki Wykiati Toolkit.
 Interactive table manager for tag-based and keyword-based smart deck routing.
 """
 
@@ -26,7 +26,6 @@ if QT_AVAILABLE:
             QHeaderView,
             QLabel,
             QLineEdit,
-            QMessageBox,
             QPushButton,
             QTableWidget,
             QTableWidgetItem,
@@ -40,7 +39,6 @@ if QT_AVAILABLE:
                 QHeaderView,
                 QLabel,
                 QLineEdit,
-                QMessageBox,
                 QPushButton,
                 QTableWidget,
                 QTableWidgetItem,
@@ -53,14 +51,13 @@ if QT_AVAILABLE:
                 QHeaderView,
                 QLabel,
                 QLineEdit,
-                QMessageBox,
                 QPushButton,
                 QTableWidget,
                 QTableWidgetItem,
                 QVBoxLayout,
             )
 else:
-    QComboBox = QHBoxLayout = QHeaderView = QLabel = QLineEdit = QMessageBox = QPushButton = QTableWidget = QTableWidgetItem = QVBoxLayout = object
+    QComboBox = QHBoxLayout = QHeaderView = QLabel = QLineEdit = QPushButton = QTableWidget = QTableWidgetItem = QVBoxLayout = object
 
 
 class DeckRulesDialog(BaseToolkitDialog):
@@ -70,8 +67,8 @@ class DeckRulesDialog(BaseToolkitDialog):
     def __init__(self, parent: Optional[Any] = None) -> None:
         super().__init__(
             parent,
-            title="Regras de Roteamento de Decks",
-            subtitle="Direcione cartões automaticamente para baralhos específicos baseado em tags ou palavras-chave.",
+            title="Smart Deck Routing Rules",
+            subtitle="Automatically route cards to target decks based on tags or message keywords.",
         )
         if not QT_AVAILABLE:
             return
@@ -85,7 +82,7 @@ class DeckRulesDialog(BaseToolkitDialog):
 
         # Default Deck selector
         default_layout = QHBoxLayout()
-        default_layout.addWidget(QLabel("Deck Padrão (Fallback):", self))
+        default_layout.addWidget(QLabel("Default Fallback Deck:", self))
         self.txt_default_deck = QLineEdit(self)
         self.txt_default_deck.setText(config.get("anki.default_deck", "Default"))
         default_layout.addWidget(self.txt_default_deck)
@@ -94,18 +91,18 @@ class DeckRulesDialog(BaseToolkitDialog):
         # Rules Table
         self.table = QTableWidget(self)
         self.table.setColumnCount(3)
-        self.table.setHorizontalHeaderLabels(["Tipo", "Padrão / Termo", "Deck de Destino"])
+        self.table.setHorizontalHeaderLabels(["Match Type", "Pattern / Term", "Target Deck"])
         if hasattr(self.table.horizontalHeader(), "setStretchLastSection"):
             self.table.horizontalHeader().setStretchLastSection(True)
         main_layout.addWidget(self.table)
 
         # Action Buttons (Add, Remove)
         btn_layout = QHBoxLayout()
-        self.btn_add = QPushButton("➕ Adicionar Regra", self)
+        self.btn_add = QPushButton("Add Rule", self)
         self.btn_add.clicked.connect(self._add_empty_row)
         btn_layout.addWidget(self.btn_add)
 
-        self.btn_remove = QPushButton("🗑️ Remover Selecionada", self)
+        self.btn_remove = QPushButton("Remove Selected", self)
         self.btn_remove.clicked.connect(self._remove_selected_row)
         btn_layout.addWidget(self.btn_remove)
         btn_layout.addStretch()
@@ -114,7 +111,7 @@ class DeckRulesDialog(BaseToolkitDialog):
 
         self.body_layout.addLayout(main_layout)
 
-    def _load_rules(self) -> None:
+    def _load_rules() -> None:
         rules = deck_router.get_rules()
         self.table.setRowCount(0)
 
@@ -141,7 +138,7 @@ class DeckRulesDialog(BaseToolkitDialog):
         self.table.setItem(row, 2, item_deck)
 
     def _add_empty_row(self) -> None:
-        self._insert_row("tag", "novo_termo", "Programming::Exemplo")
+        self._insert_row("tag", "new_term", "Medicine::Cardiology")
 
     def _remove_selected_row(self) -> None:
         curr_row = self.table.currentRow()

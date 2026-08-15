@@ -1,39 +1,46 @@
 """
-About and Diagnostics Dialog for Anki Discord Toolkit.
+About and Diagnostics Dialog for Anki Wykiati Toolkit.
+Displays version metadata, license, active theme status, and diagnostic paths.
 """
 
+import sys
 from typing import Any, Optional
 
 try:
-    from ..core.constants import ADDON_AUTHOR, ADDON_NAME, ADDON_SHORT_NAME, ADDON_VERSION
+    from ..core.config import config
+    from ..core.constants import ADDON_AUTHOR, ADDON_NAME, ADDON_VERSION
     from ..theme.palette import PALETTE
     from .components.base_dialog import BaseToolkitDialog, QT_AVAILABLE
 except (ImportError, ValueError):
-    from core.constants import ADDON_AUTHOR, ADDON_NAME, ADDON_SHORT_NAME, ADDON_VERSION
+    from core.config import config
+    from core.constants import ADDON_AUTHOR, ADDON_NAME, ADDON_VERSION
     from theme.palette import PALETTE
     from ui.components.base_dialog import BaseToolkitDialog, QT_AVAILABLE
 
 if QT_AVAILABLE:
     try:
-        from aqt.qt import QLabel, QPushButton, QTextBrowser, QVBoxLayout
+        from aqt import mw
+        from aqt.qt import QFrame, QLabel, QTextEdit, QVBoxLayout
     except ImportError:
         try:
-            from PyQt6.QtWidgets import QLabel, QPushButton, QTextBrowser, QVBoxLayout
+            from PyQt6.QtWidgets import QFrame, QLabel, QTextEdit, QVBoxLayout
         except ImportError:
-            from PyQt5.QtWidgets import QLabel, QPushButton, QTextBrowser, QVBoxLayout
+            from PyQt5.QtWidgets import QFrame, QLabel, QTextEdit, QVBoxLayout
+        mw = None
 else:
-    QLabel = QPushButton = QTextBrowser = QVBoxLayout = object
+    QFrame = QLabel = QTextEdit = QVBoxLayout = object
+    mw = None
 
 
 class AboutDialog(BaseToolkitDialog):
     """
-    Displays add-on branding, release details, and documentation info.
+    Informational dialog displaying add-on metadata, system diagnostics, and documentation links.
     """
     def __init__(self, parent: Optional[Any] = None) -> None:
         super().__init__(
             parent,
-            title=f"Sobre o {ADDON_NAME}",
-            subtitle=f"Versão v{ADDON_VERSION} — Automação de Conhecimento e Tema Pure Black OLED",
+            title="About Anki Wykiati Toolkit",
+            subtitle=f"{ADDON_NAME} v{ADDON_VERSION} - System Information",
         )
         if not QT_AVAILABLE:
             return
@@ -44,33 +51,60 @@ class AboutDialog(BaseToolkitDialog):
         layout = QVBoxLayout()
         layout.setSpacing(12)
 
-        info_browser = QTextBrowser(self)
-        info_browser.setOpenExternalLinks(True)
-        info_browser.setStyleSheet(f"background-color: {PALETTE.BACKGROUND_SURFACE}; border: 1px solid {PALETTE.BORDER_DEFAULT}; border-radius: 6px; padding: 10px;")
+        # Info Box
+        info_frame = QFrame(self)
+        info_frame.setStyleSheet(
+            f"background-color: {PALETTE.BACKGROUND_SURFACE}; "
+            f"border: 1px solid {PALETTE.BORDER_DEFAULT}; "
+            f"border-radius: 12px; padding: 14px;"
+        )
+        info_layout = QVBoxLayout(info_frame)
+        info_layout.setSpacing(6)
 
-        html_content = f"""
-        <h3 style="color: {PALETTE.ACCENT_PRIMARY}; margin-top: 0;">{ADDON_NAME} v{ADDON_VERSION}</h3>
-        <p><b>Desenvolvido por:</b> {ADDON_AUTHOR}</p>
-        <p><b>Licença:</b> MIT License (Software Livre)</p>
-        <hr style="border: 0; border-top: 1px solid {PALETTE.BORDER_SUBTLE};">
-        <p><b>Principais Recursos:</b></p>
-        <ul>
-            <li><b>🖤 Pure Black Theme:</b> Interface de alto contraste em preto absoluto (#000000) otimizada para telas OLED/AMOLED.</li>
-            <li><b>💬 Discord & Webhooks:</b> Transforme mensagens do Discord e requisições HTTP em flashcards estruturados instantaneamente.</li>
-            <li><b>⚡ Fila & Anti-Duplicação:</b> Processamento seguro em background que nunca congela a interface do Anki.</li>
-            <li><b>🎯 Roteamento Inteligente:</b> Regras automáticas de direcionamento para baralhos por tags e palavras-chave.</li>
-            <li><b>🧩 Suporte a Templates:</b> Compatível com cartões Básicos, Invertidos e Cloze Deletion.</li>
-        </ul>
-        <hr style="border: 0; border-top: 1px solid {PALETTE.BORDER_SUBTLE};">
-        <p style="font-size: 11px; color: {PALETTE.TEXT_MUTED};">
-            Para dúvidas, suporte ou novidades, consulte a documentação inclusa no projeto.
-        </p>
-        """
-        info_browser.setHtml(html_content)
-        layout.addWidget(info_browser)
+        title = QLabel(f"{ADDON_NAME} v{ADDON_VERSION}", info_frame)
+        title.setStyleSheet("font-size: 16px; font-weight: bold; color: #FFFFFF;")
+        info_layout.addWidget(title)
 
-        # Hide save button since this is purely informational
+        author = QLabel(f"Author: {ADDON_AUTHOR} | License: MIT", info_frame)
+        author.setStyleSheet(f"color: {PALETTE.TEXT_MUTED}; font-size: 12px;")
+        info_layout.addWidget(author)
+
+        desc = QLabel(
+            "Modular Anki toolkit providing automated Discord image and card ingestion, "
+            "REST Webhooks, and a modern Full Black #000000 AMOLED & iOS Liquid Glass visual theme.",
+            info_frame,
+        )
+        desc.setWordWrap(True)
+        desc.setStyleSheet(f"color: {PALETTE.TEXT_SECONDARY}; margin-top: 6px;")
+        info_layout.addWidget(desc)
+
+        layout.addWidget(info_frame)
+
+        # Diagnostic Details
+        anki_ver = getattr(mw, "pm", None) and getattr(mw, "version", "Unknown") if mw else "Standalone Test Mode"
+        diag_text = (
+            f"--- System Diagnostics ---\n"
+            f"Add-on Version: {ADDON_VERSION}\n"
+            f"Python Version: {sys.version.split()[0]}\n"
+            f"Anki Environment: {anki_ver}\n"
+            f"Active Theme: Full Black (#000000 OLED) with iOS Liquid Glass\n"
+            f"Theme Enabled: {config.get('theme.enabled', True)}\n"
+            f"Accent Color: {config.get('theme.accent', '#0A84FF')}\n"
+            f"HTTP Bridge: http://{config.get('discord.http_bridge_host', '127.0.0.1')}:{config.get('discord.http_bridge_port', 8765)}\n"
+            f"Discord Poller Enabled: {config.get('discord.enabled', False)}\n"
+            f"Image Channels Configured: {len(config.get('discord.image_channels', []))}\n"
+            f"Total Cards Created: {config.get('stats.cards_created', 0)}\n"
+            f"Total Images Ingested: {config.get('stats.images_ingested', 0)}\n"
+        )
+
+        txt_diag = QTextEdit(self)
+        txt_diag.setPlainText(diag_text)
+        txt_diag.setReadOnly(True)
+        txt_diag.setStyleSheet("font-family: monospace; font-size: 11px;")
+        layout.addWidget(txt_diag)
+
+        # Custom buttons
         self.btn_save.setVisible(False)
-        self.btn_cancel.setText("Fechar")
+        self.btn_cancel.setText("Close")
 
         self.body_layout.addLayout(layout)

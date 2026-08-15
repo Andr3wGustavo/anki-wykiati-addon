@@ -24,13 +24,13 @@ class TestBridgeAndCommands(unittest.TestCase):
     def test_commands_help(self):
         reply = self.commands.handle_command("!anki-help")
         self.assertIsNotNone(reply)
-        self.assertIn("Guia de Comandos", reply)
+        self.assertIn("Command Guide", reply)
         self.assertIn("front:", reply)
 
     def test_commands_status(self):
         reply = self.commands.handle_command("!anki-status")
         self.assertIsNotNone(reply)
-        self.assertIn("Status do Sistema", reply)
+        self.assertIn("System Status", reply)
 
     def test_commands_ping(self):
         reply = self.commands.handle_command("!anki-ping")
@@ -39,8 +39,8 @@ class TestBridgeAndCommands(unittest.TestCase):
 
     def test_bridge_processes_valid_message(self):
         raw_msg = """!anki
-front: O que é Kubernetes?
-back: Um orquestrador de containers open source.
+front: What is Kubernetes?
+back: An open source container orchestration engine.
 deck: DevOps::Kubernetes
 tags: k8s, devops
 """

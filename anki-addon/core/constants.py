@@ -1,23 +1,23 @@
 """
-Application Constants and Protocol Definitions for Anki Discord Toolkit.
+Application Constants and Protocol Definitions for Anki Wykiati Toolkit.
 """
 
 # Add-on Identification
-ADDON_NAME = "Anki Discord Toolkit"
-ADDON_SHORT_NAME = "ADT"
-ADDON_PACKAGE = "anki-discord-toolkit"
-ADDON_VERSION = "1.0.0"
-ADDON_AUTHOR = "Antigravity Engineering"
+ADDON_NAME = "Anki Wykiati Toolkit"
+ADDON_SHORT_NAME = "AWT"
+ADDON_PACKAGE = "anki-wykiati-toolkit"
+ADDON_VERSION = "1.1.0"
+ADDON_AUTHOR = "Wykiati Engineering"
 
 # Filenames and Paths
 DEFAULT_CONFIG_FILENAME = "config.json"
-LOG_FILENAME = "anki_discord_toolkit.log"
+LOG_FILENAME = "anki_wykiati_toolkit.log"
 PROCESSED_MESSAGES_FILENAME = "processed_messages.json"
 QUEUE_DATA_FILENAME = "queue.json"
 
 # Menu & UI
-MAIN_MENU_TITLE = "Anki Discord Toolkit"
-TOOLS_MENU_ENTRY = "&Anki Discord Toolkit"
+MAIN_MENU_TITLE = "Anki Wykiati Toolkit"
+TOOLS_MENU_ENTRY = "&Anki Wykiati Toolkit"
 
 # Discord Protocol Constants
 DISCORD_COMMAND_PREFIX = "!anki"
@@ -45,21 +45,21 @@ SUPPORTED_TEMPLATES = [
     "Cloze",
 ]
 
-# Theme Colors (Pure Black OLED / AMOLED Palette)
+# Theme Colors (Pure Black OLED / AMOLED & Liquid Glass Palette)
 COLOR_PURE_BLACK = "#000000"
-COLOR_SURFACE_DARK = "#0C0D0E"
-COLOR_SURFACE_SECONDARY = "#16181A"
-COLOR_SURFACE_TERTIARY = "#212427"
-COLOR_BORDER = "#2A2E33"
+COLOR_SURFACE_DARK = "rgba(18, 21, 28, 0.75)"
+COLOR_SURFACE_SECONDARY = "rgba(28, 33, 44, 0.78)"
+COLOR_SURFACE_TERTIARY = "rgba(36, 42, 54, 0.8)"
+COLOR_BORDER = "rgba(255, 255, 255, 0.14)"
 COLOR_TEXT_PRIMARY = "#FFFFFF"
-COLOR_TEXT_SECONDARY = "#A0AAB4"
-COLOR_TEXT_MUTED = "#6B7280"
-COLOR_ACCENT_PRIMARY = "#3B82F6"      # Modern Vibrant Blue
-COLOR_ACCENT_HOVER = "#2563EB"
-COLOR_ACCENT_ACTIVE = "#1D4ED8"
-COLOR_SUCCESS = "#10B981"
-COLOR_WARNING = "#F59E0B"
-COLOR_ERROR = "#EF4444"
+COLOR_TEXT_SECONDARY = "#EBEBF5"
+COLOR_TEXT_MUTED = "rgba(235, 235, 245, 0.55)"
+COLOR_ACCENT_PRIMARY = "#0A84FF"      # Apple iOS Blue
+COLOR_ACCENT_HOVER = "#409CFF"
+COLOR_ACCENT_ACTIVE = "#0066CC"
+COLOR_SUCCESS = "#30D158"
+COLOR_WARNING = "#FF9F0A"
+COLOR_ERROR = "#FF453A"
 
 # Default Network & Bridge Ports
 DEFAULT_HTTP_BRIDGE_PORT = 8765

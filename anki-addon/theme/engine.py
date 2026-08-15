@@ -1,6 +1,6 @@
 """
-Theme Engine for Pure Black (#000000) AMOLED Theme.
-Controls Qt application stylesheets and Webview CSS injection hooks.
+Theme Engine for Full Black (#000000) AMOLED & iOS Liquid Glass Theme.
+Controls Qt application stylesheets and injects scoped CSS into all Anki WebViews.
 """
 
 from typing import Any, Optional
@@ -19,10 +19,10 @@ except (ImportError, ValueError):
 # Check Anki & GUI availability
 try:
     from aqt import gui_hooks, mw
-    from aqt.qt import QApplication
+    from aqt.qt import QApplication, QColor, QPalette
     ANKI_AVAILABLE = True
 except ImportError:
-    gui_hooks = mw = QApplication = None
+    gui_hooks = mw = QApplication = QColor = QPalette = None
     ANKI_AVAILABLE = False
 
 
@@ -53,10 +53,10 @@ class ThemeEngine:
             self.deactivate()
 
     def activate(self) -> None:
-        """Activate Pure Black theme across Qt widgets and WebViews."""
+        """Activate Full Black #000000 theme across Qt widgets and WebViews."""
         if not ANKI_AVAILABLE or mw is None:
             self._is_active = True
-            logger.info("[ThemeEngine] Pure Black theme active (Headless/Mock mode).")
+            logger.info("[ThemeEngine] Full Black theme active (Headless/Mock mode).")
             return
 
         try:
@@ -67,13 +67,29 @@ class ThemeEngine:
             if self._original_stylesheet is None:
                 self._original_stylesheet = mw.styleSheet() or ""
 
-            # Apply QSS to Anki's main window and global app instance
+            # 1. Apply QSS to Anki's main window and global app instance
             mw.setStyleSheet(qss)
             app = QApplication.instance()
             if app:
                 app.setStyleSheet(qss)
+                # Force Qt dark palette for native frames
+                if QPalette is not None and QColor is not None:
+                    palette = QPalette()
+                    palette.setColor(QPalette.ColorRole.Window, QColor("#000000"))
+                    palette.setColor(QPalette.ColorRole.WindowText, QColor("#FFFFFF"))
+                    palette.setColor(QPalette.ColorRole.Base, QColor("#000000"))
+                    palette.setColor(QPalette.ColorRole.AlternateBase, QColor("#12151C"))
+                    palette.setColor(QPalette.ColorRole.ToolTipBase, QColor("#1C212C"))
+                    palette.setColor(QPalette.ColorRole.ToolTipText, QColor("#FFFFFF"))
+                    palette.setColor(QPalette.ColorRole.Text, QColor("#FFFFFF"))
+                    palette.setColor(QPalette.ColorRole.Button, QColor("#161A22"))
+                    palette.setColor(QPalette.ColorRole.ButtonText, QColor("#FFFFFF"))
+                    palette.setColor(QPalette.ColorRole.BrightText, QColor("#FF453A"))
+                    palette.setColor(QPalette.ColorRole.Highlight, QColor(accent))
+                    palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#FFFFFF"))
+                    app.setPalette(palette)
 
-            # Register Webview hook if enabled
+            # 2. Register Webview hooks
             if config.get("theme.apply_to_webviews", True) and not self._hook_registered:
                 try:
                     if hasattr(gui_hooks, "webview_will_set_content"):
@@ -82,11 +98,11 @@ class ThemeEngine:
                 except Exception as e:
                     logger.warning(f"[ThemeEngine] Could not register webview hook: {e}")
 
-            # Refresh active webviews if possible
+            # 3. Refresh active webviews
             self._refresh_views()
 
             self._is_active = True
-            logger.info("[ThemeEngine] Pure Black AMOLED Theme activated successfully.")
+            logger.info("[ThemeEngine] Full Black #000000 Theme activated.")
 
         except Exception as e:
             logger.error(f"[ThemeEngine] Failed activating theme: {e}", exc_info=True)
@@ -98,14 +114,12 @@ class ThemeEngine:
             return
 
         try:
-            # Restore original stylesheet
             restore_qss = self._original_stylesheet or ""
             mw.setStyleSheet(restore_qss)
             app = QApplication.instance()
             if app:
                 app.setStyleSheet(restore_qss)
 
-            # Remove webview hook
             if self._hook_registered:
                 try:
                     if hasattr(gui_hooks, "webview_will_set_content"):
@@ -117,30 +131,38 @@ class ThemeEngine:
 
             self._refresh_views()
             self._is_active = False
-            logger.info("[ThemeEngine] Pure Black AMOLED Theme deactivated.")
+            logger.info("[ThemeEngine] Full Black Theme deactivated.")
 
         except Exception as e:
             logger.error(f"[ThemeEngine] Error deactivating theme: {e}", exc_info=True)
 
     def _on_webview_will_set_content(self, web_content: Any, context: Optional[Any] = None) -> None:
-        """Inject pure black CSS directly into Anki WebViews (DeckBrowser, Reviewer, etc.)."""
+        """Inject full black CSS directly into Anki WebViews (DeckBrowser, Reviewer, BottomBar, etc.)."""
         if not self._is_active:
             return
 
         try:
             accent = config.get("theme.accent", self._palette.ACCENT_PRIMARY)
             css = generate_webview_css(self._palette, accent=accent)
-            web_content.css.append(css)
+
+            # Both append raw style tag in HTML head and add to CSS bundle
+            style_tag = f"<style id='awt-fullblack-theme'>{css}</style>"
+            if hasattr(web_content, "head"):
+                web_content.head += style_tag
+            if hasattr(web_content, "css"):
+                web_content.css.append(css)
         except Exception as e:
             logger.error(f"[ThemeEngine] Failed injecting webview CSS: {e}")
 
     def _refresh_views(self) -> None:
-        """Trigger redraw of main window views."""
+        """Trigger redraw of main window and web views."""
         try:
             if hasattr(mw, "reset"):
                 mw.reset()
-            elif hasattr(mw, "deckBrowser") and hasattr(mw.deckBrowser, "refresh"):
+            if hasattr(mw, "deckBrowser") and hasattr(mw.deckBrowser, "refresh"):
                 mw.deckBrowser.refresh()
+            if hasattr(mw, "reviewer") and hasattr(mw.reviewer, "refresh"):
+                mw.reviewer.refresh()
         except Exception:
             pass
 

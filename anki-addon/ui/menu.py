@@ -1,6 +1,6 @@
 """
 Main Menu and Tools Menu Integration for Anki Desktop.
-Injects the 'Anki Discord Toolkit' submenu and global shortcuts into Anki's GUI.
+Injects the 'Anki Wykiati Toolkit' submenu and global shortcuts into Anki's GUI.
 """
 
 from typing import Optional
@@ -56,13 +56,13 @@ class ToolkitMenuManager:
             self._submenu = QMenu(TOOLS_MENU_ENTRY, mw)
 
             # Dashboard Action
-            act_dash = QAction("📊 Dashboard e Métricas...", mw)
+            act_dash = QAction("Dashboard and Metrics...", mw)
             act_dash.setShortcut(QKeySequence("Ctrl+Shift+D"))
             act_dash.triggered.connect(self.show_dashboard)
             self._submenu.addAction(act_dash)
 
-            # Toggle Pure Black Quick Action
-            act_toggle = QAction("🖤 Alternar Tema Pure Black", mw)
+            # Toggle Full Black Theme Quick Action
+            act_toggle = QAction("Toggle Full Black Theme", mw)
             act_toggle.setShortcut(QKeySequence("Ctrl+Shift+B"))
             act_toggle.triggered.connect(self.toggle_pure_black_theme)
             self._submenu.addAction(act_toggle)
@@ -70,35 +70,35 @@ class ToolkitMenuManager:
             self._submenu.addSeparator()
 
             # Theme Settings Action
-            act_theme = QAction("🎨 Configurações do Tema...", mw)
+            act_theme = QAction("Theme and Appearance Settings...", mw)
             act_theme.triggered.connect(self.show_theme_settings)
             self._submenu.addAction(act_theme)
 
             # Discord Settings Action
-            act_discord = QAction("💬 Configurações do Discord...", mw)
+            act_discord = QAction("Discord and Image Settings...", mw)
             act_discord.triggered.connect(self.show_discord_settings)
             self._submenu.addAction(act_discord)
 
             # Deck Rules Action
-            act_rules = QAction("🎯 Regras de Roteamento de Decks...", mw)
+            act_rules = QAction("Smart Deck Routing Rules...", mw)
             act_rules.triggered.connect(self.show_deck_rules)
             self._submenu.addAction(act_rules)
 
             # Templates Action
-            act_templates = QAction("🧩 Gerenciador de Templates...", mw)
+            act_templates = QAction("Card Template Manager...", mw)
             act_templates.triggered.connect(self.show_templates)
             self._submenu.addAction(act_templates)
 
             self._submenu.addSeparator()
 
             # About Action
-            act_about = QAction("ℹ️ Sobre o Anki Discord Toolkit...", mw)
+            act_about = QAction("About Wykiati Toolkit...", mw)
             act_about.triggered.connect(self.show_about)
             self._submenu.addAction(act_about)
 
             # Add to Tools Menu
             mw.form.menuTools.addMenu(self._submenu)
-            logger.info("[MenuManager] Registered 'Anki Discord Toolkit' in Tools menu.")
+            logger.info("[MenuManager] Registered 'Anki Wykiati Toolkit' in Tools menu.")
 
         except Exception as e:
             logger.error(f"[MenuManager] Failed registering menu items: {e}", exc_info=True)

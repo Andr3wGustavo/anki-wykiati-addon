@@ -1,6 +1,6 @@
 """
-Stylesheet Generators for Native Qt (QSS) and Webviews (CSS).
-Implements modern iOS Liquid Glass / Frosted Glassmorphism aesthetics with AMOLED black backdrop.
+Comprehensive Stylesheet Generators for Native Qt (QSS) and Webviews (CSS).
+Implements True Full Black (#000000 OLED) with modern iOS Liquid Glass surfaces.
 """
 
 from typing import Optional
@@ -9,12 +9,12 @@ from .palette import PALETTE, ThemePalette
 
 def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) -> str:
     """
-    Generate comprehensive iOS Liquid Glass Qt StyleSheet (QSS).
-    Features translucent frosted surfaces, rounded glass buttons, and crisp typography.
+    Generate comprehensive Full Black (#000000) and iOS Liquid Glass Qt StyleSheet (QSS).
+    Targets all standard Qt widgets, Anki custom frames, and modal dialogs.
     """
     acc = accent or palette.ACCENT_PRIMARY
-    bg = palette.BACKGROUND_PURE_BLACK
-    surf = palette.BACKGROUND_SURFACE
+    bg = palette.BACKGROUND_PURE_BLACK  # #000000
+    surf = palette.BACKGROUND_SURFACE   # rgba(18, 21, 28, 0.75)
     surf_el = palette.BACKGROUND_SURFACE_ELEVATED
     surf_hov = palette.BACKGROUND_SURFACE_HOVER
     border = palette.BORDER_DEFAULT
@@ -25,27 +25,76 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
     text_muted = palette.TEXT_MUTED
 
     return f"""
-    /* --- iOS Liquid Glass Global Base --- */
-    QWidget {{
+    /* =========================================================================
+       GLOBAL FULL BLACK (#000000) BASE & TYPOGRAPHY
+       ========================================================================= */
+    * {{
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+        outline: none;
+    }}
+
+    QWidget, QMainWindow, QDialog, QFrame, QSplitter, QStackedWidget, QScrollArea {{
         background-color: {bg};
         color: {text};
-        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
-        font-size: 13px;
         selection-background-color: {acc};
         selection-color: #FFFFFF;
     }}
 
-    QMainWindow, QDialog {{
+    /* Main Window and Dock Areas */
+    QMainWindow::separator {{
+        background-color: {border_subtle};
+        width: 1px;
+        height: 1px;
+    }}
+    QDockWidget {{
         background-color: {bg};
         color: {text};
+        titlebar-close-icon: none;
+        titlebar-normal-icon: none;
+    }}
+    QDockWidget::title {{
+        background-color: rgba(14, 16, 22, 0.85);
+        color: {text_sec};
+        padding: 6px 10px;
+        border-bottom: 1px solid {border_subtle};
     }}
 
-    /* --- Menus & Navigation --- */
+    /* =========================================================================
+       TOOLBARS, STATUS BARS & MENUS
+       ========================================================================= */
+    QToolBar {{
+        background-color: {bg};
+        border-bottom: 1px solid {border_subtle};
+        padding: 4px 8px;
+        spacing: 6px;
+    }}
+    QToolBar QToolButton {{
+        background-color: {surf};
+        color: {text};
+        border: 1px solid {border_subtle};
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-weight: 500;
+    }}
+    QToolBar QToolButton:hover {{
+        background-color: {surf_hov};
+        border-color: {border_strong};
+    }}
+    QToolBar QToolButton:pressed {{
+        background-color: {palette.BACKGROUND_SURFACE_ACTIVE};
+    }}
+
+    QStatusBar {{
+        background-color: {bg};
+        color: {text_muted};
+        border-top: 1px solid {border_subtle};
+    }}
+
     QMenuBar {{
-        background-color: rgba(15, 17, 22, 0.85);
+        background-color: {bg};
         color: {text};
         border-bottom: 1px solid {border_subtle};
-        padding: 4px 6px;
+        padding: 4px 8px;
     }}
     QMenuBar::item {{
         background: transparent;
@@ -56,15 +105,16 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
         background-color: {surf_hov};
         color: {text};
     }}
+
     QMenu {{
-        background-color: {surf_el};
+        background-color: rgba(22, 26, 34, 0.95);
         color: {text};
         border: 1px solid {border_strong};
         border-radius: 12px;
         padding: 6px;
     }}
     QMenu::item {{
-        padding: 6px 24px 6px 14px;
+        padding: 7px 24px 7px 12px;
         border-radius: 6px;
     }}
     QMenu::item:selected {{
@@ -77,15 +127,18 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
         margin: 4px 8px;
     }}
 
-    /* --- Modern iOS Glass Buttons --- */
+    /* =========================================================================
+       MODERN LIQUID GLASS BUTTONS
+       ========================================================================= */
     QPushButton {{
         background-color: {surf_el};
         color: {text};
         border: 1px solid {border};
-        border-radius: 8px;
-        padding: 7px 18px;
+        border-radius: 10px;
+        padding: 8px 18px;
+        font-size: 13px;
         font-weight: 500;
-        min-height: 24px;
+        min-height: 22px;
     }}
     QPushButton:hover {{
         background-color: {surf_hov};
@@ -96,13 +149,13 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
     }}
     QPushButton:default, QPushButton[primary="true"] {{
         background-color: {acc};
-        border: 1px solid rgba(255, 255, 255, 0.25);
+        border: 1px solid rgba(255, 255, 255, 0.3);
         color: #FFFFFF;
         font-weight: 600;
     }}
     QPushButton:default:hover, QPushButton[primary="true"]:hover {{
         background-color: {palette.ACCENT_HOVER};
-        border-color: rgba(255, 255, 255, 0.4);
+        border-color: rgba(255, 255, 255, 0.5);
     }}
     QPushButton:disabled {{
         background-color: rgba(255, 255, 255, 0.03);
@@ -110,47 +163,50 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
         border-color: {border_subtle};
     }}
 
-    /* --- Glass Input Fields --- */
+    /* =========================================================================
+       GLASS INPUT FIELDS
+       ========================================================================= */
     QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox, QComboBox {{
-        background-color: rgba(12, 14, 18, 0.85);
+        background-color: rgba(12, 14, 18, 0.9);
         color: {text};
         border: 1px solid {border};
-        border-radius: 8px;
-        padding: 7px 12px;
+        border-radius: 9px;
+        padding: 8px 12px;
+        font-size: 13px;
     }}
     QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus, QSpinBox:focus, QComboBox:focus {{
         border: 1px solid {palette.BORDER_FOCUS};
-        background-color: rgba(18, 20, 26, 0.95);
+        background-color: rgba(18, 22, 30, 0.95);
     }}
     QLineEdit:disabled, QTextEdit:disabled, QPlainTextEdit:disabled, QComboBox:disabled {{
-        background-color: rgba(10, 10, 12, 0.5);
+        background-color: rgba(10, 10, 12, 0.4);
         color: {palette.TEXT_DISABLED};
     }}
 
-    /* --- Combo Boxes Dropdown --- */
     QComboBox::drop-down {{
         border: none;
         width: 24px;
     }}
     QComboBox QAbstractItemView {{
-        background-color: {surf_el};
+        background-color: rgba(22, 26, 34, 0.98);
         color: {text};
         border: 1px solid {border_strong};
         border-radius: 8px;
         padding: 4px;
         selection-background-color: {acc};
         selection-color: #FFFFFF;
-        outline: none;
     }}
 
-    /* --- iOS Frosted Group Boxes & Cards --- */
+    /* =========================================================================
+       GROUP BOXES & CONTAINERS
+       ========================================================================= */
     QGroupBox {{
-        background-color: rgba(18, 20, 26, 0.65);
+        background-color: rgba(16, 18, 24, 0.7);
         border: 1px solid {border};
-        border-radius: 12px;
+        border-radius: 14px;
         margin-top: 24px;
-        padding: 18px 14px 14px 14px;
-        font-weight: bold;
+        padding: 20px 16px 16px 16px;
+        font-weight: 600;
         color: {text};
     }}
     QGroupBox::title {{
@@ -163,16 +219,17 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
         color: {acc};
     }}
 
-    /* --- Tables, Trees, Lists --- */
-    QTableView, QListView, QTreeView {{
-        background-color: rgba(12, 14, 18, 0.8);
+    /* =========================================================================
+       TABLES, LISTS & TREES (BROWSER / DECK LIST)
+       ========================================================================= */
+    QTableView, QListView, QTreeView, QTableWidget, QListWidget, QTreeWidget {{
+        background-color: {bg};
         color: {text};
         border: 1px solid {border};
-        border-radius: 10px;
+        border-radius: 12px;
         gridline-color: {border_subtle};
         selection-background-color: {palette.ACCENT_SUBTLE};
         selection-color: {text};
-        outline: none;
     }}
     QTableView::item:hover, QListView::item:hover, QTreeView::item:hover {{
         background-color: {surf_hov};
@@ -181,10 +238,9 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
         background-color: {palette.ACCENT_SUBTLE};
         color: {acc};
         font-weight: 600;
-        border-radius: 4px;
     }}
     QHeaderView::section {{
-        background-color: rgba(22, 26, 34, 0.85);
+        background-color: rgba(18, 21, 28, 0.95);
         color: {text_sec};
         border: none;
         border-bottom: 1px solid {border};
@@ -193,15 +249,17 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
         font-weight: 600;
     }}
 
-    /* --- Floating Capsule Tabs --- */
+    /* =========================================================================
+       FLOATING CAPSULE TABS
+       ========================================================================= */
     QTabWidget::pane {{
         border: 1px solid {border};
-        background-color: rgba(14, 16, 20, 0.7);
+        background-color: rgba(14, 16, 22, 0.75);
         border-radius: 12px;
         top: -1px;
     }}
     QTabBar::tab {{
-        background-color: rgba(24, 28, 36, 0.6);
+        background-color: rgba(22, 26, 34, 0.6);
         color: {text_sec};
         border: 1px solid {border_subtle};
         border-bottom: none;
@@ -211,7 +269,7 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
         margin-right: 4px;
     }}
     QTabBar::tab:selected {{
-        background-color: rgba(14, 16, 20, 0.95);
+        background-color: rgba(14, 16, 22, 0.95);
         color: {acc};
         border: 1px solid {border};
         border-bottom: 1px solid transparent;
@@ -222,14 +280,16 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
         color: {text};
     }}
 
-    /* --- Thin Pill Scrollbars --- */
+    /* =========================================================================
+       THIN PILL SCROLLBARS
+       ========================================================================= */
     QScrollBar:vertical {{
         background-color: transparent;
         width: 8px;
         margin: 0;
     }}
     QScrollBar::handle:vertical {{
-        background-color: rgba(255, 255, 255, 0.2);
+        background-color: rgba(255, 255, 255, 0.18);
         min-height: 28px;
         border-radius: 4px;
         margin: 2px;
@@ -246,7 +306,7 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
         margin: 0;
     }}
     QScrollBar::handle:horizontal {{
-        background-color: rgba(255, 255, 255, 0.2);
+        background-color: rgba(255, 255, 255, 0.18);
         min-width: 28px;
         border-radius: 4px;
         margin: 2px;
@@ -255,7 +315,9 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
         width: 0px;
     }}
 
-    /* --- Checkboxes & Switches --- */
+    /* =========================================================================
+       CHECKBOXES & RADIO BUTTONS
+       ========================================================================= */
     QCheckBox, QRadioButton {{
         color: {text};
         spacing: 10px;
@@ -274,28 +336,20 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
         background-color: {acc};
         border-color: {acc};
     }}
-    QCheckBox::indicator:hover, QRadioButton::indicator:hover {{
-        border-color: {acc};
-    }}
-
-    /* --- Tooltips --- */
-    QToolTip {{
-        background-color: rgba(28, 32, 42, 0.95);
-        color: {text};
-        border: 1px solid {border_strong};
-        border-radius: 6px;
-        padding: 6px 10px;
-    }}
     """
 
 
 def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] = None) -> str:
     """
-    Generate CSS for Anki's WebViews (Deck Browser, Card Reviewer, etc.)
-    with frosted glass card containers and high contrast readability.
+    Generate comprehensive Full Black (#000000) and Frosted Glass CSS for ALL Anki WebViews:
+    - Deck Browser & Home Page
+    - Card Reviewer (Front & Back)
+    - Bottom Action Toolbar
+    - Statistics & Graphs
+    - Overview Screen
     """
     acc = accent or palette.ACCENT_PRIMARY
-    bg = palette.BACKGROUND_PURE_BLACK
+    bg = palette.BACKGROUND_PURE_BLACK  # #000000
     surf = palette.BACKGROUND_SURFACE
     surf_el = palette.BACKGROUND_SURFACE_ELEVATED
     border = palette.BORDER_DEFAULT
@@ -303,89 +357,158 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
     text_sec = palette.TEXT_SECONDARY
 
     return f"""
-    /* --- iOS Liquid Glass Webview Styles --- */
-    html, body, #qa, .card, .nightMode, .night_mode, body.nightMode {{
+    /* =========================================================================
+       ROOT CSS CUSTOM PROPERTIES OVERRIDE FOR MODERN ANKI (2.1.50+ / 23.x / 24.x)
+       ========================================================================= */
+    :root, html, body, .night_mode, .nightMode, [data-bs-theme="dark"] {{
+        --canvas: {bg} !important;
+        --surface: {bg} !important;
+        --surface-ground: {bg} !important;
+        --surface-card: rgba(18, 21, 28, 0.8) !important;
+        --surface-overlay: rgba(28, 33, 44, 0.9) !important;
+        --fg: {text} !important;
+        --fg-muted: {text_sec} !important;
+        --card-bg: {bg} !important;
+        --card-border: {border} !important;
+        --border: {border} !important;
+        --border-subtle: rgba(255, 255, 255, 0.08) !important;
+        --window-bg: {bg} !important;
+        --toolbar-bg: {bg} !important;
+        --header-bg: {bg} !important;
+        --footer-bg: {bg} !important;
+        --link: {acc} !important;
+        --accent: {acc} !important;
         background-color: {bg} !important;
         background: {bg} !important;
         color: {text} !important;
-        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif !important;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif !important;
     }}
 
-    /* Card Container with Frosted Glass */
+    /* Force Full Black Background Everywhere */
+    html, body, #outer, #main, #main-content, #header, #footer, #qa, #content,
+    .nightMode, body.nightMode, body:not(.nightMode), #deckbrowser, .deck-table,
+    #overview, .overview, #stats, .stats {{
+        background-color: {bg} !important;
+        background: {bg} !important;
+        color: {text} !important;
+    }}
+
+    /* =========================================================================
+       DECK BROWSER & DECK LIST STYLES
+       ========================================================================= */
+    #deckbrowser, .deck-table, table.deck-table {{
+        background-color: {bg} !important;
+        border-collapse: separate !important;
+        border-spacing: 0 4px !important;
+        width: 100% !important;
+    }}
+
+    tr.deck {{
+        background-color: rgba(16, 18, 24, 0.75) !important;
+        border-radius: 10px !important;
+        transition: background-color 0.15s ease !important;
+    }}
+    tr.deck:hover {{
+        background-color: rgba(255, 255, 255, 0.08) !important;
+    }}
+    td.decktd {{
+        padding: 10px 14px !important;
+        border: none !important;
+    }}
+    a.deckname {{
+        color: {text} !important;
+        font-weight: 500 !important;
+        text-decoration: none !important;
+        font-size: 14px !important;
+    }}
+    a.deckname:hover {{
+        color: {acc} !important;
+    }}
+
+    /* Study Counts Badges */
+    .new-count, .count-new, .new-count-badge {{
+        color: {acc} !important;
+        font-weight: 700 !important;
+    }}
+    .learn-count, .count-learn, .learn-count-badge {{
+        color: {palette.WARNING} !important;
+        font-weight: 700 !important;
+    }}
+    .review-count, .count-review, .review-count-badge {{
+        color: {palette.SUCCESS} !important;
+        font-weight: 700 !important;
+    }}
+
+    /* =========================================================================
+       CARD REVIEWER (FRONT & BACK)
+       ========================================================================= */
     .card {{
-        background: rgba(18, 20, 26, 0.8) !important;
-        border: 1px solid rgba(255, 255, 255, 0.12) !important;
-        border-radius: 16px !important;
-        padding: 24px !important;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
+        background: rgba(18, 21, 28, 0.8) !important;
+        border: 1px solid rgba(255, 255, 255, 0.14) !important;
+        border-radius: 18px !important;
+        padding: 28px !important;
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8) !important;
+        max-width: 860px !important;
+        margin: 20px auto !important;
+        text-align: left !important;
     }}
 
-    /* Images */
+    /* Responsive Images Ingested from Discord */
     img {{
         max-width: 100% !important;
         height: auto !important;
-        border-radius: 12px !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
-        margin: 12px 0 !important;
+        border-radius: 14px !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7) !important;
+        margin: 14px 0 !important;
         display: block !important;
     }}
 
-    /* Links and Buttons */
-    a {{
-        color: {acc} !important;
-        text-decoration: none !important;
-    }}
-    a:hover {{
-        text-decoration: underline !important;
-    }}
-
-    /* Cloze Deletions */
+    /* Cloze Deletion Highlights */
     .cloze {{
-        color: {palette.CLOZE_COLOR} !important;
+        color: #BF5AF2 !important;
         font-weight: 700 !important;
-        background: rgba(94, 92, 230, 0.15) !important;
+        background: rgba(191, 90, 242, 0.15) !important;
         padding: 2px 6px !important;
-        border-radius: 4px !important;
-    }}
-
-    /* Tables & Boxes */
-    table, th, td {{
-        border-color: {border} !important;
-    }}
-    th {{
-        background-color: {surf_el} !important;
-        color: {text} !important;
-    }}
-    tr:nth-child(even) td {{
-        background-color: {surf} !important;
-    }}
-
-    /* Deck Browser Counts */
-    .new-count {{
-        color: {acc} !important;
-        font-weight: bold !important;
-    }}
-    .learn-count {{
-        color: {palette.ERROR} !important;
-        font-weight: bold !important;
-    }}
-    .review-count {{
-        color: {palette.SUCCESS} !important;
-        font-weight: bold !important;
+        border-radius: 5px !important;
+        border: 1px solid rgba(191, 90, 242, 0.3) !important;
     }}
 
     /* Code Blocks */
     pre, code {{
-        background-color: rgba(14, 16, 22, 0.9) !important;
+        background-color: rgba(12, 14, 18, 0.9) !important;
         border: 1px solid {border} !important;
         color: #64D2FF !important;
         border-radius: 8px !important;
         padding: 3px 8px !important;
-        font-family: "SF Mono", "Fira Code", "JetBrains Mono", Consolas, monospace !important;
+        font-family: "SF Mono", "JetBrains Mono", Consolas, monospace !important;
     }}
     pre code {{
-        padding: 12px !important;
+        padding: 14px !important;
         display: block !important;
+    }}
+
+    /* =========================================================================
+       BOTTOM ACTION BAR & REVIEW BUTTONS
+       ========================================================================= */
+    #bottomWeb, #outer, #bottomBar, footer {{
+        background-color: {bg} !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }}
+
+    button, .btn, .button, input[type="button"], input[type="submit"] {{
+        background: rgba(28, 33, 44, 0.85) !important;
+        color: {text} !important;
+        border: 1px solid rgba(255, 255, 255, 0.14) !important;
+        border-radius: 10px !important;
+        padding: 8px 18px !important;
+        font-weight: 600 !important;
+        font-size: 13px !important;
+        cursor: pointer !important;
+        transition: all 0.15s ease !important;
+    }}
+    button:hover, .btn:hover {{
+        background: rgba(255, 255, 255, 0.14) !important;
+        border-color: rgba(255, 255, 255, 0.28) !important;
     }}
     """

@@ -1,5 +1,5 @@
 """
-Rich Dashboard for Anki Discord Toolkit.
+Rich Operational Dashboard for Anki Wykiati Toolkit.
 Provides real-time statistics, job queue visualization, manual test card creation, and bridge health status.
 """
 
@@ -92,13 +92,13 @@ class DashboardDialog(BaseToolkitDialog):
     def __init__(self, parent: Optional[Any] = None) -> None:
         super().__init__(
             parent,
-            title="Dashboard & Monitor de Sincronização",
-            subtitle=f"{ADDON_NAME} v{ADDON_VERSION} — Centro de Controle Operacional",
+            title="Dashboard and Synchronization Monitor",
+            subtitle=f"{ADDON_NAME} v{ADDON_VERSION} - Control Center",
         )
         if not QT_AVAILABLE:
             return
 
-        self.setMinimumSize(780, 560)
+        self.setMinimumSize(800, 560)
         self._build_ui()
         self._refresh_data()
 
@@ -110,42 +110,46 @@ class DashboardDialog(BaseToolkitDialog):
         metrics_grid = QGridLayout()
         metrics_grid.setSpacing(10)
 
-        self.lbl_cards_created = self._create_stat_card("Cartões Criados", "0", PALETTE.SUCCESS, metrics_grid, 0, 0)
-        self.lbl_msgs_processed = self._create_stat_card("Mensagens Recebidas", "0", PALETTE.ACCENT_PRIMARY, metrics_grid, 0, 1)
-        self.lbl_queue_pending = self._create_stat_card("Fila Pendente", "0", PALETTE.WARNING, metrics_grid, 0, 2)
-        self.lbl_failed_jobs = self._create_stat_card("Falhas / Erros", "0", PALETTE.ERROR, metrics_grid, 0, 3)
+        self.lbl_cards_created = self._create_stat_card("Cards Created", "0", PALETTE.SUCCESS, metrics_grid, 0, 0)
+        self.lbl_images_ingested = self._create_stat_card("Images Ingested", "0", PALETTE.ACCENT_PRIMARY, metrics_grid, 0, 1)
+        self.lbl_queue_pending = self._create_stat_card("Pending Queue", "0", PALETTE.WARNING, metrics_grid, 0, 2)
+        self.lbl_failed_jobs = self._create_stat_card("Failed Jobs", "0", PALETTE.ERROR, metrics_grid, 0, 3)
 
         main_layout.addLayout(metrics_grid)
 
         # 2. Quick Card Test Box
         test_frame = QFrame(self)
-        test_frame.setStyleSheet(f"background-color: {PALETTE.BACKGROUND_SURFACE}; border: 1px solid {PALETTE.BORDER_DEFAULT}; border-radius: 8px; padding: 8px;")
+        test_frame.setStyleSheet(
+            f"background-color: {PALETTE.BACKGROUND_SURFACE}; "
+            f"border: 1px solid {PALETTE.BORDER_DEFAULT}; "
+            f"border-radius: 12px; padding: 10px;"
+        )
         test_layout = QVBoxLayout(test_frame)
-        test_layout.setSpacing(6)
+        test_layout.setSpacing(8)
 
-        test_title = QLabel("🧪 Criador Rápido de Cartão (Teste Manual)", test_frame)
-        test_title.setStyleSheet("font-weight: bold; color: #FFFFFF;")
+        test_title = QLabel("Manual Flashcard Quick Creator", test_frame)
+        test_title.setStyleSheet("font-weight: bold; color: #FFFFFF; font-size: 13px;")
         test_layout.addWidget(test_title)
 
         input_row = QHBoxLayout()
         self.txt_front = QLineEdit(test_frame)
-        self.txt_front.setPlaceholderText("Frente da Carta (Pergunta)")
+        self.txt_front.setPlaceholderText("Front / Question")
         input_row.addWidget(self.txt_front, 2)
 
         self.txt_back = QLineEdit(test_frame)
-        self.txt_back.setPlaceholderText("Verso da Carta (Resposta)")
+        self.txt_back.setPlaceholderText("Back / Answer")
         input_row.addWidget(self.txt_back, 2)
 
         self.txt_deck = QLineEdit(test_frame)
-        self.txt_deck.setPlaceholderText("Deck (ex: Dev::Python)")
+        self.txt_deck.setPlaceholderText("Deck (e.g. Medicine::Cardiology)")
         input_row.addWidget(self.txt_deck, 1)
 
         self.txt_tags = QLineEdit(test_frame)
-        self.txt_tags.setPlaceholderText("Tags (ex: test, dev)")
+        self.txt_tags.setPlaceholderText("Tags (e.g. test, cardiology)")
         input_row.addWidget(self.txt_tags, 1)
 
-        self.btn_create_test = QPushButton("⚡ Criar Cartão", test_frame)
-        self.btn_create_test.setStyleSheet(f"background-color: {PALETTE.ACCENT_PRIMARY}; color: #FFFFFF; font-weight: bold;")
+        self.btn_create_test = QPushButton("Create Card", test_frame)
+        self.btn_create_test.setProperty("primary", "true")
         self.btn_create_test.clicked.connect(self._create_manual_card)
         input_row.addWidget(self.btn_create_test)
 
@@ -154,16 +158,16 @@ class DashboardDialog(BaseToolkitDialog):
 
         # 3. Recent Activity & Jobs Table
         table_header_layout = QHBoxLayout()
-        table_label = QLabel("📋 Histórico Recente de Trabalhos (Jobs)", self)
-        table_label.setStyleSheet("font-weight: bold; color: #FFFFFF;")
+        table_label = QLabel("Recent Synchronization Jobs", self)
+        table_label.setStyleSheet("font-weight: bold; color: #FFFFFF; font-size: 13px;")
         table_header_layout.addWidget(table_label)
         table_header_layout.addStretch()
 
-        self.btn_sync_now = QPushButton("🔄 Processar Fila Agora", self)
+        self.btn_sync_now = QPushButton("Process Queue Now", self)
         self.btn_sync_now.clicked.connect(self._sync_queue_now)
         table_header_layout.addWidget(self.btn_sync_now)
 
-        self.btn_refresh = QPushButton("↻ Atualizar", self)
+        self.btn_refresh = QPushButton("Refresh", self)
         self.btn_refresh.clicked.connect(self._refresh_data)
         table_header_layout.addWidget(self.btn_refresh)
 
@@ -171,14 +175,14 @@ class DashboardDialog(BaseToolkitDialog):
 
         self.table_jobs = QTableWidget(self)
         self.table_jobs.setColumnCount(5)
-        self.table_jobs.setHorizontalHeaderLabels(["ID", "Status", "Frente (Pergunta)", "Deck", "Horário / Nota"])
+        self.table_jobs.setHorizontalHeaderLabels(["Job ID", "Status", "Front Content", "Target Deck", "Time / Note ID"])
         if hasattr(self.table_jobs.horizontalHeader(), "setStretchLastSection"):
             self.table_jobs.horizontalHeader().setStretchLastSection(True)
         main_layout.addWidget(self.table_jobs)
 
-        # Custom buttons layout
+        # Footer Button
         self.btn_save.setVisible(False)
-        self.btn_cancel.setText("Fechar")
+        self.btn_cancel.setText("Close")
 
         self.body_layout.addLayout(main_layout)
 
@@ -187,18 +191,18 @@ class DashboardDialog(BaseToolkitDialog):
         frame.setStyleSheet(
             f"background-color: {PALETTE.BACKGROUND_SURFACE_ELEVATED}; "
             f"border: 1px solid {PALETTE.BORDER_DEFAULT}; "
-            f"border-radius: 8px; padding: 8px;"
+            f"border-radius: 12px; padding: 10px;"
         )
         layout = QVBoxLayout(frame)
-        layout.setContentsMargins(8, 6, 8, 6)
+        layout.setContentsMargins(10, 8, 10, 8)
         layout.setSpacing(2)
 
         lbl_title = QLabel(title, frame)
-        lbl_title.setStyleSheet(f"font-size: 11px; color: {PALETTE.TEXT_MUTED}; text-transform: uppercase;")
+        lbl_title.setStyleSheet(f"font-size: 11px; color: {PALETTE.TEXT_MUTED}; text-transform: uppercase; font-weight: 600;")
         layout.addWidget(lbl_title)
 
         lbl_val = QLabel(initial_value, frame)
-        lbl_val.setStyleSheet(f"font-size: 20px; font-weight: bold; color: {color};")
+        lbl_val.setStyleSheet(f"font-size: 22px; font-weight: bold; color: {color};")
         layout.addWidget(lbl_val)
 
         grid.addWidget(frame, row, col)
@@ -207,12 +211,12 @@ class DashboardDialog(BaseToolkitDialog):
     def _refresh_data(self) -> None:
         stats = config.get("stats", {})
         cards_created = stats.get("cards_created", 0)
-        messages_processed = stats.get("messages_processed", 0)
+        images_ingested = stats.get("images_ingested", 0)
         failed_jobs = stats.get("failed_jobs", 0)
         queue_stats = job_queue.get_stats()
 
         self.lbl_cards_created.setText(str(cards_created))
-        self.lbl_msgs_processed.setText(str(messages_processed))
+        self.lbl_images_ingested.setText(str(images_ingested))
         self.lbl_queue_pending.setText(str(queue_stats.get("pending", 0)))
         self.lbl_failed_jobs.setText(str(failed_jobs))
 
@@ -239,7 +243,7 @@ class DashboardDialog(BaseToolkitDialog):
 
             # Time / Details
             time_str = datetime.fromtimestamp(job.timestamp).strftime("%H:%M:%S")
-            detail = f"{time_str} (Note #{job.note_id})" if job.note_id else f"{time_str} ({job.error or 'Na fila'})"
+            detail = f"{time_str} (Note #{job.note_id})" if job.note_id else f"{time_str} ({job.error or 'In Queue'})"
             self.table_jobs.setItem(row, 4, QTableWidgetItem(detail))
 
     def _create_manual_card(self) -> None:
@@ -255,7 +259,7 @@ class DashboardDialog(BaseToolkitDialog):
         event = DiscordMessageEvent(
             id=f"manual_{int(time.time()*1000)}",
             content=raw_text,
-            author=DiscordUser(id="local_tester", name="Manual Dashboard User"),
+            author=DiscordUser(id="local_tester", name="Dashboard Manual User"),
             channel=DiscordChannel(id="dashboard_channel"),
             timestamp=time.time(),
         )
@@ -270,7 +274,7 @@ class DashboardDialog(BaseToolkitDialog):
             self._refresh_data()
         else:
             if hasattr(QMessageBox, "warning"):
-                QMessageBox.warning(self, "Erro ao Criar Cartão", msg)
+                QMessageBox.warning(self, "Error Creating Card", msg)
 
     def _sync_queue_now(self) -> None:
         processed = sync_worker.process_all_pending()

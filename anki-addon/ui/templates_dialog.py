@@ -1,5 +1,5 @@
 """
-Templates and Note Types Dialog.
+Templates and Note Types Dialog for Anki Wykiati Toolkit.
 Displays available Anki note types and configured template mappings.
 """
 
@@ -56,8 +56,8 @@ class TemplatesDialog(BaseToolkitDialog):
     def __init__(self, parent: Optional[Any] = None) -> None:
         super().__init__(
             parent,
-            title="Gerenciador de Templates de Cartão",
-            subtitle="Modelos de cartões suportados e mapeamento inteligente de campos.",
+            title="Card Template and Model Manager",
+            subtitle="Supported card models and field mapping specifications.",
         )
         if not QT_AVAILABLE:
             return
@@ -70,28 +70,28 @@ class TemplatesDialog(BaseToolkitDialog):
         layout.setSpacing(12)
 
         # Default Template Choice
-        group_default = QGroupBox("Tipo Padrão", self)
+        group_default = QGroupBox("Default Note Model", self)
         form = QFormLayout(group_default)
 
         self.combo_default_type = QComboBox(self)
         available = template_manager.get_available_models_in_anki()
         for model in available:
             self.combo_default_type.addItem(model)
-        form.addRow("Modelo Padrão para novos cartões:", self.combo_default_type)
+        form.addRow("Default Model for New Cards:", self.combo_default_type)
         layout.addWidget(group_default)
 
         # Installed models list
-        group_list = QGroupBox("Modelos de Notas Detectados no Anki", self)
+        group_list = QGroupBox("Detected Anki Note Types", self)
         list_layout = QVBoxLayout(group_list)
 
         self.list_models = QListWidget(self)
         for m in available:
-            self.list_models.addItem(f"• {m}")
+            self.list_models.addItem(f"- {m}")
         list_layout.addWidget(self.list_models)
 
         info = QLabel(
-            "O Anki Discord Toolkit detecta automaticamente se sua mensagem utiliza sintaxe de Cloze ({{c1::...}}) "
-            "ou campos específicos e mapeia os campos Front/Back/Extra de forma inteligente.",
+            "Anki Wykiati Toolkit automatically detects Cloze syntax ({{c1::...}}) "
+            "and maps fields (Front/Back/Extra) without requiring manual model switching.",
             self,
         )
         info.setWordWrap(True)
