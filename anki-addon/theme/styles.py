@@ -290,15 +290,23 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
     }}
 
     /* =========================================================================
-       2. DECK BROWSER (MIDDLE LIST OF DECKS) - FLUID RESPONSIVE
+       2. DECK BROWSER (MIDDLE LIST OF DECKS) - WITH SUBTLE WATERMARK LOGO
        ========================================================================= */
+    #deckbrowser {{
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 130' width='400' height='130'%3E%3Cg fill='none' stroke='rgba(255,255,255,0.05)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='200,10 238,55 200,100 162,55' /%3E%3Cline x1='200' y1='10' x2='200' y2='100' /%3E%3Cline x1='162' y1='55' x2='238' y2='55' /%3E%3Ccircle cx='200' cy='55' r='4' fill='rgba(255,255,255,0.09)' /%3E%3C/g%3E%3Ctext x='200' y='122' text-anchor='middle' font-family='Inter, Segoe UI, sans-serif' font-size='11' font-weight='600' letter-spacing='7' fill='rgba(255,255,255,0.07)'%3EWYKIATI%3C/text%3E%3C/svg%3E") !important;
+        background-repeat: no-repeat !important;
+        background-position: center 24px !important;
+        background-size: min(340px, 50vw) auto !important;
+        padding-top: clamp(100px, 14vh, 140px) !important;
+    }}
+
     #deckbrowser, .deck-table, table.deck-table {{
         background-color: {bg} !important;
         background: {bg} !important;
         border-collapse: separate !important;
         border-spacing: 0 4px !important;
         width: min(94%, 900px) !important;
-        margin: clamp(12px, 2vh, 28px) auto !important;
+        margin: 0 auto clamp(12px, 2vh, 28px) auto !important;
     }}
 
     tr.deck {{

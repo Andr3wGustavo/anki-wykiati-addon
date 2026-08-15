@@ -74,35 +74,73 @@
             font-weight: 400;
         }
 
-        /* Monochromatic Session Timer Capsule */
-        .session-timer-pill {
+        .nav-tabs-row {
             display: flex;
-            align-items: center;
-            gap: 10px;
+            gap: 8px;
             background: var(--surface-glass);
             border: 1px solid var(--border-subtle);
             border-radius: 20px;
-            padding: 6px 16px;
-            font-size: 12px;
-            font-weight: 500;
-            color: var(--text-secondary);
-            cursor: pointer;
-            backdrop-filter: blur(12px);
-            transition: all 0.15s ease;
+            padding: 4px;
         }
 
-        .session-timer-pill:hover {
-            background: var(--surface-hover);
-            border-color: var(--border-highlight);
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 6px 14px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.1s ease;
+        }
+
+        .tab-btn.active {
+            background: rgba(255, 255, 255, 0.08);
             color: var(--text-primary);
         }
 
-        .timer-indicator {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background-color: #A1A1AA;
-            transition: background-color 0.2s ease;
+        /* Deck Browser Start Screen Container with Watermark Logo */
+        .deckbrowser-screen {
+            width: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 130' width='400' height='130'%3E%3Cg fill='none' stroke='rgba(255,255,255,0.06)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='200,10 238,55 200,100 162,55' /%3E%3Cline x1='200' y1='10' x2='200' y2='100' /%3E%3Cline x1='162' y1='55' x2='238' y2='55' /%3E%3Ccircle cx='200' cy='55' r='4' fill='rgba(255,255,255,0.1)' /%3E%3C/g%3E%3Ctext x='200' y='122' text-anchor='middle' font-family='Inter, Segoe UI, sans-serif' font-size='11' font-weight='600' letter-spacing='7' fill='rgba(255,255,255,0.08)'%3EWYKIATI%3C/text%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: center 30px;
+            background-size: min(340px, 45vw) auto;
+            padding-top: 140px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .deck-table-preview {
+            width: 100%;
+            max-width: 720px;
+            border-collapse: separate;
+            border-spacing: 0 6px;
+        }
+
+        .deck-row-preview {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            transition: all 0.1s ease;
+        }
+
+        .deck-row-preview:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.14);
+        }
+
+        .deck-row-preview td {
+            padding: 12px 18px;
+            font-size: 14px;
+        }
+
+        .deck-row-preview a {
+            color: var(--text-primary);
+            text-decoration: none;
+            font-weight: 500;
         }
 
         /* Workspace Grid */
@@ -328,6 +366,11 @@
             <span class="brand-meta">Void Black Minimal</span>
         </div>
 
+        <div class="nav-tabs-row">
+            <button class="tab-btn active" id="tabHome" onclick="switchView('home')">Home (Deck Browser)</button>
+            <button class="tab-btn" id="tabStudy" onclick="switchView('study')">Study (Card Review)</button>
+        </div>
+
         <div class="session-timer-pill" id="sessionTimerBtn" onclick="toggleSessionTimer()">
             <div class="timer-indicator" id="timerIndicator"></div>
             <span id="sessionTimerText">Focus: 25:00</span>
@@ -335,10 +378,40 @@
     </header>
 
     <!-- Main Workspace -->
-    <main class="workspace">
+    <main class="workspace" id="mainWorkspace">
         
-        <!-- Center Flashcard Reviewer -->
-        <section class="card-panel">
+        <!-- View 1: Deck Browser Start Screen with Background Watermark Logo -->
+        <section class="deckbrowser-screen" id="homeView">
+            <table class="deck-table-preview">
+                <tr class="deck-row-preview">
+                    <td><a href="#" onclick="switchView('study')">Medicine::Cardiology</a></td>
+                    <td style="text-align: right;">
+                        <span style="color: #38BDF8; font-weight: 600; font-family: monospace; margin-right: 12px;">15</span>
+                        <span style="color: #FBBF24; font-weight: 600; font-family: monospace; margin-right: 12px;">4</span>
+                        <span style="color: #4ADE80; font-weight: 600; font-family: monospace;">28</span>
+                    </td>
+                </tr>
+                <tr class="deck-row-preview">
+                    <td><a href="#" onclick="switchView('study')">Computer Science::Networking</a></td>
+                    <td style="text-align: right;">
+                        <span style="color: #38BDF8; font-weight: 600; font-family: monospace; margin-right: 12px;">8</span>
+                        <span style="color: #FBBF24; font-weight: 600; font-family: monospace; margin-right: 12px;">0</span>
+                        <span style="color: #4ADE80; font-weight: 600; font-family: monospace;">12</span>
+                    </td>
+                </tr>
+                <tr class="deck-row-preview">
+                    <td><a href="#" onclick="switchView('study')">Languages::Advanced English</a></td>
+                    <td style="text-align: right;">
+                        <span style="color: #38BDF8; font-weight: 600; font-family: monospace; margin-right: 12px;">22</span>
+                        <span style="color: #FBBF24; font-weight: 600; font-family: monospace; margin-right: 12px;">2</span>
+                        <span style="color: #4ADE80; font-weight: 600; font-family: monospace;">45</span>
+                    </td>
+                </tr>
+            </table>
+        </section>
+
+        <!-- View 2: Center Flashcard Reviewer -->
+        <section class="card-panel" id="studyView" style="display: none;">
             <div class="deck-path">Medicine / Cardiology / Anatomy</div>
 
             <div class="image-container">
@@ -407,6 +480,25 @@
     </main>
 
     <script>
+        function switchView(view) {
+            const homeView = document.getElementById('homeView');
+            const studyView = document.getElementById('studyView');
+            const tabHome = document.getElementById('tabHome');
+            const tabStudy = document.getElementById('tabStudy');
+
+            if (view === 'home') {
+                homeView.style.display = 'flex';
+                studyView.style.display = 'none';
+                tabHome.classList.add('active');
+                tabStudy.classList.remove('active');
+            } else {
+                homeView.style.display = 'none';
+                studyView.style.display = 'flex';
+                tabHome.classList.remove('active');
+                tabStudy.classList.add('active');
+            }
+        }
+
         function revealAnswer() {
             document.getElementById('answerDrawer').style.display = 'block';
             document.getElementById('btnReveal').style.display = 'none';
