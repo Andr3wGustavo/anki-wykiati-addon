@@ -46,10 +46,6 @@ The Anki Wykiati Addon connects Discord workflows with Anki collections:
 
 ## 2. Visual Design and Theme Architecture
 
-<div align="center">
-  <img src="imgs/logo_nova.png" alt="Anki Wykiati Brand Mark" width="180px" />
-</div>
-
 The visual design is inspired by modern developer software interfaces (Linear, Vercel, Apple Pro Dark Mode):
 
 - **Backdrop**: Pure Void Black `#000000` base with zero gray tint.
