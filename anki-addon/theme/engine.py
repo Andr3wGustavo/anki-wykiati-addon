@@ -1,6 +1,10 @@
 """
-Theme Engine for Full Black (#000000) AMOLED & iOS Liquid Glass Theme.
-Controls Qt application stylesheets and injects scoped CSS into all Anki WebViews.
+Theme Engine for Full Black (#000000) Void & Floating Glass Aesthetic.
+Controls Qt application stylesheets and injects high-priority CSS & JS into all Anki WebViews:
+- Top Toolbar (Decks, Add, Browse, Stats, Sync)
+- Deck Browser (Middle Area)
+- Card Reviewer (Centered Card, Centered Image & Question/Answer)
+- Bottom Bar (Floating Answer Buttons)
 """
 
 from typing import Any, Optional
@@ -78,15 +82,15 @@ class ThemeEngine:
                     palette.setColor(QPalette.ColorRole.Window, QColor("#000000"))
                     palette.setColor(QPalette.ColorRole.WindowText, QColor("#FFFFFF"))
                     palette.setColor(QPalette.ColorRole.Base, QColor("#000000"))
-                    palette.setColor(QPalette.ColorRole.AlternateBase, QColor("#12151C"))
-                    palette.setColor(QPalette.ColorRole.ToolTipBase, QColor("#1C212C"))
+                    palette.setColor(QPalette.ColorRole.AlternateBase, QColor("#08080A"))
+                    palette.setColor(QPalette.ColorRole.ToolTipBase, QColor("#121214"))
                     palette.setColor(QPalette.ColorRole.ToolTipText, QColor("#FFFFFF"))
                     palette.setColor(QPalette.ColorRole.Text, QColor("#FFFFFF"))
-                    palette.setColor(QPalette.ColorRole.Button, QColor("#161A22"))
+                    palette.setColor(QPalette.ColorRole.Button, QColor("#0D0D10"))
                     palette.setColor(QPalette.ColorRole.ButtonText, QColor("#FFFFFF"))
-                    palette.setColor(QPalette.ColorRole.BrightText, QColor("#FF453A"))
+                    palette.setColor(QPalette.ColorRole.BrightText, QColor("#FFFFFF"))
                     palette.setColor(QPalette.ColorRole.Highlight, QColor(accent))
-                    palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#FFFFFF"))
+                    palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#000000"))
                     app.setPalette(palette)
 
             # 2. Register Webview hooks
@@ -98,10 +102,11 @@ class ThemeEngine:
                 except Exception as e:
                     logger.warning(f"[ThemeEngine] Could not register webview hook: {e}")
 
-            # 3. Refresh active webviews
+            self._is_active = True
+
+            # 3. Refresh active webviews safely
             self._refresh_views()
 
-            self._is_active = True
             logger.info("[ThemeEngine] Full Black #000000 Theme activated.")
 
         except Exception as e:
@@ -137,7 +142,7 @@ class ThemeEngine:
             logger.error(f"[ThemeEngine] Error deactivating theme: {e}", exc_info=True)
 
     def _on_webview_will_set_content(self, web_content: Any, context: Optional[Any] = None) -> None:
-        """Inject full black CSS directly into Anki WebViews (DeckBrowser, Reviewer, BottomBar, etc.)."""
+        """Inject full black CSS and DOM enforcement into ALL Anki WebViews."""
         if not self._is_active:
             return
 
@@ -145,23 +150,43 @@ class ThemeEngine:
             accent = config.get("theme.accent", self._palette.ACCENT_PRIMARY)
             css = generate_webview_css(self._palette, accent=accent)
 
-            # Both append raw style tag in HTML head and add to CSS bundle
             style_tag = f"<style id='awt-fullblack-theme'>{css}</style>"
+            js_tag = """
+            <script id='awt-fullblack-enforce'>
+            (function() {
+                function applyBlack() {
+                    document.documentElement.style.setProperty('background', '#000000', 'important');
+                    document.documentElement.style.setProperty('background-color', '#000000', 'important');
+                    if (document.body) {
+                        document.body.style.setProperty('background', '#000000', 'important');
+                        document.body.style.setProperty('background-color', '#000000', 'important');
+                    }
+                }
+                applyBlack();
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', applyBlack);
+                }
+            })();
+            </script>
+            """
+
             if hasattr(web_content, "head"):
-                web_content.head += style_tag
+                web_content.head += style_tag + js_tag
             if hasattr(web_content, "css"):
                 web_content.css.append(css)
         except Exception as e:
             logger.error(f"[ThemeEngine] Failed injecting webview CSS: {e}")
 
     def _refresh_views(self) -> None:
-        """Trigger redraw of main window and web views safely."""
+        """Trigger redraw of main window, top toolbar, and web views safely."""
         if not ANKI_AVAILABLE or mw is None:
             return
         # Critical: Only refresh if collection is actually loaded and ready
         if getattr(mw, "col", None) is None:
             return
         try:
+            if hasattr(mw, "toolbar") and hasattr(mw.toolbar, "draw"):
+                mw.toolbar.draw()
             if hasattr(mw, "reset"):
                 mw.reset()
             elif hasattr(mw, "deckBrowser") and hasattr(mw.deckBrowser, "refresh"):
