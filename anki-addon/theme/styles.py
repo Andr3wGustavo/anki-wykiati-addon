@@ -283,14 +283,12 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
     }}
 
     /* =========================================================================
-       2. DECK BROWSER (MIDDLE LIST OF DECKS) - SOLID ALIGNMENT & WATERMARK
+       2. DECK BROWSER (MIDDLE LIST OF DECKS)
        ========================================================================= */
     #deckbrowser {{
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 130' width='400' height='130'%3E%3Cg fill='none' stroke='rgba(255,255,255,0.05)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='200,10 238,55 200,100 162,55' /%3E%3Cline x1='200' y1='10' x2='200' y2='100' /%3E%3Cline x1='162' y1='55' x2='238' y2='55' /%3E%3Ccircle cx='200' cy='55' r='4' fill='rgba(255,255,255,0.09)' /%3E%3C/g%3E%3Ctext x='200' y='122' text-anchor='middle' font-family='Inter, Segoe UI, sans-serif' font-size='11' font-weight='600' letter-spacing='7' fill='rgba(255,255,255,0.07)'%3EWYKIATI%3C/text%3E%3C/svg%3E") !important;
-        background-repeat: no-repeat !important;
-        background-position: center 20px !important;
-        background-size: 320px auto !important;
-        padding-top: 130px !important;
+        background-color: {bg} !important;
+        background: {bg} !important;
+        padding: 10px 16px 24px 16px !important;
         margin: 0 auto !important;
         max-width: 860px !important;
         width: 100% !important;
