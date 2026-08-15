@@ -380,8 +380,11 @@
     <!-- Main Workspace -->
     <main class="workspace" id="mainWorkspace">
         
-        <!-- View 1: Deck Browser Start Screen with Background Watermark Logo -->
-        <section class="deckbrowser-screen" id="homeView">
+        <!-- View 1: Deck Browser Start Screen with Direct Logo Injection -->
+        <section class="deckbrowser-screen" id="homeView" style="padding-top: 24px; background-image: none;">
+            <div style="text-align: center; margin-bottom: 24px;">
+                <img src="imgs/logo_nova.png" alt="Wykiati Logo" style="max-width: 170px; height: auto; opacity: 0.92; display: block; margin: 0 auto;" />
+            </div>
             <table class="deck-table-preview">
                 <tr class="deck-row-preview">
                     <td><a href="#" onclick="switchView('study')">Medicine::Cardiology</a></td>

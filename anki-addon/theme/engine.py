@@ -30,6 +30,15 @@ except ImportError:
     ANKI_AVAILABLE = False
 
 
+try:
+    from .logo_data import LOGO_PNG_BASE64
+except (ImportError, ValueError):
+    try:
+        from theme.logo_data import LOGO_PNG_BASE64
+    except ImportError:
+        LOGO_PNG_BASE64 = ""
+
+
 class ThemeEngine:
     """
     Manages activation, deactivation, and real-time styling updates for Anki.
@@ -142,7 +151,7 @@ class ThemeEngine:
             logger.error(f"[ThemeEngine] Error deactivating theme: {e}", exc_info=True)
 
     def _on_webview_will_set_content(self, web_content: Any, context: Optional[Any] = None) -> None:
-        """Inject full black CSS and DOM enforcement into ALL Anki WebViews."""
+        """Inject full black CSS and direct Logo element into DeckBrowser start screen."""
         if not self._is_active:
             return
 
@@ -150,23 +159,35 @@ class ThemeEngine:
             accent = config.get("theme.accent", self._palette.ACCENT_PRIMARY)
             css = generate_webview_css(self._palette, accent=accent)
 
+            logo_b64 = LOGO_PNG_BASE64
+
             style_tag = f"<style id='awt-fullblack-theme'>{css}</style>"
-            js_tag = """
+            js_tag = f"""
             <script id='awt-fullblack-enforce'>
-            (function() {
-                function applyBlack() {
+            (function() {{
+                function applyBlackAndLogo() {{
                     document.documentElement.style.setProperty('background', '#000000', 'important');
                     document.documentElement.style.setProperty('background-color', '#000000', 'important');
-                    if (document.body) {
+                    if (document.body) {{
                         document.body.style.setProperty('background', '#000000', 'important');
                         document.body.style.setProperty('background-color', '#000000', 'important');
-                    }
-                }
-                applyBlack();
-                if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', applyBlack);
-                }
-            })();
+                    }}
+
+                    // Direct injection of logo into Deck Browser
+                    var db = document.querySelector('#deckbrowser');
+                    if (db && !document.querySelector('#wykiati-logo-banner') && '{logo_b64}') {{
+                        var banner = document.createElement('div');
+                        banner.id = 'wykiati-logo-banner';
+                        banner.style.cssText = 'text-align: center; margin: 24px auto 10px auto; width: 100%; max-width: 860px; pointer-events: none;';
+                        banner.innerHTML = '<img src="{logo_b64}" alt="Wykiati Logo" style="max-width: 170px; height: auto; opacity: 0.9; display: block; margin: 0 auto; border: none !important; box-shadow: none !important; background: transparent !important;" />';
+                        db.insertBefore(banner, db.firstChild);
+                    }}
+                }}
+                applyBlackAndLogo();
+                if (document.readyState === 'loading') {{
+                    document.addEventListener('DOMContentLoaded', applyBlackAndLogo);
+                }}
+            }})();
             </script>
             """
 
@@ -175,7 +196,7 @@ class ThemeEngine:
             if hasattr(web_content, "css"):
                 web_content.css.append(css)
         except Exception as e:
-            logger.error(f"[ThemeEngine] Failed injecting webview CSS: {e}")
+            logger.error(f"[ThemeEngine] Failed injecting webview content: {e}")
 
     def _refresh_views(self) -> None:
         """Trigger redraw of main window, top toolbar, and web views safely."""
