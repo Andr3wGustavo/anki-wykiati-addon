@@ -1,0 +1,70 @@
+{
+  "addon_enabled": true,
+  "debug_mode": false,
+  "log_level": "INFO",
+  "theme": {
+    "enabled": true,
+    "background": "#000000",
+    "surface": "#0C0D0E",
+    "surface_secondary": "#16181A",
+    "accent": "#3B82F6",
+    "text_primary": "#FFFFFF",
+    "text_secondary": "#A0AAB4",
+    "border": "#22272B",
+    "apply_to_webviews": true,
+    "pure_black_reviewer": true
+  },
+  "discord": {
+    "enabled": false,
+    "mode": "http",
+    "bot_token": "",
+    "channel_ids": [],
+    "authorized_users": [],
+    "guild_ids": [],
+    "polling_interval_seconds": 5,
+    "http_bridge_enabled": true,
+    "http_bridge_host": "127.0.0.1",
+    "http_bridge_port": 8765,
+    "secret_token": "",
+    "rate_limit_per_minute": 60,
+    "max_message_length": 4000
+  },
+  "anki": {
+    "default_deck": "Default",
+    "default_template": "Basic",
+    "tags_prefix": "",
+    "auto_create_decks": true,
+    "duplicate_policy": "skip"
+  },
+  "routing": {
+    "enabled": true,
+    "rules": [
+      {
+        "type": "tag",
+        "pattern": "python",
+        "deck": "Programming::Python"
+      },
+      {
+        "type": "tag",
+        "pattern": "docker",
+        "deck": "DevOps::Docker"
+      },
+      {
+        "type": "tag",
+        "pattern": "linux",
+        "deck": "Operating Systems::Linux"
+      },
+      {
+        "type": "keyword",
+        "pattern": "algorithm",
+        "deck": "Computer Science::Algorithms"
+      }
+    ]
+  },
+  "stats": {
+    "cards_created": 0,
+    "messages_processed": 0,
+    "failed_jobs": 0,
+    "last_sync_timestamp": 0
+  }
+}

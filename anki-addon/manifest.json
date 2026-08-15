@@ -1,0 +1,9 @@
+{
+  "name": "Anki Discord Toolkit",
+  "package": "anki-discord-toolkit",
+  "version": "1.0.0",
+  "min_point_version": 45,
+  "human_name": "Anki Discord Toolkit",
+  "author": "Antigravity Engineering",
+  "description": "Pure Black AMOLED Theme and Seamless Discord-to-Anki Card Automation Engine."
+}
