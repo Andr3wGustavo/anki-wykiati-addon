@@ -1,6 +1,6 @@
 """
-Comprehensive Stylesheet Generators for Native Qt (QSS) and Webviews (CSS).
-Implements True Full Black (#000000 OLED) with modern iOS Liquid Glass surfaces.
+Ultra-Minimalist Void Black (#000000) & Floating Glass Stylesheet Generators.
+Linear/Vercel-inspired desktop aesthetics for Qt widgets and Anki WebViews.
 """
 
 from typing import Optional
@@ -9,12 +9,12 @@ from .palette import PALETTE, ThemePalette
 
 def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) -> str:
     """
-    Generate comprehensive Full Black (#000000) and iOS Liquid Glass Qt StyleSheet (QSS).
-    Targets all standard Qt widgets, Anki custom frames, and modal dialogs.
+    Generate ultra-minimalist Qt StyleSheet (QSS).
+    Features floating transparent pill buttons, void black surfaces, and crisp Inter typography.
     """
     acc = accent or palette.ACCENT_PRIMARY
     bg = palette.BACKGROUND_PURE_BLACK  # #000000
-    surf = palette.BACKGROUND_SURFACE   # rgba(18, 21, 28, 0.75)
+    surf = palette.BACKGROUND_SURFACE   # rgba(255, 255, 255, 0.03)
     surf_el = palette.BACKGROUND_SURFACE_ELEVATED
     surf_hov = palette.BACKGROUND_SURFACE_HOVER
     border = palette.BORDER_DEFAULT
@@ -26,11 +26,12 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
 
     return f"""
     /* =========================================================================
-       GLOBAL FULL BLACK (#000000) BASE & TYPOGRAPHY
+       ULTRA-MINIMALIST VOID BLACK (#000000) BASE & TYPOGRAPHY
        ========================================================================= */
     * {{
-        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+        font-family: "Inter", "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         outline: none;
+        letter-spacing: -0.01em;
     }}
 
     QWidget, QMainWindow, QDialog, QFrame, QSplitter, QStackedWidget, QScrollArea {{
@@ -40,12 +41,14 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
         selection-color: #FFFFFF;
     }}
 
-    /* Main Window and Dock Areas */
+    /* Main Window Separator */
     QMainWindow::separator {{
         background-color: {border_subtle};
         width: 1px;
         height: 1px;
     }}
+
+    /* Dock Widgets */
     QDockWidget {{
         background-color: {bg};
         color: {text};
@@ -53,10 +56,11 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
         titlebar-normal-icon: none;
     }}
     QDockWidget::title {{
-        background-color: rgba(14, 16, 22, 0.85);
+        background-color: {bg};
         color: {text_sec};
-        padding: 6px 10px;
+        padding: 8px 12px;
         border-bottom: 1px solid {border_subtle};
+        font-weight: 500;
     }}
 
     /* =========================================================================
@@ -65,19 +69,20 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
     QToolBar {{
         background-color: {bg};
         border-bottom: 1px solid {border_subtle};
-        padding: 4px 8px;
-        spacing: 6px;
+        padding: 6px 10px;
+        spacing: 8px;
     }}
     QToolBar QToolButton {{
         background-color: {surf};
-        color: {text};
+        color: {text_sec};
         border: 1px solid {border_subtle};
-        border-radius: 8px;
-        padding: 6px 12px;
+        border-radius: 16px;
+        padding: 6px 14px;
         font-weight: 500;
     }}
     QToolBar QToolButton:hover {{
         background-color: {surf_hov};
+        color: {text};
         border-color: {border_strong};
     }}
     QToolBar QToolButton:pressed {{
@@ -92,7 +97,7 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
 
     QMenuBar {{
         background-color: {bg};
-        color: {text};
+        color: {text_sec};
         border-bottom: 1px solid {border_subtle};
         padding: 4px 8px;
     }}
@@ -107,38 +112,39 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
     }}
 
     QMenu {{
-        background-color: rgba(22, 26, 34, 0.95);
+        background-color: rgba(14, 14, 16, 0.98);
         color: {text};
         border: 1px solid {border_strong};
-        border-radius: 12px;
+        border-radius: 10px;
         padding: 6px;
     }}
     QMenu::item {{
-        padding: 7px 24px 7px 12px;
+        padding: 7px 22px 7px 12px;
         border-radius: 6px;
+        color: {text_sec};
     }}
     QMenu::item:selected {{
-        background-color: {acc};
-        color: #FFFFFF;
+        background-color: rgba(255, 255, 255, 0.08);
+        color: {text};
     }}
     QMenu::separator {{
         height: 1px;
         background-color: {border_subtle};
-        margin: 4px 8px;
+        margin: 4px 6px;
     }}
 
     /* =========================================================================
-       MODERN LIQUID GLASS BUTTONS
+       FLOATING TRANSPARENT PILL BUTTONS
        ========================================================================= */
     QPushButton {{
-        background-color: {surf_el};
+        background-color: {surf};
         color: {text};
         border: 1px solid {border};
-        border-radius: 10px;
-        padding: 8px 18px;
+        border-radius: 18px;
+        padding: 8px 20px;
         font-size: 13px;
         font-weight: 500;
-        min-height: 22px;
+        min-height: 20px;
     }}
     QPushButton:hover {{
         background-color: {surf_hov};
@@ -148,38 +154,38 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
         background-color: {palette.BACKGROUND_SURFACE_ACTIVE};
     }}
     QPushButton:default, QPushButton[primary="true"] {{
-        background-color: {acc};
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        color: #FFFFFF;
+        background-color: #FFFFFF;
+        color: #000000;
+        border: 1px solid #FFFFFF;
         font-weight: 600;
     }}
     QPushButton:default:hover, QPushButton[primary="true"]:hover {{
-        background-color: {palette.ACCENT_HOVER};
-        border-color: rgba(255, 255, 255, 0.5);
+        background-color: #E4E4E7;
+        border-color: #E4E4E7;
     }}
     QPushButton:disabled {{
-        background-color: rgba(255, 255, 255, 0.03);
+        background-color: transparent;
         color: {palette.TEXT_DISABLED};
         border-color: {border_subtle};
     }}
 
     /* =========================================================================
-       GLASS INPUT FIELDS
+       MINIMALIST INPUT FIELDS
        ========================================================================= */
     QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox, QComboBox {{
-        background-color: rgba(12, 14, 18, 0.9);
+        background-color: rgba(255, 255, 255, 0.02);
         color: {text};
         border: 1px solid {border};
-        border-radius: 9px;
+        border-radius: 10px;
         padding: 8px 12px;
         font-size: 13px;
     }}
     QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus, QSpinBox:focus, QComboBox:focus {{
         border: 1px solid {palette.BORDER_FOCUS};
-        background-color: rgba(18, 22, 30, 0.95);
+        background-color: rgba(255, 255, 255, 0.04);
     }}
     QLineEdit:disabled, QTextEdit:disabled, QPlainTextEdit:disabled, QComboBox:disabled {{
-        background-color: rgba(10, 10, 12, 0.4);
+        background-color: transparent;
         color: {palette.TEXT_DISABLED};
     }}
 
@@ -188,12 +194,12 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
         width: 24px;
     }}
     QComboBox QAbstractItemView {{
-        background-color: rgba(22, 26, 34, 0.98);
+        background-color: rgba(14, 14, 16, 0.98);
         color: {text};
         border: 1px solid {border_strong};
         border-radius: 8px;
         padding: 4px;
-        selection-background-color: {acc};
+        selection-background-color: rgba(255, 255, 255, 0.08);
         selection-color: #FFFFFF;
     }}
 
@@ -201,12 +207,12 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
        GROUP BOXES & CONTAINERS
        ========================================================================= */
     QGroupBox {{
-        background-color: rgba(16, 18, 24, 0.7);
-        border: 1px solid {border};
+        background-color: {surf};
+        border: 1px solid {border_subtle};
         border-radius: 14px;
         margin-top: 24px;
         padding: 20px 16px 16px 16px;
-        font-weight: 600;
+        font-weight: 500;
         color: {text};
     }}
     QGroupBox::title {{
@@ -214,70 +220,69 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
         subcontrol-position: top left;
         left: 14px;
         top: 6px;
-        padding: 0 8px;
+        padding: 0 6px;
         background-color: transparent;
-        color: {acc};
+        color: {text_sec};
+        font-weight: 600;
     }}
 
     /* =========================================================================
-       TABLES, LISTS & TREES (BROWSER / DECK LIST)
+       TABLES, LISTS & TREES
        ========================================================================= */
     QTableView, QListView, QTreeView, QTableWidget, QListWidget, QTreeWidget {{
         background-color: {bg};
         color: {text};
-        border: 1px solid {border};
+        border: 1px solid {border_subtle};
         border-radius: 12px;
         gridline-color: {border_subtle};
-        selection-background-color: {palette.ACCENT_SUBTLE};
+        selection-background-color: rgba(255, 255, 255, 0.06);
         selection-color: {text};
     }}
     QTableView::item:hover, QListView::item:hover, QTreeView::item:hover {{
         background-color: {surf_hov};
     }}
     QTableView::item:selected, QListView::item:selected, QTreeView::item:selected {{
-        background-color: {palette.ACCENT_SUBTLE};
-        color: {acc};
-        font-weight: 600;
+        background-color: rgba(255, 255, 255, 0.08);
+        color: #FFFFFF;
+        font-weight: 500;
     }}
     QHeaderView::section {{
-        background-color: rgba(18, 21, 28, 0.95);
-        color: {text_sec};
+        background-color: {bg};
+        color: {text_muted};
         border: none;
-        border-bottom: 1px solid {border};
+        border-bottom: 1px solid {border_subtle};
         border-right: 1px solid {border_subtle};
         padding: 8px 12px;
-        font-weight: 600;
+        font-weight: 500;
+        font-size: 11px;
+        text-transform: uppercase;
     }}
 
     /* =========================================================================
        FLOATING CAPSULE TABS
        ========================================================================= */
     QTabWidget::pane {{
-        border: 1px solid {border};
-        background-color: rgba(14, 16, 22, 0.75);
+        border: 1px solid {border_subtle};
+        background-color: {bg};
         border-radius: 12px;
         top: -1px;
     }}
     QTabBar::tab {{
-        background-color: rgba(22, 26, 34, 0.6);
-        color: {text_sec};
-        border: 1px solid {border_subtle};
-        border-bottom: none;
-        border-top-left-radius: 8px;
-        border-top-right-radius: 8px;
-        padding: 8px 18px;
-        margin-right: 4px;
+        background-color: transparent;
+        color: {text_muted};
+        border: none;
+        border-radius: 16px;
+        padding: 6px 16px;
+        margin: 4px;
     }}
     QTabBar::tab:selected {{
-        background-color: rgba(14, 16, 22, 0.95);
-        color: {acc};
-        border: 1px solid {border};
-        border-bottom: 1px solid transparent;
+        background-color: rgba(255, 255, 255, 0.08);
+        color: {text};
         font-weight: 600;
     }}
     QTabBar::tab:hover:!selected {{
-        background-color: {surf_hov};
-        color: {text};
+        background-color: rgba(255, 255, 255, 0.04);
+        color: {text_sec};
     }}
 
     /* =========================================================================
@@ -285,93 +290,88 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
        ========================================================================= */
     QScrollBar:vertical {{
         background-color: transparent;
-        width: 8px;
+        width: 6px;
         margin: 0;
     }}
     QScrollBar::handle:vertical {{
-        background-color: rgba(255, 255, 255, 0.18);
-        min-height: 28px;
-        border-radius: 4px;
-        margin: 2px;
+        background-color: rgba(255, 255, 255, 0.12);
+        min-height: 24px;
+        border-radius: 3px;
+        margin: 1px;
     }}
     QScrollBar::handle:vertical:hover {{
-        background-color: rgba(255, 255, 255, 0.35);
+        background-color: rgba(255, 255, 255, 0.25);
     }}
     QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
         height: 0px;
     }}
     QScrollBar:horizontal {{
         background-color: transparent;
-        height: 8px;
+        height: 6px;
         margin: 0;
     }}
     QScrollBar::handle:horizontal {{
-        background-color: rgba(255, 255, 255, 0.18);
-        min-width: 28px;
-        border-radius: 4px;
-        margin: 2px;
+        background-color: rgba(255, 255, 255, 0.12);
+        min-width: 24px;
+        border-radius: 3px;
+        margin: 1px;
     }}
     QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
         width: 0px;
     }}
 
     /* =========================================================================
-       CHECKBOXES & RADIO BUTTONS
+       CHECKBOXES
        ========================================================================= */
     QCheckBox, QRadioButton {{
-        color: {text};
-        spacing: 10px;
+        color: {text_sec};
+        spacing: 8px;
     }}
     QCheckBox::indicator, QRadioButton::indicator {{
-        width: 18px;
-        height: 18px;
+        width: 16px;
+        height: 16px;
         border: 1px solid {border_strong};
-        background-color: rgba(20, 22, 28, 0.7);
-        border-radius: 5px;
+        background-color: transparent;
+        border-radius: 4px;
     }}
     QRadioButton::indicator {{
-        border-radius: 9px;
+        border-radius: 8px;
     }}
     QCheckBox::indicator:checked, QRadioButton::indicator:checked {{
-        background-color: {acc};
-        border-color: {acc};
+        background-color: #FFFFFF;
+        border-color: #FFFFFF;
     }}
     """
 
 
 def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] = None) -> str:
     """
-    Generate comprehensive Full Black (#000000) and Frosted Glass CSS for ALL Anki WebViews:
-    - Deck Browser & Home Page
-    - Card Reviewer (Front & Back)
-    - Bottom Action Toolbar
-    - Statistics & Graphs
-    - Overview Screen
+    Generate ultra-minimalist Void Black (#000000) & Glass CSS for ALL Anki WebViews.
     """
     acc = accent or palette.ACCENT_PRIMARY
     bg = palette.BACKGROUND_PURE_BLACK  # #000000
-    surf = palette.BACKGROUND_SURFACE
-    surf_el = palette.BACKGROUND_SURFACE_ELEVATED
     border = palette.BORDER_DEFAULT
+    border_subtle = palette.BORDER_SUBTLE
     text = palette.TEXT_PRIMARY
     text_sec = palette.TEXT_SECONDARY
+    text_muted = palette.TEXT_MUTED
 
     return f"""
     /* =========================================================================
-       ROOT CSS CUSTOM PROPERTIES OVERRIDE FOR MODERN ANKI (2.1.50+ / 23.x / 24.x)
+       ROOT CSS CUSTOM PROPERTIES OVERRIDE
        ========================================================================= */
     :root, html, body, .night_mode, .nightMode, [data-bs-theme="dark"] {{
         --canvas: {bg} !important;
         --surface: {bg} !important;
         --surface-ground: {bg} !important;
-        --surface-card: rgba(18, 21, 28, 0.8) !important;
-        --surface-overlay: rgba(28, 33, 44, 0.9) !important;
+        --surface-card: rgba(255, 255, 255, 0.02) !important;
+        --surface-overlay: rgba(14, 14, 16, 0.95) !important;
         --fg: {text} !important;
         --fg-muted: {text_sec} !important;
         --card-bg: {bg} !important;
-        --card-border: {border} !important;
-        --border: {border} !important;
-        --border-subtle: rgba(255, 255, 255, 0.08) !important;
+        --card-border: {border_subtle} !important;
+        --border: {border_subtle} !important;
+        --border-subtle: {border_subtle} !important;
         --window-bg: {bg} !important;
         --toolbar-bg: {bg} !important;
         --header-bg: {bg} !important;
@@ -381,7 +381,8 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
         background-color: {bg} !important;
         background: {bg} !important;
         color: {text} !important;
-        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif !important;
+        font-family: "Inter", "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+        letter-spacing: -0.01em !important;
     }}
 
     /* Force Full Black Background Everywhere */
@@ -399,116 +400,116 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
     #deckbrowser, .deck-table, table.deck-table {{
         background-color: {bg} !important;
         border-collapse: separate !important;
-        border-spacing: 0 4px !important;
+        border-spacing: 0 2px !important;
         width: 100% !important;
     }}
 
     tr.deck {{
-        background-color: rgba(16, 18, 24, 0.75) !important;
-        border-radius: 10px !important;
-        transition: background-color 0.15s ease !important;
+        background-color: transparent !important;
+        border-radius: 8px !important;
+        transition: background-color 0.1s ease !important;
     }}
     tr.deck:hover {{
-        background-color: rgba(255, 255, 255, 0.08) !important;
+        background-color: rgba(255, 255, 255, 0.04) !important;
     }}
     td.decktd {{
-        padding: 10px 14px !important;
+        padding: 9px 12px !important;
         border: none !important;
     }}
     a.deckname {{
-        color: {text} !important;
+        color: {text_sec} !important;
         font-weight: 500 !important;
         text-decoration: none !important;
-        font-size: 14px !important;
+        font-size: 13px !important;
     }}
     a.deckname:hover {{
-        color: {acc} !important;
+        color: #FFFFFF !important;
     }}
 
-    /* Study Counts Badges */
+    /* Minimalist Counters */
     .new-count, .count-new, .new-count-badge {{
-        color: {acc} !important;
-        font-weight: 700 !important;
+        color: #38BDF8 !important;
+        font-weight: 600 !important;
     }}
     .learn-count, .count-learn, .learn-count-badge {{
-        color: {palette.WARNING} !important;
-        font-weight: 700 !important;
+        color: #FBBF24 !important;
+        font-weight: 600 !important;
     }}
     .review-count, .count-review, .review-count-badge {{
-        color: {palette.SUCCESS} !important;
-        font-weight: 700 !important;
+        color: #4ADE80 !important;
+        font-weight: 600 !important;
     }}
 
     /* =========================================================================
        CARD REVIEWER (FRONT & BACK)
        ========================================================================= */
     .card {{
-        background: rgba(18, 21, 28, 0.8) !important;
-        border: 1px solid rgba(255, 255, 255, 0.14) !important;
-        border-radius: 18px !important;
-        padding: 28px !important;
-        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8) !important;
-        max-width: 860px !important;
-        margin: 20px auto !important;
+        background: rgba(255, 255, 255, 0.02) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 16px !important;
+        padding: 32px !important;
+        max-width: 820px !important;
+        margin: 24px auto !important;
         text-align: left !important;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9) !important;
     }}
 
-    /* Responsive Images Ingested from Discord */
+    /* Clean Ingested Images */
     img {{
         max-width: 100% !important;
         height: auto !important;
-        border-radius: 14px !important;
-        border: 1px solid rgba(255, 255, 255, 0.12) !important;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7) !important;
-        margin: 14px 0 !important;
+        border-radius: 12px !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        margin: 16px 0 !important;
         display: block !important;
     }}
 
-    /* Cloze Deletion Highlights */
+    /* Minimal Cloze Deletion */
     .cloze {{
-        color: #BF5AF2 !important;
-        font-weight: 700 !important;
-        background: rgba(191, 90, 242, 0.15) !important;
+        color: #38BDF8 !important;
+        font-weight: 600 !important;
+        background: rgba(56, 189, 248, 0.10) !important;
         padding: 2px 6px !important;
-        border-radius: 5px !important;
-        border: 1px solid rgba(191, 90, 242, 0.3) !important;
+        border-radius: 4px !important;
+        border: 1px solid rgba(56, 189, 248, 0.20) !important;
     }}
 
     /* Code Blocks */
     pre, code {{
-        background-color: rgba(12, 14, 18, 0.9) !important;
-        border: 1px solid {border} !important;
-        color: #64D2FF !important;
-        border-radius: 8px !important;
-        padding: 3px 8px !important;
-        font-family: "SF Mono", "JetBrains Mono", Consolas, monospace !important;
+        background-color: rgba(255, 255, 255, 0.03) !important;
+        border: 1px solid {border_subtle} !important;
+        color: #E4E4E7 !important;
+        border-radius: 6px !important;
+        padding: 2px 6px !important;
+        font-family: "JetBrains Mono", Consolas, monospace !important;
+        font-size: 12px !important;
     }}
     pre code {{
-        padding: 14px !important;
+        padding: 12px !important;
         display: block !important;
     }}
 
     /* =========================================================================
-       BOTTOM ACTION BAR & REVIEW BUTTONS
+       BOTTOM ACTION BAR & FLOATING BUTTONS
        ========================================================================= */
     #bottomWeb, #outer, #bottomBar, footer {{
         background-color: {bg} !important;
-        border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-top: 1px solid {border_subtle} !important;
     }}
 
     button, .btn, .button, input[type="button"], input[type="submit"] {{
-        background: rgba(28, 33, 44, 0.85) !important;
+        background: rgba(255, 255, 255, 0.04) !important;
         color: {text} !important;
-        border: 1px solid rgba(255, 255, 255, 0.14) !important;
-        border-radius: 10px !important;
-        padding: 8px 18px !important;
-        font-weight: 600 !important;
+        border: 1px solid rgba(255, 255, 255, 0.10) !important;
+        border-radius: 20px !important;
+        padding: 8px 22px !important;
+        font-weight: 500 !important;
         font-size: 13px !important;
         cursor: pointer !important;
-        transition: all 0.15s ease !important;
+        transition: all 0.12s ease !important;
     }}
     button:hover, .btn:hover {{
-        background: rgba(255, 255, 255, 0.14) !important;
-        border-color: rgba(255, 255, 255, 0.28) !important;
+        background: rgba(255, 255, 255, 0.10) !important;
+        border-color: rgba(255, 255, 255, 0.22) !important;
     }}
     """

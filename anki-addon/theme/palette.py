@@ -1,6 +1,6 @@
 """
-Centralized Color Tokens and iOS Liquid Glass Theme Palette.
-Provides translucent glassmorphism layers, neon accents, and AMOLED black backdrop.
+Ultra-Minimalist Monochromatic Dark Palette for Anki Wykiati Toolkit.
+Linear/Vercel-inspired Deep Void Black (#000000), whisper-thin glass borders, and high-contrast typography.
 """
 
 from dataclasses import dataclass
@@ -9,44 +9,44 @@ from typing import Dict
 
 @dataclass(frozen=True)
 class ThemePalette:
-    """Immutable color palette definitions for iOS Liquid Glass styling."""
-    # Backgrounds & Glass Backdrops
+    """Immutable color tokens for ultra-dark minimalist glassmorphism."""
+    # Absolute Void Backgrounds
     BACKGROUND_PURE_BLACK: str = "#000000"
-    BACKGROUND_SURFACE: str = "rgba(18, 20, 26, 0.75)"
-    BACKGROUND_SURFACE_ELEVATED: str = "rgba(28, 32, 42, 0.78)"
-    BACKGROUND_SURFACE_HOVER: str = "rgba(255, 255, 255, 0.12)"
-    BACKGROUND_SURFACE_ACTIVE: str = "rgba(255, 255, 255, 0.20)"
+    BACKGROUND_SURFACE: str = "rgba(255, 255, 255, 0.03)"
+    BACKGROUND_SURFACE_ELEVATED: str = "rgba(255, 255, 255, 0.06)"
+    BACKGROUND_SURFACE_HOVER: str = "rgba(255, 255, 255, 0.10)"
+    BACKGROUND_SURFACE_ACTIVE: str = "rgba(255, 255, 255, 0.16)"
 
-    # Glass Borders & Highlights
-    BORDER_SUBTLE: str = "rgba(255, 255, 255, 0.08)"
-    BORDER_DEFAULT: str = "rgba(255, 255, 255, 0.14)"
-    BORDER_STRONG: str = "rgba(255, 255, 255, 0.28)"
-    BORDER_FOCUS: str = "#0A84FF"
+    # Whisper-Thin Glass Borders
+    BORDER_SUBTLE: str = "rgba(255, 255, 255, 0.06)"
+    BORDER_DEFAULT: str = "rgba(255, 255, 255, 0.10)"
+    BORDER_STRONG: str = "rgba(255, 255, 255, 0.20)"
+    BORDER_FOCUS: str = "rgba(255, 255, 255, 0.40)"
 
-    # Typography
+    # Monochromatic Typography
     TEXT_PRIMARY: str = "#FFFFFF"
-    TEXT_SECONDARY: str = "#EBEBF5"
-    TEXT_MUTED: str = "rgba(235, 235, 245, 0.6)"
-    TEXT_DISABLED: str = "rgba(235, 235, 245, 0.3)"
+    TEXT_SECONDARY: str = "#A1A1AA"
+    TEXT_MUTED: str = "#71717A"
+    TEXT_DISABLED: str = "rgba(255, 255, 255, 0.20)"
     TEXT_INVERSE: str = "#000000"
 
-    # iOS Vibrant Accents
-    ACCENT_PRIMARY: str = "#0A84FF"       # Apple iOS Blue
-    ACCENT_HOVER: str = "#409CFF"
-    ACCENT_ACTIVE: str = "#0066CC"
-    ACCENT_SUBTLE: str = "rgba(10, 132, 255, 0.18)"
+    # Minimalist Clean Accents
+    ACCENT_PRIMARY: str = "#FFFFFF"       # Clean Monochromatic White
+    ACCENT_HOVER: str = "#E4E4E7"
+    ACCENT_ACTIVE: str = "#D4D4D8"
+    ACCENT_SUBTLE: str = "rgba(255, 255, 255, 0.08)"
 
-    # Semantic Status Colors
-    SUCCESS: str = "#30D158"              # iOS Green
-    SUCCESS_SUBTLE: str = "rgba(48, 209, 88, 0.18)"
-    WARNING: str = "#FF9F0A"              # iOS Orange
-    WARNING_SUBTLE: str = "rgba(255, 159, 10, 0.18)"
-    ERROR: str = "#FF453A"                # iOS Red
-    ERROR_SUBTLE: str = "rgba(255, 69, 58, 0.18)"
-    INFO: str = "#64D2FF"                 # iOS Cyan
+    # Status / Indicators (Subtle & De-saturated)
+    SUCCESS: str = "#4ADE80"              # Muted Mint
+    SUCCESS_SUBTLE: str = "rgba(74, 222, 128, 0.12)"
+    WARNING: str = "#FBBF24"              # Muted Amber
+    WARNING_SUBTLE: str = "rgba(251, 191, 36, 0.12)"
+    ERROR: str = "#F87171"                # Muted Rose
+    ERROR_SUBTLE: str = "rgba(248, 113, 113, 0.12)"
+    INFO: str = "#38BDF8"                 # Slate Ice Blue
 
     # Reviewer Card Cloze
-    CLOZE_COLOR: str = "#5E5CE6"          # iOS Indigo
+    CLOZE_COLOR: str = "#38BDF8"
 
     def to_dict(self) -> Dict[str, str]:
         return {k: getattr(self, k) for k in self.__dataclass_fields__}
