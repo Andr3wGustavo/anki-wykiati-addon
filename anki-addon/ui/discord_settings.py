@@ -1,6 +1,6 @@
 """
 Discord Settings Dialog.
-Configures Discord Bot Token, Channel Whitelist, User Permissions, and Local HTTP Bridge.
+Configures Discord Bot Token, Image Channel Auto-Ingestion, User Permissions, and Local HTTP Bridge.
 """
 
 from typing import Any, Optional
@@ -20,6 +20,7 @@ if QT_AVAILABLE:
     try:
         from aqt.qt import (
             QCheckBox,
+            QComboBox,
             QFormLayout,
             QGroupBox,
             QHBoxLayout,
@@ -34,6 +35,7 @@ if QT_AVAILABLE:
         try:
             from PyQt6.QtWidgets import (
                 QCheckBox,
+                QComboBox,
                 QFormLayout,
                 QGroupBox,
                 QHBoxLayout,
@@ -47,6 +49,7 @@ if QT_AVAILABLE:
         except ImportError:
             from PyQt5.QtWidgets import (
                 QCheckBox,
+                QComboBox,
                 QFormLayout,
                 QGroupBox,
                 QHBoxLayout,
@@ -58,22 +61,23 @@ if QT_AVAILABLE:
                 QVBoxLayout,
             )
 else:
-    QCheckBox = QFormLayout = QGroupBox = QHBoxLayout = QLabel = QLineEdit = QMessageBox = QPushButton = QSpinBox = QVBoxLayout = object
+    QCheckBox = QComboBox = QFormLayout = QGroupBox = QHBoxLayout = QLabel = QLineEdit = QMessageBox = QPushButton = QSpinBox = QVBoxLayout = object
 
 
 class DiscordSettingsDialog(BaseToolkitDialog):
     """
-    Interface for setting up Discord Bot and Local Webhook Bridge.
+    Interface for setting up Discord Bot, Image Ingestion Channels, and Local Webhook Bridge.
     """
     def __init__(self, parent: Optional[Any] = None) -> None:
         super().__init__(
             parent,
-            title="Configurações do Discord",
-            subtitle="Conecte seu Anki diretamente ao Discord através de Bot ou Webhook Local HTTP.",
+            title="Configurações do Discord & Imagens",
+            subtitle="Conecte canais do Discord com ingestão automática de imagens e webhook HTTP.",
         )
         if not QT_AVAILABLE:
             return
 
+        self.setMinimumSize(600, 520)
         self._build_ui()
         self._load_values()
 
@@ -81,76 +85,89 @@ class DiscordSettingsDialog(BaseToolkitDialog):
         main_layout = QVBoxLayout()
         main_layout.setSpacing(14)
 
-        # 1. Integration Mode & Bridges
-        group_mode = QGroupBox("Canais de Entrada", self)
-        mode_layout = QVBoxLayout(group_mode)
-        mode_layout.setSpacing(8)
+        # 1. Image Channels & Auto-Ingestion (Top Priority Feature)
+        group_images = QGroupBox("📸 Canal Dedicado de Imagens (Auto-Ingestão)", self)
+        img_layout = QFormLayout(group_images)
+        img_layout.setSpacing(8)
 
-        self.chk_http_enabled = QCheckBox("Habilitar Servidor Webhook Local HTTP (Recomendado)", self)
-        self.chk_http_enabled.setStyleSheet("font-weight: 600;")
-        mode_layout.addWidget(self.chk_http_enabled)
+        self.txt_image_channels = QLineEdit(self)
+        self.txt_image_channels.setPlaceholderText("IDs dos canais que recebem apenas imagens (ex: 123456789012345678)")
+        img_layout.addRow("Canais de Imagens (IDs):", self.txt_image_channels)
 
-        http_info = QLabel("Permite receber cartões via requisições HTTP POST em http://127.0.0.1:8765/api/card", self)
-        http_info.setStyleSheet(f"color: {PALETTE.TEXT_MUTED}; font-size: 11px; margin-left: 20px;")
-        mode_layout.addWidget(http_info)
+        self.txt_image_deck = QLineEdit(self)
+        self.txt_image_deck.setPlaceholderText("Baralho de destino para as imagens (ex: Images::Discord)")
+        img_layout.addRow("Deck para Imagens:", self.txt_image_deck)
 
-        self.chk_bot_enabled = QCheckBox("Habilitar Leitor Automático de Mensagens do Discord Bot", self)
-        self.chk_bot_enabled.setStyleSheet("font-weight: 600; margin-top: 6px;")
-        mode_layout.addWidget(self.chk_bot_enabled)
+        self.combo_img_layout = QComboBox(self)
+        self.combo_img_layout.addItem("Imagem na Frente / Legenda no Verso", "image_front")
+        self.combo_img_layout.addItem("Pergunta na Frente / Imagem no Verso", "image_back")
+        img_layout.addRow("Layout do Cartão:", self.combo_img_layout)
 
-        main_layout.addWidget(group_mode)
+        self.txt_image_tags = QLineEdit(self)
+        self.txt_image_tags.setPlaceholderText("Tags automáticas (ex: discord, image, wykiati)")
+        img_layout.addRow("Tags Automáticas:", self.txt_image_tags)
 
-        # 2. Discord Bot Credentials & Channels
-        group_bot = QGroupBox("Credenciais do Discord Bot", self)
+        main_layout.addWidget(group_images)
+
+        # 2. General Discord Bot Credentials
+        group_bot = QGroupBox("🤖 Credenciais do Discord Bot", self)
         bot_layout = QFormLayout(group_bot)
         bot_layout.setSpacing(8)
+
+        self.chk_bot_enabled = QCheckBox("Habilitar Leitor Automático do Discord Bot", self)
+        self.chk_bot_enabled.setStyleSheet("font-weight: 600;")
+        bot_layout.addRow("Status do Bot:", self.chk_bot_enabled)
 
         self.txt_token = QLineEdit(self)
         if hasattr(QLineEdit, "EchoMode"):
             self.txt_token.setEchoMode(QLineEdit.EchoMode.Password)
-        self.txt_token.setPlaceholderText("Cole o Token do Bot criado no Discord Developer Portal")
+        self.txt_token.setPlaceholderText("Token do Bot (Discord Developer Portal)")
         bot_layout.addRow("Bot Token:", self.txt_token)
 
         self.txt_channels = QLineEdit(self)
-        self.txt_channels.setPlaceholderText("Ex: 123456789012345678, 987654321098765432")
-        bot_layout.addRow("Canais Autorizados (IDs):", self.txt_channels)
+        self.txt_channels.setPlaceholderText("Canais gerais autorizados para !anki (separados por vírgula)")
+        bot_layout.addRow("Canais Gerais de Texto (IDs):", self.txt_channels)
 
         self.txt_users = QLineEdit(self)
-        self.txt_users.setPlaceholderText("Ex: 112233445566778899 (deixe vazio para autorizar todos)")
+        self.txt_users.setPlaceholderText("IDs de usuários autorizados (vazio = todos permitidos)")
         bot_layout.addRow("Usuários Autorizados (IDs):", self.txt_users)
 
         self.spin_interval = QSpinBox(self)
         self.spin_interval.setRange(2, 60)
         self.spin_interval.setSuffix(" segundos")
-        bot_layout.addRow("Intervalo de Verificação:", self.spin_interval)
+        bot_layout.addRow("Intervalo de Consulta:", self.spin_interval)
 
         main_layout.addWidget(group_bot)
 
-        # 3. HTTP Server Config
-        group_http = QGroupBox("Configurações do Servidor Local", self)
+        # 3. Local HTTP Bridge
+        group_http = QGroupBox("🌐 Servidor Webhook Local HTTP (127.0.0.1)", self)
         http_layout = QFormLayout(group_http)
         http_layout.setSpacing(8)
 
-        self.txt_http_host = QLineEdit(self)
-        http_layout.addRow("Endereço Local (Host):", self.txt_http_host)
+        self.chk_http_enabled = QCheckBox("Habilitar Servidor Webhook HTTP", self)
+        http_layout.addRow("Servidor Local:", self.chk_http_enabled)
 
         self.spin_http_port = QSpinBox(self)
         self.spin_http_port.setRange(1024, 65535)
         http_layout.addRow("Porta HTTP:", self.spin_http_port)
-
-        self.spin_rate_limit = QSpinBox(self)
-        self.spin_rate_limit.setRange(5, 300)
-        self.spin_rate_limit.setSuffix(" cartões / min")
-        http_layout.addRow("Limite de Envio (Rate Limit):", self.spin_rate_limit)
 
         main_layout.addWidget(group_http)
 
         self.body_layout.addLayout(main_layout)
 
     def _load_values(self) -> None:
-        self.chk_http_enabled.setChecked(config.get("discord.http_bridge_enabled", True))
-        self.chk_bot_enabled.setChecked(config.get("discord.enabled", False))
+        img_channels = config.get("discord.image_channels", [])
+        self.txt_image_channels.setText(", ".join(str(c) for c in img_channels))
+        self.txt_image_deck.setText(config.get("discord.image_default_deck", "Images::Discord"))
+        self.txt_image_tags.setText(", ".join(config.get("discord.image_default_tags", ["discord", "image"])))
 
+        layout = config.get("discord.image_card_layout", "image_front")
+        for i in range(self.combo_img_layout.count()):
+            if self.combo_img_layout.itemData(i) == layout:
+                self.combo_img_layout.setCurrentIndex(i)
+                break
+
+        self.chk_bot_enabled.setChecked(config.get("discord.enabled", False))
         self.txt_token.setText(config.get("discord.bot_token", ""))
 
         channels = config.get("discord.channel_ids", [])
@@ -160,29 +177,41 @@ class DiscordSettingsDialog(BaseToolkitDialog):
         self.txt_users.setText(", ".join(str(u) for u in users))
 
         self.spin_interval.setValue(config.get("discord.polling_interval_seconds", 5))
-        self.txt_http_host.setText(config.get("discord.http_bridge_host", "127.0.0.1"))
+        self.chk_http_enabled.setChecked(config.get("discord.http_bridge_enabled", True))
         self.spin_http_port.setValue(config.get("discord.http_bridge_port", 8765))
-        self.spin_rate_limit.setValue(config.get("discord.rate_limit_per_minute", 60))
 
     def accept(self) -> None:
         try:
+            # Parse image channels
+            raw_img_channels = self.txt_image_channels.text().strip()
+            image_channels = [c.strip() for c in raw_img_channels.split(",") if c.strip()]
+
+            # Parse image tags
+            raw_tags = self.txt_image_tags.text().strip()
+            image_tags = [t.strip() for t in raw_tags.split(",") if t.strip()]
+
+            # Parse standard channels
             raw_channels = self.txt_channels.text().strip()
             channel_ids = [c.strip() for c in raw_channels.split(",") if c.strip()]
 
+            # Parse users
             raw_users = self.txt_users.text().strip()
             user_ids = [u.strip() for u in raw_users.split(",") if u.strip()]
 
-            config.set("discord.http_bridge_enabled", self.chk_http_enabled.isChecked(), save=False)
+            config.set("discord.image_channels", image_channels, save=False)
+            config.set("discord.image_default_deck", self.txt_image_deck.text().strip() or "Images::Discord", save=False)
+            config.set("discord.image_default_tags", image_tags, save=False)
+            config.set("discord.image_card_layout", self.combo_img_layout.currentData(), save=False)
+
             config.set("discord.enabled", self.chk_bot_enabled.isChecked(), save=False)
             config.set("discord.bot_token", self.txt_token.text().strip(), save=False)
             config.set("discord.channel_ids", channel_ids, save=False)
             config.set("discord.authorized_users", user_ids, save=False)
             config.set("discord.polling_interval_seconds", self.spin_interval.value(), save=False)
-            config.set("discord.http_bridge_host", self.txt_http_host.text().strip(), save=False)
-            config.set("discord.http_bridge_port", self.spin_http_port.value(), save=False)
-            config.set("discord.rate_limit_per_minute", self.spin_rate_limit.value(), save=True)
+            config.set("discord.http_bridge_enabled", self.chk_http_enabled.isChecked(), save=False)
+            config.set("discord.http_bridge_port", self.spin_http_port.value(), save=True)
 
-            logger.info("[DiscordSettingsDialog] Discord configuration updated successfully.")
+            logger.info("[DiscordSettingsDialog] Discord image & bot settings updated successfully.")
             super().accept()
         except Exception as e:
             logger.error(f"[DiscordSettingsDialog] Error saving Discord settings: {e}")

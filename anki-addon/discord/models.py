@@ -21,6 +21,16 @@ class JobStatus(str, Enum):
 
 
 @dataclass
+class DiscordAttachment:
+    """Discord file/image attachment."""
+    id: str
+    url: str
+    filename: str
+    content_type: str = ""
+    size: int = 0
+
+
+@dataclass
 class DiscordUser:
     """Discord user metadata."""
     id: str
@@ -46,6 +56,7 @@ class DiscordMessageEvent:
     content: str
     author: DiscordUser
     channel: DiscordChannel
+    attachments: List[DiscordAttachment] = field(default_factory=list)
     timestamp: float = field(default_factory=time.time)
 
 
@@ -53,14 +64,16 @@ class DiscordMessageEvent:
 class CardPayload:
     """
     Standardized domain representation of a flashcard.
-    Normalized from Discord messages or external inputs before touching Anki.
+    Normalized from Discord messages, images, or external inputs before touching Anki.
     """
     front: str
-    back: str
+    back: str = ""
     deck: str = "Default"
     tags: List[str] = field(default_factory=list)
     note_type: str = "Basic"
     extra: str = ""
+    image_url: str = ""
+    image_filename: str = ""
     source: str = "discord"
     message_id: str = ""
     author_id: str = ""
@@ -75,8 +88,8 @@ class CardPayload:
         norm_front = " ".join(self.front.strip().split()).lower()
         norm_back = " ".join(self.back.strip().split()).lower()
         norm_deck = self.deck.strip().lower()
-        norm_type = self.note_type.strip().lower()
-        raw = f"{norm_front}|{norm_back}|{norm_deck}|{norm_type}"
+        norm_img = self.image_url.strip().lower() or self.image_filename.strip().lower()
+        raw = f"{norm_front}|{norm_back}|{norm_deck}|{norm_img}"
         return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
     def to_dict(self) -> Dict[str, Any]:
@@ -91,6 +104,8 @@ class CardPayload:
             tags=list(data.get("tags", [])),
             note_type=data.get("note_type", "Basic"),
             extra=data.get("extra", ""),
+            image_url=data.get("image_url", ""),
+            image_filename=data.get("image_filename", ""),
             source=data.get("source", "discord"),
             message_id=data.get("message_id", ""),
             author_id=data.get("author_id", ""),

@@ -38,22 +38,23 @@ class TestBridgeAndCommands(unittest.TestCase):
         self.assertIn("Pong!", reply)
 
     def test_bridge_processes_valid_message(self):
-        msg = """!anki
+        raw_msg = """!anki
 front: O que é Kubernetes?
 back: Um orquestrador de containers open source.
 deck: DevOps::Kubernetes
 tags: k8s, devops
 """
-        success, reply = self.bridge.handle_incoming_message(msg)
+        success, reply = self.bridge.handle_incoming_message(raw_msg)
         self.assertTrue(success)
-        self.assertIn("Card Enqueued!", reply)
+        self.assertIn("Card Enqueued", reply)
+        self.assertIn("DevOps::Kubernetes", reply)
         self.assertEqual(job_queue.get_pending_count(), 1)
 
     def test_bridge_rejects_invalid_format(self):
-        msg = "!anki\nback: Sem pergunta"
-        success, reply = self.bridge.handle_incoming_message(msg)
+        raw_msg = "!anki\nback: Only back without question"
+        success, reply = self.bridge.handle_incoming_message(raw_msg)
         self.assertFalse(success)
-        self.assertIn("Erro de Formato", reply)
+        self.assertIn("Format Error", reply)
 
 
 if __name__ == "__main__":

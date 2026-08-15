@@ -1,6 +1,6 @@
 """
 Discord Client and Local HTTP Webhook Bridge Server.
-Allows cards to be pushed via Discord Bot Poller or Local HTTP REST Webhook.
+Allows cards to be pushed via Discord Bot Poller (including automated image channels) or Local HTTP REST Webhook.
 """
 
 import http.server
@@ -17,13 +17,13 @@ try:
     from ..core.constants import ADDON_NAME, ADDON_VERSION
     from ..core.logger import logger
     from .bridge import discord_bridge
-    from .models import DiscordChannel, DiscordMessageEvent, DiscordUser
+    from .models import DiscordAttachment, DiscordChannel, DiscordMessageEvent, DiscordUser
 except (ImportError, ValueError):
     from core.config import config
     from core.constants import ADDON_NAME, ADDON_VERSION
     from core.logger import logger
     from discord.bridge import discord_bridge
-    from discord.models import DiscordChannel, DiscordMessageEvent, DiscordUser
+    from discord.models import DiscordAttachment, DiscordChannel, DiscordMessageEvent, DiscordUser
 
 
 class _BridgeHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
@@ -68,14 +68,23 @@ class _BridgeHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             body_bytes = self.rfile.read(content_length)
             body_str = body_bytes.decode("utf-8")
 
-            # Parse JSON or Raw Text
             raw_text = ""
             event = None
+            attachments: List[DiscordAttachment] = []
 
             content_type = self.headers.get("Content-Type", "")
             if "application/json" in content_type:
                 data = json.loads(body_str) if body_str else {}
-                if "content" in data or "message" in data:
+
+                # Check if image_url was explicitly sent in JSON
+                if "image_url" in data:
+                    attachments.append(DiscordAttachment(
+                        id=f"http_att_{int(time.time()*1000)}",
+                        url=data.get("image_url", ""),
+                        filename=data.get("filename", "image.png"),
+                    ))
+                    raw_text = data.get("caption", data.get("front", data.get("content", "")))
+                elif "content" in data or "message" in data:
                     raw_text = data.get("content") or data.get("message", "")
                 else:
                     front = data.get("front", "")
@@ -95,6 +104,7 @@ class _BridgeHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                     content=raw_text,
                     author=DiscordUser(id=author_id, name=author_name),
                     channel=DiscordChannel(id=channel_id, name="http_channel"),
+                    attachments=attachments,
                     timestamp=time.time(),
                 )
             else:
@@ -159,8 +169,8 @@ class HttpBridgeServer:
 
 class DiscordPollingWorker:
     """
-    Lightweight background worker that polls Discord channels using Bot Token and REST API.
-    Zero external dependencies.
+    Lightweight background worker that polls Discord channels (including image channels)
+    using Bot Token and REST API without heavy external dependencies.
     """
     def __init__(self) -> None:
         self._running = False
@@ -168,12 +178,22 @@ class DiscordPollingWorker:
         self._stop_event = threading.Event()
         self._last_seen_message_id: Dict[str, str] = {}
 
+    def _get_target_channels(self) -> List[str]:
+        standard_channels = config.get("discord.channel_ids", [])
+        image_channels = config.get("discord.image_channels", [])
+        combined = []
+        for c in standard_channels + image_channels:
+            clean = str(c).strip()
+            if clean and clean not in combined:
+                combined.append(clean)
+        return combined
+
     def start(self) -> None:
         if self._running:
             return
 
         bot_token = config.get("discord.bot_token", "").strip()
-        channels = config.get("discord.channel_ids", [])
+        channels = self._get_target_channels()
         if not bot_token or not channels:
             logger.debug("[DiscordPollingWorker] Bot token or channel IDs missing. Poller idle.")
             return
@@ -197,7 +217,7 @@ class DiscordPollingWorker:
     def _poll_loop(self) -> None:
         while not self._stop_event.is_set():
             interval = max(3, int(config.get("discord.polling_interval_seconds", 5)))
-            channels = config.get("discord.channel_ids", [])
+            channels = self._get_target_channels()
             bot_token = config.get("discord.bot_token", "").strip()
 
             if not bot_token or not channels:
@@ -262,7 +282,21 @@ class DiscordPollingWorker:
                 continue
 
             content = msg.get("content", "")
-            if not content.strip():
+            raw_attachments = msg.get("attachments", [])
+
+            # Extract attachment metadata
+            parsed_attachments: List[DiscordAttachment] = []
+            for a in raw_attachments:
+                parsed_attachments.append(DiscordAttachment(
+                    id=str(a.get("id")),
+                    url=str(a.get("url")),
+                    filename=str(a.get("filename", "image.png")),
+                    content_type=str(a.get("content_type", "")),
+                    size=int(a.get("size", 0)),
+                ))
+
+            # Must have either text or attachments
+            if not content.strip() and not parsed_attachments:
                 continue
 
             event = DiscordMessageEvent(
@@ -274,6 +308,7 @@ class DiscordPollingWorker:
                     discriminator=author_info.get("discriminator", ""),
                 ),
                 channel=DiscordChannel(id=channel_id),
+                attachments=parsed_attachments,
                 timestamp=time.time(),
             )
 
