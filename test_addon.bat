@@ -1,30 +1,34 @@
 @echo off
 setlocal enabledelayedexpansion
-title Anki Discord Toolkit - Test & Build Runner
+title Anki Wykiati Toolkit - Test, Preview & Build Runner
 color 0b
 
 :MENU
 cls
 echo ===============================================================================
-echo                ANKI DISCORD TOOLKIT - PAINEL DE CONTROLE E TESTES
+echo                ANKI WYKIATI TOOLKIT - PAINEL DE CONTROLE E TESTES
 echo ===============================================================================
 echo.
-echo   [1] Executar Todos os Testes Unitarios Automatizados (35 Testes)
+echo   [1] Executar Todos os Testes Unitarios Automatizados (38 Testes)
 echo   [2] Gerar Pacote Distribuivel .ankiaddon (Pasta release/)
 echo   [3] Iniciar Servidor HTTP Bridge Local (Modo Teste Standalone)
-echo   [4] Enviar Cartao de Teste via Webhook Local (cURL / PowerShell)
+echo   [4] Enviar Cartao de Teste com Imagem via Webhook Local (PowerShell)
 echo   [5] Instalar Add-on Diretamente no Anki Local (%APPDATA%\Anki2)
-echo   [6] Sair
+echo   [6] Visualizar Preview do Design iOS Liquid Glass no Navegador (preview.html)
+echo   [7] Abrir Preview Nativo em Janela Qt (preview_ui.py)
+echo   [8] Sair
 echo.
 echo ===============================================================================
-set /p OPTION=" Escolha uma opcao [1-6]: "
+set /p OPTION=" Escolha uma opcao [1-8]: "
 
 if "%OPTION%"=="1" goto RUN_TESTS
 if "%OPTION%"=="2" goto BUILD_PACKAGE
 if "%OPTION%"=="3" goto RUN_BRIDGE
 if "%OPTION%"=="4" goto SEND_TEST_CARD
 if "%OPTION%"=="5" goto INSTALL_ANKI
-if "%OPTION%"=="6" goto EXIT_SCRIPT
+if "%OPTION%"=="6" goto OPEN_HTML_PREVIEW
+if "%OPTION%"=="7" goto OPEN_QT_PREVIEW
+if "%OPTION%"=="8" goto EXIT_SCRIPT
 
 echo Opcao invalida!
 timeout /t 2 >nul
@@ -33,7 +37,7 @@ goto MENU
 :RUN_TESTS
 cls
 echo ===============================================================================
-echo  Executando Suite de Testes Unitarios do Anki Discord Toolkit...
+echo  Executando Suite de Testes Unitarios do Anki Wykiati Toolkit...
 echo ===============================================================================
 echo.
 python -m unittest discover -s anki-addon/tests -p "test_*.py" -v
@@ -69,10 +73,10 @@ goto MENU
 :SEND_TEST_CARD
 cls
 echo ===============================================================================
-echo  Enviando Cartao de Teste para o Servidor Local via PowerShell...
+echo  Enviando Cartao com Imagem para o Servidor Local via PowerShell...
 echo ===============================================================================
 echo.
-powershell -Command "$body = @{ front = 'O que e Docker?'; back = 'Uma plataforma de containers.'; deck = 'DevOps::Docker'; tags = @('docker', 'devops') } | ConvertTo-Json; try { $res = Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/card' -Method Post -ContentType 'application/json' -Body $body; Write-Host 'Resposta do Servidor:' -ForegroundColor Green; $res | Format-Custom } catch { Write-Host 'Erro ao conectar. O servidor HTTP bridge esta rodando? (Opcao 3)' -ForegroundColor Red; Write-Host $_ }"
+powershell -Command "$body = @{ image_url = 'https://picsum.photos/400/300'; caption = 'Diagrama de Teste do Coracao'; deck = 'Medicina::Cardiologia' } | ConvertTo-Json; try { $res = Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/card' -Method Post -ContentType 'application/json' -Body $body; Write-Host 'Resposta do Servidor:' -ForegroundColor Green; $res | Format-Custom } catch { Write-Host 'Erro ao conectar. O servidor HTTP bridge esta rodando? (Opcao 3)' -ForegroundColor Red; Write-Host $_ }"
 echo.
 echo ===============================================================================
 pause
@@ -96,8 +100,31 @@ echo Copiando arquivos para: %ANKI_ADDONS_DIR% ...
 if exist "%ANKI_ADDONS_DIR%" rmdir /s /q "%ANKI_ADDONS_DIR%"
 xcopy /e /i /y "anki-addon" "%ANKI_ADDONS_DIR%"
 echo.
-echo [SUCESSO] Anki Discord Toolkit instalado localmente com sucesso!
-echo Reinicie o seu Anki para visualizar o menu "Anki Discord Toolkit" sob "Ferramentas".
+echo [SUCESSO] Anki Wykiati Toolkit instalado localmente com sucesso!
+echo Reinicie o seu Anki para visualizar o menu 'Anki Discord Toolkit' sob 'Ferramentas'.
+echo.
+pause
+goto MENU
+
+:OPEN_HTML_PREVIEW
+cls
+echo ===============================================================================
+echo  Abrindo Preview Interativo do Design iOS Liquid Glass no Navegador...
+echo ===============================================================================
+echo.
+start "" "preview.html"
+echo [OK] O arquivo preview.html foi aberto no seu navegador padrao.
+echo.
+pause
+goto MENU
+
+:OPEN_QT_PREVIEW
+cls
+echo ===============================================================================
+echo  Abrindo Janela de Preview Nativo Qt (preview_ui.py)...
+echo ===============================================================================
+echo.
+python preview_ui.py
 echo.
 pause
 goto MENU
