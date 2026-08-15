@@ -155,16 +155,21 @@ class ThemeEngine:
             logger.error(f"[ThemeEngine] Failed injecting webview CSS: {e}")
 
     def _refresh_views(self) -> None:
-        """Trigger redraw of main window and web views."""
+        """Trigger redraw of main window and web views safely."""
+        if not ANKI_AVAILABLE or mw is None:
+            return
+        # Critical: Only refresh if collection is actually loaded and ready
+        if getattr(mw, "col", None) is None:
+            return
         try:
             if hasattr(mw, "reset"):
                 mw.reset()
-            if hasattr(mw, "deckBrowser") and hasattr(mw.deckBrowser, "refresh"):
+            elif hasattr(mw, "deckBrowser") and hasattr(mw.deckBrowser, "refresh"):
                 mw.deckBrowser.refresh()
             if hasattr(mw, "reviewer") and hasattr(mw.reviewer, "refresh"):
                 mw.reviewer.refresh()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"[ThemeEngine] View refresh skipped: {e}")
 
     def is_active(self) -> bool:
         return self._is_active
