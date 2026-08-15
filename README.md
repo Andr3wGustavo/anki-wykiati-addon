@@ -1,39 +1,80 @@
-# Anki Wykiati Add-on (Anki Discord Toolkit)
+# Anki Wykiati Addon (Anki Discord & Full Black Toolkit)
 
-A modular, production-grade Anki add-on providing automated flashcard creation from Discord channels and webhooks, featuring dedicated image channel auto-ingestion and an iOS-inspired Liquid Glass (Frosted Glassmorphism) theme with AMOLED black support.
+A modular, high-performance Anki add-on providing automated image and flashcard ingestion from Discord channels and REST Webhooks, featuring an ultra-minimalist Full Void Black (`#000000`) theme with floating translucent glass styling.
+
+---
+
+## Visual Showcase & Result
+
+<div align="center">
+  <img src="imgs/anki%20full%20black.png" alt="Anki Wykiati Full Black Theme" width="90%" style="border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);" />
+  <p><em>Anki Wykiati Full Black Interface — True #000000 Void Background with Centered Card Layout and Floating Translucent Controls.</em></p>
+</div>
 
 ---
 
 ## Table of Contents
 
 1. [Overview and Key Features](#1-overview-and-key-features)
-2. [Architecture and Data Flow](#2-architecture-and-data-flow)
+2. [Visual Design and Theme Architecture](#2-visual-design-and-theme-architecture)
 3. [Discord Image Ingestion Pipeline](#3-discord-image-ingestion-pipeline)
-4. [iOS Liquid Glass Visual Theme](#4-ios-liquid-glass-visual-theme)
+4. [Software Architecture and Data Flow](#4-software-architecture-and-data-flow)
 5. [Discord Protocol and Commands](#5-discord-protocol-and-commands)
 6. [Local HTTP Webhook Bridge](#6-local-http-webhook-bridge)
 7. [Step-by-Step Testing Guide](#7-step-by-step-testing-guide)
 8. [Installation and Distribution](#8-installation-and-distribution)
 9. [Configuration Reference](#9-configuration-reference)
-10. [Repository and Contribution](#10-repository-and-contribution)
+10. [Repository and License](#10-repository-and-license)
 
 ---
 
 ## 1. Overview and Key Features
 
-The Anki Wykiati Add-on connects Discord workflows with Anki collections:
+The Anki Wykiati Addon connects Discord workflows with Anki collections:
 
-- **Automated Image Channel Ingestion**: Point the add-on to a dedicated Discord channel that receives filtered images. Every image attachment is automatically downloaded, saved to Anki's media storage, and converted into an Anki note in your chosen deck without requiring manual triggers.
-- **iOS Liquid Glass Theme**: Translucent frosted glassmorphism styling (`rgba(20, 22, 28, 0.75)` with subtle glass highlights and rounded modern buttons) over an AMOLED `#000000` base for high contrast and visual comfort.
-- **Asynchronous Non-Blocking Queue**: Background daemon worker processes jobs and synchronizes notes onto Anki's main thread safely without freezing the user interface.
+- **Automated Image Channel Ingestion**: Point the add-on to dedicated Discord channels that receive filtered images. Every image attachment is automatically downloaded, saved to Anki's media storage (`collection.media`), and converted into an Anki card in your target deck without manual prompts.
+- **Pure Void Black (#000000) Theme**: Total coverage across all Qt widgets, Top Navigation Toolbar, Deck Browser, Card Reviewer, and Bottom Action Bar.
+- **Floating Translucent Capsule Buttons**: Pill buttons with subtle glass highlights (`rgba(255, 255, 255, 0.04)`) and hover transitions.
+- **Centered Card and Image Layout**: Cards, paragraphs, and diagrams/images are perfectly centered horizontally and vertically with fluid scaling.
+- **Hardware-Accelerated Zero-Lag Rendering**: GPU layer promotion (`translateZ(0)`) for smooth 144Hz performance without composite stalls.
+- **Asynchronous Non-Blocking Queue**: Background daemon worker processes jobs and synchronizes notes onto Anki's main thread safely without freezing the interface.
 - **Cryptographic Anti-Duplication**: SHA-256 binary content and message fingerprinting prevents re-importing duplicate cards or images.
 - **Smart Deck Routing**: Route notes dynamically based on message tags, keywords, or channel defaults.
-- **Cloze Deletion Auto-Detection**: Automatically recognizes `{{c1::...}}` patterns and selects the Cloze note type.
 - **Local HTTP Bridge Server**: Built-in REST API on `http://127.0.0.1:8765/api/card` for external scripts, browser extensions, and developer tools.
 
 ---
 
-## 2. Architecture and Data Flow
+## 2. Visual Design and Theme Architecture
+
+<div align="center">
+  <img src="imgs/logo_nova.png" alt="Anki Wykiati Brand Mark" width="180px" />
+</div>
+
+The visual design is inspired by modern developer software interfaces (Linear, Vercel, Apple Pro Dark Mode):
+
+- **Backdrop**: Pure Void Black `#000000` base with zero gray tint.
+- **Glass Surfaces**: Translucent dark surfaces (`#0A0A0D` / `rgba(255, 255, 255, 0.025)`) with subtle borders `1px solid rgba(255, 255, 255, 0.08)`.
+- **Floating Pill Buttons**: Translucent rounded capsules (`border-radius: 20px`) with high-contrast primary actions.
+- **Subtle Watermark Logo**: Minimalist vector watermark positioned exclusively on the Deck Browser start screen.
+- **Shortcut**: Toggle the theme instantly inside Anki using `Ctrl+Shift+B`.
+
+---
+
+## 3. Discord Image Ingestion Pipeline
+
+The primary workflow automatically pulls images from filtered Discord channels into specific Anki decks:
+
+1. In Anki, open **Tools -> Anki Wykiati Toolkit -> Discord and Image Ingestion Settings**.
+2. Enter the channel ID in **Image Channels (IDs)** (e.g., `123456789012345678`).
+3. Set your target deck in **Target Image Deck** (e.g., `Medicine::Cardiology` or `Wykiati::Deck`).
+4. Select card layout:
+   - **Image on Front / Caption on Back** (Default): The downloaded image `<img src="discord_xxxx.png">` is placed on the front; message caption or text is placed on the back.
+   - **Question on Front / Image on Back**: Text is placed on the front; image is placed on the back.
+5. Save settings. Whenever an image is posted in the configured channel, the add-on automatically pulls the image into your Anki collection.
+
+---
+
+## 4. Software Architecture and Data Flow
 
 The codebase is organized in decoupled layers following SOLID principles and Clean Architecture:
 
@@ -74,35 +115,8 @@ The codebase is organized in decoupled layers following SOLID principles and Cle
 - `anki/notes.py` & `anki/decks.py`: Manages safe creation of notes and nested deck structures (`Parent::Child`).
 - `discord/bridge.py`: Routes incoming messages and attachments to either image ingestion or structured parsing.
 - `discord/client.py`: Dual-mode client with an embedded HTTP server and lightweight Discord REST poller.
-- `theme/styles.py` & `theme/palette.py`: Generates iOS Liquid Glass QSS for Qt widgets and CSS for Anki webviews.
+- `theme/styles.py` & `theme/palette.py`: Generates Void Black QSS for Qt widgets and CSS for Anki webviews.
 - `sync/queue.py` & `sync/worker.py`: Thread-safe persistent FIFO queue with automatic retries.
-
----
-
-## 3. Discord Image Ingestion Pipeline
-
-The primary use case is ingesting images from a dedicated Discord channel into an Anki deck:
-
-1. In Anki, open **Tools -> Anki Discord Toolkit -> Discord Settings**.
-2. Enter the channel ID in **Image Channels (IDs)** (e.g., `123456789012345678`).
-3. Set your target deck in **Deck for Images** (e.g., `Images::Anatomy` or `Wykiati::Deck`).
-4. Select card layout:
-   - **Image on Front / Caption on Back** (Default): The downloaded image `<img src="discord_xxxx.png">` is placed on the front; message caption or text is placed on the back.
-   - **Question on Front / Image on Back**: Text is placed on the front; image is placed on the back.
-5. Save settings. Whenever an image is posted in the configured channel, the add-on automatically pulls the image into your Anki collection.
-
----
-
-## 4. iOS Liquid Glass Visual Theme
-
-The visual design is inspired by modern iOS frosted glassmorphism:
-
-- **Backdrop**: AMOLED Pure Black `#000000`.
-- **Glass Surfaces**: Translucent dark surfaces `rgba(18, 20, 26, 0.75)` with subtle borders `1px solid rgba(255, 255, 255, 0.14)`.
-- **Glass Buttons**: Translucent rounded buttons with interactive hover highlights and active states.
-- **Capsule Tabs and Inputs**: Floating glass capsules and soft dark inputs with focus borders.
-- **Webviews**: Card review screens and deck browsers receive matching frosted glass containers and typography.
-- **Shortcut**: Toggle the theme instantly inside Anki using `Ctrl+Shift+B`.
 
 ---
 
@@ -169,26 +183,26 @@ curl http://127.0.0.1:8765/health
 
 ## 7. Step-by-Step Testing Guide
 
-### Method A: Automated Test Suite (Windows Batch)
+### Method A: Control Panel (Windows Batch)
 Double-click `test_addon.bat` in the root folder or execute it from the command line:
 
 ```cmd
 test_addon.bat
 ```
 
-Select:
-- **[1]** to run all 38 automated unit tests.
-- **[2]** to build the `.ankiaddon` package in the `release/` directory.
-- **[3]** to start the standalone local HTTP bridge server for manual webhook testing.
-- **[4]** to send a test flashcard via PowerShell.
-- **[5]** to install the add-on directly into your local Anki installation directory.
+Menu options:
+- **[1]** Run all 38 automated unit tests (headless).
+- **[2]** Build clean `.ankiaddon` distributable package.
+- **[3]** Start local HTTP Webhook Bridge on `127.0.0.1:8765`.
+- **[4]** Send a test flashcard via PowerShell to local webhook.
+- **[5]** Clean old versions and install a fresh copy into Anki.
+- **[6]** Open live HTML/CSS visual preview (`preview.html`).
+- **[7]** Launch native desktop Qt preview window (`preview_ui.py`).
 
-### Method B: Running Tests via Terminal
+### Method B: Terminal Unit Tests
 ```bash
 python -m unittest discover -s anki-addon/tests -p "test_*.py" -v
 ```
-
-All 38 test cases will execute in headless mode without requiring an active Anki GUI.
 
 ---
 
@@ -200,8 +214,8 @@ All 38 test cases will execute in headless mode without requiring an active Anki
 3. Click **Install from file...** and select the `.ankiaddon` file.
 4. Restart Anki.
 
-### Option 2: Direct Directory Link (Windows)
-Copy the `anki-addon` folder to `%APPDATA%\Anki2\addons21\anki_discord_toolkit` and restart Anki.
+### Option 2: Clean Reinstall via Control Panel
+Run `test_addon.bat` and choose **Option [5]**. This automatically cleans any legacy folders in `%APPDATA%\Anki2\addons21\` and copies the fresh add-on into place.
 
 ---
 
@@ -212,8 +226,9 @@ All settings can be customized through the GUI dialogs or directly in `config.js
 | Setting Path | Type | Default | Description |
 |---|---|---|---|
 | `theme.enabled` | boolean | `true` | Enables or disables the visual theme |
-| `theme.style_variant` | string | `"liquid_glass"` | Theme aesthetic (`"liquid_glass"` or `"pure_black"`) |
-| `theme.accent` | string | `"#0A84FF"` | Accent color hex code |
+| `theme.accent` | string | `"#FFFFFF"` | Accent color hex code |
+| `theme.apply_to_webviews` | boolean | `true` | Applies Full Black theme to all WebViews |
+| `theme.pure_black_reviewer` | boolean | `true` | Forces Pure Black #000000 during card review |
 | `discord.enabled` | boolean | `false` | Enables the Discord Bot polling worker |
 | `discord.bot_token` | string | `""` | Discord Bot secret token |
 | `discord.image_channels` | list | `[]` | Channel IDs where every image is automatically ingested |
@@ -226,7 +241,7 @@ All settings can be customized through the GUI dialogs or directly in `config.js
 
 ---
 
-## 10. Repository and Contribution
+## 10. Repository and License
 
 - Repository URL: `git@github.com:Andr3wGustavo/anki-wykiati-addon.git`
 - License: [MIT License](LICENSE)

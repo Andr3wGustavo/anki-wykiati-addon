@@ -1,6 +1,6 @@
 """
 Zero-Lag, Hardware-Accelerated Void Black (#000000) Stylesheet Engine.
-Optimized for 144Hz fluidity, responsive fluid zoom scaling, and zero GPU composite stall.
+Rock-solid alignment, perfectly centered cards and images, and crisp Inter typography.
 """
 
 from typing import Optional
@@ -9,8 +9,7 @@ from .palette import PALETTE, ThemePalette
 
 def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) -> str:
     """
-    High-Performance Qt StyleSheet (QSS) without expensive universal selectors.
-    Targets specific Qt classes directly to prevent widget tree restyle lag.
+    High-Performance Qt StyleSheet (QSS) for Anki's native widgets.
     """
     acc = accent or palette.ACCENT_PRIMARY
     bg = palette.BACKGROUND_PURE_BLACK  # #000000
@@ -25,7 +24,7 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
 
     return f"""
     /* =========================================================================
-       SPECIFIC WIDGET SELECTORS (Avoids Qt Restyle Spikes on Resize/Zoom)
+       NATIVE WIDGET STYLES
        ========================================================================= */
     QMainWindow, QDialog, QFrame, QSplitter, QStackedWidget, QScrollArea, QAbstractScrollArea {{
         background-color: {bg};
@@ -193,8 +192,7 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
 
 def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] = None) -> str:
     """
-    Hardware-accelerated, responsive CSS for Anki WebViews.
-    Employs fluid units clamp(), translateZ(0) GPU promotion, and zero composite stalls.
+    Rock-solid, centered Void Black (#000000) CSS for Anki WebViews.
     """
     acc = accent or palette.ACCENT_PRIMARY
     bg = palette.BACKGROUND_PURE_BLACK  # #000000
@@ -205,7 +203,7 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
 
     return f"""
     /* =========================================================================
-       HARDWARE-ACCELERATED DOM RESET & CSS VARIABLES
+       GLOBAL RESET & CSS VARIABLES
        ========================================================================= */
     :root, html, body, #outer, #main, #main-content, #header, #footer, #qa, #content,
     header, nav, .navbar, .toolbar, #toolbar, #deckbrowser, .deck-table, table,
@@ -238,20 +236,15 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
         box-sizing: border-box !important;
     }}
 
-    /* GPU Layer Acceleration for Smooth 144Hz Animation */
-    .card, tr.deck, #header, #bottomWeb, button {{
-        transform: translateZ(0) !important;
-        backface-visibility: hidden !important;
-        will-change: transform, opacity !important;
+    /* Global Scrollbar */
+    ::-webkit-scrollbar {{
+        width: 6px !important;
+        height: 6px !important;
+        background: transparent !important;
     }}
-
-    /* Fluid Viewport Base */
-    html, body {{
-        width: 100% !important;
-        min-height: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        overflow-x: hidden !important;
+    ::-webkit-scrollbar-thumb {{
+        background: rgba(255, 255, 255, 0.12) !important;
+        border-radius: 3px !important;
     }}
 
     /* =========================================================================
@@ -261,7 +254,7 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
         background-color: {bg} !important;
         background: {bg} !important;
         border-bottom: 1px solid {border_subtle} !important;
-        padding: clamp(4px, 1vh, 8px) clamp(8px, 2vw, 16px) !important;
+        padding: 6px 14px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: space-between !important;
@@ -273,12 +266,12 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
         color: {text_sec} !important;
         border: 1px solid {border_subtle} !important;
         border-radius: 18px !important;
-        padding: clamp(4px, 0.8vh, 8px) clamp(10px, 1.2vw, 18px) !important;
+        padding: 6px 16px !important;
         margin: 0 4px !important;
-        font-size: clamp(11px, 1vw, 13px) !important;
+        font-size: 13px !important;
         font-weight: 500 !important;
         text-decoration: none !important;
-        transition: background 0.08s ease, color 0.08s ease !important;
+        transition: all 0.08s ease !important;
         display: inline-flex !important;
         align-items: center !important;
     }}
@@ -290,23 +283,26 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
     }}
 
     /* =========================================================================
-       2. DECK BROWSER (MIDDLE LIST OF DECKS) - WITH SUBTLE WATERMARK LOGO
+       2. DECK BROWSER (MIDDLE LIST OF DECKS) - SOLID ALIGNMENT & WATERMARK
        ========================================================================= */
     #deckbrowser {{
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 130' width='400' height='130'%3E%3Cg fill='none' stroke='rgba(255,255,255,0.05)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='200,10 238,55 200,100 162,55' /%3E%3Cline x1='200' y1='10' x2='200' y2='100' /%3E%3Cline x1='162' y1='55' x2='238' y2='55' /%3E%3Ccircle cx='200' cy='55' r='4' fill='rgba(255,255,255,0.09)' /%3E%3C/g%3E%3Ctext x='200' y='122' text-anchor='middle' font-family='Inter, Segoe UI, sans-serif' font-size='11' font-weight='600' letter-spacing='7' fill='rgba(255,255,255,0.07)'%3EWYKIATI%3C/text%3E%3C/svg%3E") !important;
         background-repeat: no-repeat !important;
-        background-position: center 24px !important;
-        background-size: min(340px, 50vw) auto !important;
-        padding-top: clamp(100px, 14vh, 140px) !important;
+        background-position: center 20px !important;
+        background-size: 320px auto !important;
+        padding-top: 130px !important;
+        margin: 0 auto !important;
+        max-width: 860px !important;
+        width: 100% !important;
     }}
 
-    #deckbrowser, .deck-table, table.deck-table {{
+    #deckbrowser table.deck-table, .deck-table {{
         background-color: {bg} !important;
         background: {bg} !important;
         border-collapse: separate !important;
         border-spacing: 0 4px !important;
-        width: min(94%, 900px) !important;
-        margin: 0 auto clamp(12px, 2vh, 28px) auto !important;
+        width: 100% !important;
+        margin: 10px auto 24px auto !important;
     }}
 
     tr.deck {{
@@ -324,7 +320,7 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
     }}
 
     td.decktd {{
-        padding: clamp(8px, 1.2vh, 14px) clamp(10px, 1.5vw, 18px) !important;
+        padding: 10px 16px !important;
         border: none !important;
     }}
 
@@ -332,7 +328,7 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
         color: {text} !important;
         font-weight: 500 !important;
         text-decoration: none !important;
-        font-size: clamp(12px, 1.1vw, 15px) !important;
+        font-size: 14px !important;
     }}
 
     /* Minimalist Counters */
@@ -340,79 +336,64 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
         color: #38BDF8 !important;
         font-weight: 600 !important;
         font-family: "JetBrains Mono", monospace !important;
-        font-size: clamp(11px, 1vw, 13px) !important;
+        font-size: 13px !important;
     }}
     .learn-count, .count-learn, .learn-count-badge {{
         color: #FBBF24 !important;
         font-weight: 600 !important;
         font-family: "JetBrains Mono", monospace !important;
-        font-size: clamp(11px, 1vw, 13px) !important;
+        font-size: 13px !important;
     }}
     .review-count, .count-review, .review-count-badge {{
         color: #4ADE80 !important;
         font-weight: 600 !important;
         font-family: "JetBrains Mono", monospace !important;
-        font-size: clamp(11px, 1vw, 13px) !important;
+        font-size: 13px !important;
     }}
 
     /* =========================================================================
-       3. CARD REVIEWER - FULLY RESPONSIVE CENTERED CONTAINER
+       3. CARD REVIEWER - PERFECTLY CENTERED CARD & IMAGES
        ========================================================================= */
-    body#body, body {{
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: center !important;
-        align-items: center !important;
-        text-align: center !important;
-    }}
-
     #qa {{
         width: 100% !important;
-        max-width: min(92vw, 860px) !important;
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
+        max-width: 820px !important;
+        margin: 24px auto !important;
         text-align: center !important;
-        margin: 0 auto !important;
-        padding: clamp(12px, 2vh, 32px) clamp(8px, 2vw, 24px) !important;
+        padding: 0 16px !important;
     }}
 
     .card {{
         width: 100% !important;
-        max-width: min(92vw, 860px) !important;
+        max-width: 820px !important;
         margin: 0 auto !important;
         text-align: center !important;
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
         background: #0A0A0C !important;
         background-color: #0A0A0C !important;
-        border: 1px solid {border_subtle} !important;
-        border-radius: clamp(12px, 2vw, 20px) !important;
-        padding: clamp(18px, 3vh, 40px) clamp(16px, 3vw, 36px) !important;
-        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.8) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 18px !important;
+        padding: 34px 28px !important;
+        box-shadow: 0 16px 44px rgba(0, 0, 0, 0.85) !important;
+        box-sizing: border-box !important;
     }}
 
-    /* Dynamic Zoom-Responsive Image Container */
+    /* Center Ingested Images Perfectly */
     img {{
-        margin: clamp(10px, 2vh, 20px) auto !important;
+        margin: 16px auto !important;
         display: block !important;
         max-width: 100% !important;
-        max-height: min(58vh, 520px) !important;
+        max-height: 480px !important;
         width: auto !important;
         height: auto !important;
         object-fit: contain !important;
         border-radius: 12px !important;
-        border: 1px solid {border_subtle} !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
     }}
 
     .card p, .card div, .card h1, .card h2, .card h3 {{
         text-align: center !important;
         margin-left: auto !important;
         margin-right: auto !important;
-        font-size: clamp(13px, 1.2vw, 17px) !important;
+        font-size: 15px !important;
         line-height: 1.6 !important;
     }}
 
@@ -426,6 +407,23 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
         border: 1px solid rgba(56, 189, 248, 0.20) !important;
     }}
 
+    /* Code Blocks */
+    pre, code {{
+        background-color: rgba(255, 255, 255, 0.03) !important;
+        border: 1px solid {border_subtle} !important;
+        color: #E4E4E7 !important;
+        border-radius: 8px !important;
+        padding: 3px 8px !important;
+        font-family: "JetBrains Mono", Consolas, monospace !important;
+        font-size: 13px !important;
+        text-align: left !important;
+        margin: 12px auto !important;
+    }}
+    pre code {{
+        padding: 14px !important;
+        display: block !important;
+    }}
+
     /* =========================================================================
        4. BOTTOM ACTION BAR (Again, Hard, Good, Easy)
        ========================================================================= */
@@ -433,7 +431,7 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
         background-color: {bg} !important;
         background: {bg} !important;
         border-top: 1px solid {border_subtle} !important;
-        padding: clamp(6px, 1.2vh, 12px) clamp(8px, 2vw, 16px) !important;
+        padding: 8px 12px !important;
         display: flex !important;
         justify-content: center !important;
         align-items: center !important;
@@ -445,10 +443,10 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
         color: {text} !important;
         border: 1px solid {border_subtle} !important;
         border-radius: 20px !important;
-        padding: clamp(6px, 1vh, 10px) clamp(14px, 2vw, 26px) !important;
+        padding: 8px 24px !important;
         margin: 0 4px !important;
         font-weight: 500 !important;
-        font-size: clamp(11px, 1vw, 13px) !important;
+        font-size: 13px !important;
         cursor: pointer !important;
         transition: background 0.08s ease !important;
     }}
