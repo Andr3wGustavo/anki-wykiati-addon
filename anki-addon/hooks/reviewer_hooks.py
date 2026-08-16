@@ -14,18 +14,8 @@ except ImportError:
     ANKI_AVAILABLE = False
 
 
-try:
-    from ..timer.pomodoro import pomodoro_engine
-except (ImportError, ValueError):
-    from timer.pomodoro import pomodoro_engine
-
-
 def _on_card_answered(reviewer: Any, card: Any, ease: int) -> None:
     event_bus.publish("reviewer:card_answered", card=card, ease=ease)
-    try:
-        pomodoro_engine.record_card_reviewed()
-    except Exception:
-        pass
 
 
 def register_reviewer_hooks() -> None:

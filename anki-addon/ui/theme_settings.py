@@ -11,13 +11,15 @@ try:
     from ..core.config import config
     from ..core.logger import logger
     from ..theme.engine import theme_engine
-    from ..theme.palette import PALETTE
+    from ..theme.palette import PALETTE, is_light_color
+    from ..theme.styles import generate_qss
     from .components.base_dialog import BaseToolkitDialog, QT_AVAILABLE
 except (ImportError, ValueError):
     from core.config import config
     from core.logger import logger
     from theme.engine import theme_engine
-    from theme.palette import PALETTE
+    from theme.palette import PALETTE, is_light_color
+    from theme.styles import generate_qss
     from ui.components.base_dialog import BaseToolkitDialog, QT_AVAILABLE
 
 if QT_AVAILABLE:
@@ -397,20 +399,41 @@ class ThemeSettingsDialog(BaseToolkitDialog):
     def _update_all_previews(self, bg_hex: str, accent_hex: str) -> None:
         if bg_hex.startswith("#") and len(bg_hex) in (4, 7):
             self._current_bg = bg_hex
+            is_light = is_light_color(bg_hex)
+
+            # Adaptive tokens for live preview
+            title_col = "#09090B" if is_light else "#FFFFFF"
+            body_col = "#3F3F46" if is_light else "#A1A1AA"
+            border_col = "rgba(0, 0, 0, 0.15)" if is_light else "rgba(255, 255, 255, 0.15)"
+            swatch_border = "rgba(0, 0, 0, 0.35)" if is_light else "rgba(255, 255, 255, 0.40)"
+            btn_bg_sample = "rgba(0, 0, 0, 0.08)" if is_light else "rgba(255, 255, 255, 0.12)"
+
             self.bg_preview_swatch.setStyleSheet(
-                f"background-color: {bg_hex}; border-radius: 4px; border: 1px solid rgba(255,255,255,0.4);"
+                f"background-color: {bg_hex}; border-radius: 4px; border: 1px solid {swatch_border};"
             )
             self.preview_card.setStyleSheet(
-                f"background-color: {bg_hex}; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 14px;"
+                f"background-color: {bg_hex}; border: 1px solid {border_col}; border-radius: 6px; padding: 12px;"
             )
+            self.lbl_p_title.setStyleSheet(f"font-size: 13px; font-weight: 700; color: {title_col};")
+            self.lbl_p_text.setStyleSheet(f"font-size: 12px; color: {body_col};")
+
+            # Dynamically update dialog's live stylesheet
+            try:
+                self.setStyleSheet(generate_qss(accent=accent_hex, bg_color=bg_hex))
+            except Exception:
+                pass
 
         if accent_hex.startswith("#") and len(accent_hex) in (4, 7):
             self._current_accent = accent_hex
+            is_light_bg = is_light_color(self._current_bg)
+            sample_txt_col = "#09090B" if is_light_bg else "#FFFFFF"
+            btn_bg_sample = "rgba(0, 0, 0, 0.08)" if is_light_bg else "rgba(255, 255, 255, 0.12)"
+
             self.color_preview.setStyleSheet(
-                f"background-color: {accent_hex}; border-radius: 4px; border: 1px solid #FFFFFF;"
+                f"background-color: {accent_hex}; border-radius: 4px; border: 1px solid {accent_hex};"
             )
             self.btn_p_sample.setStyleSheet(
-                f"background-color: rgba(255,255,255,0.12); color: #FFFFFF; border: 1px solid {accent_hex}; border-radius: 4px; padding: 5px 14px;"
+                f"background-color: {btn_bg_sample}; color: {sample_txt_col}; border: 1px solid {accent_hex}; border-radius: 4px; padding: 5px 14px;"
             )
 
     def accept(self) -> None:

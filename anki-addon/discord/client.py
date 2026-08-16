@@ -366,11 +366,143 @@ class DiscordClientManager:
         else:
             self.poller.stop()
 
-    def shutdown(self) -> None:
-        self.poller.stop()
-        if self.http_server:
-            self.http_server.stop()
+    def pull_recent_images(
+        self,
+        channel_id: Optional[str] = None,
+        target_deck: Optional[str] = None,
+        limit: int = 50,
+        bot_token: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        On-demand synchronization: Fetch up to `limit` recent messages from a Discord channel,
+        extract all image attachments and embeds, deduplicate them cryptographically,
+        and enqueue / create cards into target_deck without creating duplicates.
+        """
+        token = bot_token or config.get("discord.bot_token", "").strip()
+        
+        # Get channel ID from argument or config
+        if channel_id:
+            ch_id = str(channel_id).strip()
+        else:
+            img_channels = config.get("discord.image_channels", [])
+            ch_id = str(img_channels[0]).strip() if img_channels else ""
+
+        deck = target_deck or config.get("discord.image_default_deck", "Images::Discord")
+
+        if not token:
+            return {"success": False, "error": "Discord Bot Token is missing. Please configure your Bot Token.", "ingested": 0, "skipped": 0}
+        if not ch_id:
+            return {"success": False, "error": "Channel ID is missing. Please enter a Discord channel ID.", "ingested": 0, "skipped": 0}
+
+        url = f"https://discord.com/api/v10/channels/{ch_id}/messages?limit={min(100, max(1, limit))}"
+        req = urllib.request.Request(
+            url,
+            headers={
+                "Authorization": f"Bot {token}",
+                "User-Agent": f"AnkiDiscordToolkit/{ADDON_VERSION}",
+            },
+        )
+
+        try:
+            with urllib.request.urlopen(req, timeout=12) as response:
+                if response.status != 200:
+                    return {"success": False, "error": f"Discord API returned status {response.status}", "ingested": 0, "skipped": 0}
+                messages = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            if e.code == 401:
+                return {"success": False, "error": "Invalid Discord Bot Token (401 Unauthorized).", "ingested": 0, "skipped": 0}
+            elif e.code == 403:
+                return {"success": False, "error": f"Bot lacks permission to read channel {ch_id} (403 Forbidden).", "ingested": 0, "skipped": 0}
+            elif e.code == 404:
+                return {"success": False, "error": f"Channel ID '{ch_id}' was not found (404 Not Found).", "ingested": 0, "skipped": 0}
+            return {"success": False, "error": f"HTTP Error {e.code}: {e.reason}", "ingested": 0, "skipped": 0}
+        except Exception as e:
+            return {"success": False, "error": f"Network connection error: {e}", "ingested": 0, "skipped": 0}
+
+        ingested_count = 0
+        skipped_count = 0
+
+        orig_deck = config.get("discord.image_default_deck", "Images::Discord")
+        if target_deck:
+            config.set("discord.image_default_deck", target_deck, save=False)
+
+        try:
+            # Process in chronological order (oldest to newest)
+            for msg in reversed(messages):
+                raw_attachments = msg.get("attachments", [])
+                content = msg.get("content", "")
+                author_info = msg.get("author", {})
+
+                parsed_attachments = []
+                for a in raw_attachments:
+                    parsed_attachments.append(DiscordAttachment(
+                        id=str(a.get("id")),
+                        url=str(a.get("url")),
+                        filename=str(a.get("filename", "image.png")),
+                        content_type=str(a.get("content_type", "")),
+                        size=int(a.get("size", 0)),
+                    ))
+
+                # Check if message has attachments or image URLs
+                has_image_url = any(ext in content.lower() for ext in (".png", ".jpg", ".jpeg", ".webp", ".gif"))
+                if not parsed_attachments and not has_image_url:
+                    continue
+
+                event = DiscordMessageEvent(
+                    id=str(msg.get("id")),
+                    content=content,
+                    author=DiscordUser(
+                        id=str(author_info.get("id", "discord_user")),
+                        name=author_info.get("username", "Discord User"),
+                    ),
+                    channel=DiscordChannel(id=ch_id, name="sync_channel"),
+                    attachments=parsed_attachments,
+                    timestamp=time.time(),
+                )
+
+                success, _ = discord_bridge.handle_incoming_message(content, event)
+                if success:
+                    ingested_count += 1
+                else:
+                    skipped_count += 1
+        finally:
+            config.set("discord.image_default_deck", orig_deck, save=False)
+
+        # Trigger queue processing safely
+        try:
+            from ..sync.worker import sync_worker
+            sync_worker.process_queue()
+        except Exception:
+            try:
+                from sync.worker import sync_worker
+                sync_worker.process_queue()
+            except Exception:
+                pass
+
+        return {
+            "success": True,
+            "ingested": ingested_count,
+            "skipped": skipped_count,
+            "deck": deck,
+            "message": f"Channel synchronization complete. Ingested {ingested_count} new image card(s) into deck '{deck}' ({skipped_count} skipped / duplicates).",
+        }
 
 
 # Global client manager singleton
 discord_client_manager = DiscordClientManager()
+
+
+def pull_recent_discord_images(
+    channel_id: Optional[str] = None,
+    target_deck: Optional[str] = None,
+    limit: int = 50,
+    bot_token: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Module-level convenience wrapper for on-demand Discord image synchronization."""
+    return discord_client_manager.pull_recent_images(
+        channel_id=channel_id,
+        target_deck=target_deck,
+        limit=limit,
+        bot_token=bot_token,
+    )
+

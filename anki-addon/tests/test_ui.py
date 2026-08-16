@@ -14,7 +14,6 @@ from ui.dashboard import DashboardDialog
 from ui.deck_rules_dialog import DeckRulesDialog
 from ui.discord_settings import DiscordSettingsDialog
 from ui.help_dialog import HelpDialog
-from ui.pomodoro_dialog import PomodoroDialog
 from ui.templates_dialog import TemplatesDialog
 from ui.theme_settings import RGBWheelWidget, ThemeSettingsDialog
 
@@ -29,7 +28,6 @@ class TestUIDialogs(unittest.TestCase):
             DeckRulesDialog,
             DiscordSettingsDialog,
             HelpDialog,
-            PomodoroDialog,
             TemplatesDialog,
             ThemeSettingsDialog,
         ]:

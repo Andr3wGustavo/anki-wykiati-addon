@@ -8,12 +8,14 @@ from typing import Any, Optional
 try:
     from ..core.config import config
     from ..core.logger import logger
-    from ..theme.palette import PALETTE
+    from ..discord.client import pull_recent_discord_images
+    from ..theme.palette import PALETTE, is_light_color
     from .components.base_dialog import BaseToolkitDialog, QT_AVAILABLE
 except (ImportError, ValueError):
     from core.config import config
     from core.logger import logger
-    from theme.palette import PALETTE
+    from discord.client import pull_recent_discord_images
+    from theme.palette import PALETTE, is_light_color
     from ui.components.base_dialog import BaseToolkitDialog, QT_AVAILABLE
 
 if QT_AVAILABLE:
@@ -141,6 +143,22 @@ class DiscordSettingsDialog(BaseToolkitDialog):
         self.txt_image_tags.setPlaceholderText("e.g. discord, anatomy, visual")
         img_layout.addRow("Automatic Tags:", self.txt_image_tags)
 
+        # On-Demand Sync Row
+        sync_row = QHBoxLayout()
+        sync_row.setSpacing(8)
+        self.btn_pull_images = QPushButton("📥 Pull Recent Discord Images Now", self)
+        self.btn_pull_images.setStyleSheet("font-weight: 600; padding: 7px 14px;")
+        self.btn_pull_images.clicked.connect(self._pull_images_now)
+        sync_row.addWidget(self.btn_pull_images)
+        sync_row.addStretch()
+        img_layout.addRow("On-Demand Sync:", sync_row)
+
+        # Feedback Banner
+        self.lbl_sync_feedback = QLabel("", self)
+        self.lbl_sync_feedback.setWordWrap(True)
+        self.lbl_sync_feedback.setVisible(False)
+        img_layout.addRow("", self.lbl_sync_feedback)
+
         main_layout.addWidget(group_images)
 
         # 2. General Discord Bot Poller
@@ -216,6 +234,54 @@ class DiscordSettingsDialog(BaseToolkitDialog):
         self.chk_http_enabled.setChecked(config.get("discord.http_bridge_enabled", True))
         self.spin_http_port.setValue(config.get("discord.http_bridge_port", 8765))
 
+    def _pull_images_now(self) -> None:
+        """Trigger instant on-demand image pull from Discord channel."""
+        token = self.txt_token.text().strip()
+        raw_channels = self.txt_image_channels.text().strip()
+        ch_ids = [c.strip() for c in raw_channels.split(",") if c.strip()]
+        ch_id = ch_ids[0] if ch_ids else ""
+        deck = self.txt_image_deck.text().strip() or "Images::Discord"
+        layout_mode = self.combo_img_layout.currentData() or "image_only_front"
+
+        if not token:
+            self.lbl_sync_feedback.setText("❌ Please enter your Discord Bot Token before synchronizing.")
+            self.lbl_sync_feedback.setStyleSheet("color: #F87171; font-size: 11px; font-weight: 600;")
+            self.lbl_sync_feedback.setVisible(True)
+            return
+
+        if not ch_id:
+            self.lbl_sync_feedback.setText("❌ Please enter a Channel ID in 'Image Channels (IDs)' above.")
+            self.lbl_sync_feedback.setStyleSheet("color: #F87171; font-size: 11px; font-weight: 600;")
+            self.lbl_sync_feedback.setVisible(True)
+            return
+
+        self.lbl_sync_feedback.setText(f"⏳ Connecting to Discord channel {ch_id} and downloading recent images...")
+        self.lbl_sync_feedback.setStyleSheet("color: #38BDF8; font-size: 11px;")
+        self.lbl_sync_feedback.setVisible(True)
+        if hasattr(self.lbl_sync_feedback, "repaint"):
+            self.lbl_sync_feedback.repaint()
+
+        # Temporarily apply layout mode in config
+        config.set("discord.image_card_layout", layout_mode, save=False)
+
+        res = pull_recent_discord_images(
+            channel_id=ch_id,
+            target_deck=deck,
+            limit=50,
+            bot_token=token,
+        )
+
+        if res.get("success"):
+            ingested = res.get("ingested", 0)
+            skipped = res.get("skipped", 0)
+            msg = f"✓ Synchronized successfully! Ingested {ingested} image card(s) into deck '{deck}' ({skipped} skipped duplicates)."
+            self.lbl_sync_feedback.setText(msg)
+            self.lbl_sync_feedback.setStyleSheet("color: #4ADE80; font-size: 11px; font-weight: 600;")
+        else:
+            err = res.get("error", "Unknown synchronization error")
+            self.lbl_sync_feedback.setText(f"❌ Synchronization failed: {err}")
+            self.lbl_sync_feedback.setStyleSheet("color: #F87171; font-size: 11px; font-weight: 600;")
+
     def accept(self) -> None:
         try:
             # Parse image channels
@@ -251,3 +317,4 @@ class DiscordSettingsDialog(BaseToolkitDialog):
             super().accept()
         except Exception as e:
             logger.error(f"[DiscordSettingsDialog] Error saving Discord settings: {e}")
+

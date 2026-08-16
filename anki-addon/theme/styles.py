@@ -1,48 +1,97 @@
 """
-Pure, Minimalist Void Black (#000000) Color Stylesheet Engine.
-Non-destructive: preserves 100% of native Anki layout, tables, icons, and positioning while applying pure black theme.
+Adaptive Minimalist Stylesheet Engine for Anki Wykiati Toolkit.
+Intelligently adapts contrast (dark vs light) based on background luminance.
+Non-destructive: preserves 100% of native Anki layout, tables, icons, and positioning.
 """
 
 from typing import Optional
-from .palette import PALETTE, ThemePalette
+from .palette import PALETTE, ThemePalette, get_adaptive_palette, is_light_color
 
 
-def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None, bg_color: Optional[str] = None) -> str:
+def generate_qss(palette: Optional[ThemePalette] = None, accent: Optional[str] = None, bg_color: Optional[str] = None) -> str:
     """
-    Clean, Minimalist Qt StyleSheet (QSS) for native Anki windows and dialogs.
-    Applies custom RGB background color (default #000000) and clean glass borders.
+    Generate Qt StyleSheet (QSS) for native Anki windows and dialogs.
+    Dynamically adapts font colors, input borders, buttons, and selection highlights
+    based on the luminance of the chosen background.
     """
-    acc = accent or palette.ACCENT_PRIMARY
-    bg = bg_color or palette.BACKGROUND_PURE_BLACK  # #000000 by default or custom RGB
-    border_subtle = palette.BORDER_SUBTLE
-    border_strong = palette.BORDER_STRONG
-    text = palette.TEXT_PRIMARY
-    text_sec = palette.TEXT_SECONDARY
-    text_muted = palette.TEXT_MUTED
+    bg = bg_color or PALETTE.BACKGROUND_PURE_BLACK
+    is_light = is_light_color(bg)
+    pal = palette or get_adaptive_palette(bg)
+    acc = accent or pal.ACCENT_PRIMARY
+
+    # Adaptive tokens
+    if is_light:
+        text = "#09090B"
+        text_sec = "#27272A"
+        text_muted = "#71717A"
+        surface_card = "rgba(0, 0, 0, 0.035)"
+        surface_card_title_bg = "rgba(0, 0, 0, 0.08)"
+        border_subtle = "rgba(0, 0, 0, 0.10)"
+        border_strong = "rgba(0, 0, 0, 0.22)"
+        border_focus = "rgba(0, 0, 0, 0.50)"
+        input_bg = "#FFFFFF"
+        btn_glass_bg = "rgba(0, 0, 0, 0.05)"
+        btn_glass_hover = "rgba(0, 0, 0, 0.10)"
+        btn_glass_pressed = "rgba(0, 0, 0, 0.16)"
+        btn_primary_bg = "#09090B"
+        btn_primary_text = "#FFFFFF"
+        btn_primary_hover = "#27272A"
+        item_hover_bg = "rgba(0, 0, 0, 0.06)"
+        item_selected_bg = "rgba(0, 0, 0, 0.12)"
+        item_selected_text = "#000000"
+        menu_bg = "#FFFFFF"
+        scrollbar_handle = "rgba(0, 0, 0, 0.22)"
+        scrollbar_hover = "rgba(0, 0, 0, 0.40)"
+        chk_indicator_bg = "#FFFFFF"
+        chk_indicator_border = "rgba(0, 0, 0, 0.30)"
+    else:
+        text = "#FFFFFF"
+        text_sec = "#E4E4E7"
+        text_muted = "#A1A1AA"
+        surface_card = "rgba(255, 255, 255, 0.03)"
+        surface_card_title_bg = "rgba(255, 255, 255, 0.08)"
+        border_subtle = "rgba(255, 255, 255, 0.08)"
+        border_strong = "rgba(255, 255, 255, 0.18)"
+        border_focus = "rgba(255, 255, 255, 0.45)"
+        input_bg = "#060608"
+        btn_glass_bg = "rgba(255, 255, 255, 0.05)"
+        btn_glass_hover = "rgba(255, 255, 255, 0.12)"
+        btn_glass_pressed = "rgba(255, 255, 255, 0.02)"
+        btn_primary_bg = "#FFFFFF"
+        btn_primary_text = "#000000"
+        btn_primary_hover = "#E4E4E7"
+        item_hover_bg = "rgba(255, 255, 255, 0.08)"
+        item_selected_bg = "rgba(255, 255, 255, 0.16)"
+        item_selected_text = "#FFFFFF"
+        menu_bg = "#0C0C0E"
+        scrollbar_handle = "rgba(255, 255, 255, 0.18)"
+        scrollbar_hover = "rgba(255, 255, 255, 0.35)"
+        chk_indicator_bg = "#060608"
+        chk_indicator_border = "rgba(255, 255, 255, 0.25)"
 
     return f"""
     /* =========================================================================
-       NATIVE ANKI WIDGETS - CLEAN VOID BLACK COLOR PALETTE & SQUARE GLASS
+       NATIVE ANKI WIDGETS - ADAPTIVE CONTRAST & MINIMALIST GLASS
        ========================================================================= */
     QMainWindow, QDialog, QFrame, QSplitter, QStackedWidget, QScrollArea, QAbstractScrollArea {{
         background-color: {bg};
         color: {text};
-        selection-background-color: {acc};
-        selection-color: #000000;
+        selection-background-color: {item_selected_bg};
+        selection-color: {item_selected_text};
     }}
 
-    /* Menu Bars & Menus */
+    /* Menu Bars & Dropdowns */
     QMenuBar {{
         background-color: {bg};
         color: {text_sec};
         border-bottom: 1px solid {border_subtle};
     }}
     QMenuBar::item:selected {{
-        background-color: rgba(255, 255, 255, 0.08);
+        background-color: {item_hover_bg};
         color: {text};
     }}
     QMenu {{
-        background-color: #0C0C0E;
+        background-color: {menu_bg};
         color: {text};
         border: 1px solid {border_strong};
         padding: 4px;
@@ -54,8 +103,8 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None, 
         border-radius: 4px;
     }}
     QMenu::item:selected {{
-        background-color: rgba(255, 255, 255, 0.08);
-        color: {text};
+        background-color: {item_selected_bg};
+        color: {item_selected_text};
     }}
 
     /* Toolbars */
@@ -64,20 +113,20 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None, 
         border-bottom: 1px solid {border_subtle};
     }}
     QToolBar QToolButton {{
-        background-color: rgba(255, 255, 255, 0.04);
+        background-color: {btn_glass_bg};
         color: {text_sec};
         border: 1px solid {border_subtle};
         border-radius: 6px;
         padding: 5px 12px;
     }}
     QToolBar QToolButton:hover {{
-        background-color: rgba(255, 255, 255, 0.09);
+        background-color: {btn_glass_hover};
         color: {text};
     }}
 
     /* Modern Minimalist Glass Buttons */
     QPushButton {{
-        background-color: rgba(255, 255, 255, 0.05);
+        background-color: {btn_glass_bg};
         color: {text_sec};
         border: 1px solid {border_subtle};
         border-radius: 6px;
@@ -86,28 +135,28 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None, 
         font-weight: 500;
     }}
     QPushButton:hover {{
-        background-color: rgba(255, 255, 255, 0.10);
-        color: #FFFFFF;
+        background-color: {btn_glass_hover};
+        color: {text};
         border-color: {border_strong};
     }}
     QPushButton:pressed {{
-        background-color: rgba(255, 255, 255, 0.02);
+        background-color: {btn_glass_pressed};
     }}
     QPushButton:default, QPushButton[primary="true"] {{
-        background-color: #FFFFFF;
-        color: #000000;
-        border: 1px solid #FFFFFF;
+        background-color: {btn_primary_bg};
+        color: {btn_primary_text};
+        border: 1px solid {btn_primary_bg};
         font-weight: 600;
     }}
     QPushButton:default:hover, QPushButton[primary="true"]:hover {{
-        background-color: #E4E4E7;
-        border-color: #E4E4E7;
-        color: #000000;
+        background-color: {btn_primary_hover};
+        border-color: {btn_primary_hover};
+        color: {btn_primary_text};
     }}
 
-    /* Modern Sleek Input Fields */
+    /* Sleek Input Fields */
     QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QComboBox {{
-        background-color: #060608;
+        background-color: {input_bg};
         color: {text};
         border: 1px solid {border_subtle};
         border-radius: 6px;
@@ -115,32 +164,56 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None, 
         font-size: 13px;
     }}
     QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus, QSpinBox:focus, QComboBox:focus {{
-        border: 1px solid {palette.BORDER_FOCUS};
-        background-color: #0B0B0F;
+        border: 1px solid {border_focus};
     }}
 
-    /* Modern Minimalist Section Card Group Boxes */
+    /* Combobox Dropdown View */
+    QComboBox QAbstractItemView {{
+        background-color: {menu_bg};
+        color: {text};
+        border: 1px solid {border_strong};
+        border-radius: 6px;
+        padding: 4px;
+        selection-background-color: {item_selected_bg};
+        selection-color: {item_selected_text};
+        outline: none;
+    }}
+    QComboBox QAbstractItemView::item {{
+        padding: 6px 10px;
+        border-radius: 4px;
+    }}
+    QComboBox QAbstractItemView::item:hover {{
+        background-color: {item_hover_bg};
+        color: {text};
+    }}
+    QComboBox QAbstractItemView::item:selected {{
+        background-color: {item_selected_bg};
+        color: {item_selected_text};
+        font-weight: 600;
+    }}
+
+    /* Minimalist Section Card Group Boxes */
     QGroupBox {{
-        background-color: rgba(255, 255, 255, 0.025);
+        background-color: {surface_card};
         border: 1px solid {border_subtle};
         border-radius: 8px;
         margin-top: 14px;
         padding: 16px 14px 14px 14px;
         font-weight: 600;
         font-size: 12px;
-        color: #FFFFFF;
+        color: {text};
     }}
     QGroupBox::title {{
         subcontrol-origin: margin;
         subcontrol-position: top left;
         left: 12px;
-        padding: 0 6px;
-        background-color: #0A0A0E;
+        padding: 2px 8px;
+        background-color: {surface_card_title_bg};
         border-radius: 4px;
-        color: {text_sec};
+        color: {text};
     }}
 
-    /* Modern CheckBoxes */
+    /* CheckBoxes */
     QCheckBox {{
         color: {text};
         font-size: 13px;
@@ -149,49 +222,67 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None, 
     QCheckBox::indicator {{
         width: 16px;
         height: 16px;
-        border: 1px solid rgba(255, 255, 255, 0.20);
+        border: 1px solid {chk_indicator_border};
         border-radius: 4px;
-        background-color: #060608;
+        background-color: {chk_indicator_bg};
     }}
     QCheckBox::indicator:checked {{
-        background-color: #FFFFFF;
-        border-color: #FFFFFF;
+        background-color: {btn_primary_bg};
+        border-color: {btn_primary_bg};
     }}
     QCheckBox::indicator:hover {{
-        border-color: rgba(255, 255, 255, 0.50);
+        border-color: {border_focus};
     }}
 
-    /* Tables and Lists */
+    /* Tables, Lists, and Tree Views (Fixed Selection & Hover) */
     QTableView, QListView, QTreeView, QTableWidget, QListWidget, QTreeWidget {{
         background-color: {bg};
         color: {text};
         border: 1px solid {border_subtle};
         border-radius: 6px;
         gridline-color: {border_subtle};
-        selection-background-color: rgba(255, 255, 255, 0.08);
-        selection-color: {text};
+        selection-background-color: {item_selected_bg};
+        selection-color: {item_selected_text};
+        outline: none;
+    }}
+    QTableView::item, QListView::item, QTreeView::item, QTableWidget::item, QListWidget::item, QTreeWidget::item {{
+        padding: 6px 8px;
+        border: none;
+        border-radius: 4px;
+        color: {text};
+    }}
+    QTableView::item:hover, QListView::item:hover, QTreeView::item:hover, QTableWidget::item:hover, QListWidget::item:hover, QTreeWidget::item:hover {{
+        background-color: {item_hover_bg};
+        color: {text};
+    }}
+    QTableView::item:selected, QListView::item:selected, QTreeView::item:selected, QTableWidget::item:selected, QListWidget::item:selected, QTreeWidget::item:selected {{
+        background-color: {item_selected_bg};
+        color: {item_selected_text};
+        font-weight: 600;
     }}
     QHeaderView::section {{
         background-color: {bg};
         color: {text_muted};
         border: none;
         border-bottom: 1px solid {border_subtle};
-        padding: 5px 8px;
+        padding: 6px 8px;
+        font-weight: 600;
+        font-size: 11px;
     }}
 
-    /* Slim Scrollbars */
+    /* Slim Smooth Scrollbars */
     QScrollBar:vertical {{
         background: transparent;
         width: 6px;
         margin: 0;
     }}
     QScrollBar::handle:vertical {{
-        background-color: rgba(255, 255, 255, 0.15);
+        background-color: {scrollbar_handle};
         min-height: 20px;
         border-radius: 3px;
     }}
     QScrollBar::handle:vertical:hover {{
-        background-color: rgba(255, 255, 255, 0.28);
+        background-color: {scrollbar_hover};
     }}
     QScrollBar:horizontal {{
         background: transparent;
@@ -199,31 +290,52 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None, 
         margin: 0;
     }}
     QScrollBar::handle:horizontal {{
-        background-color: rgba(255, 255, 255, 0.15);
+        background-color: {scrollbar_handle};
         min-width: 20px;
         border-radius: 3px;
+    }}
+    QScrollBar::handle:horizontal:hover {{
+        background-color: {scrollbar_hover};
     }}
     """
 
 
-def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] = None, bg_color: Optional[str] = None) -> str:
+def generate_webview_css(palette: Optional[ThemePalette] = None, accent: Optional[str] = None, bg_color: Optional[str] = None) -> str:
     """
-    Pure, Minimalist Custom Background (#000000 by default or custom RGB) CSS for Anki WebViews.
-    Changes ONLY the colors:
-    - Pure black / custom RGB background canvas and backgrounds
-    - Crisp high-contrast text
-    - Preserves 100% of native Anki layout, tables, buttons, and centering
+    Adaptive Custom Background CSS for Anki WebViews.
+    Dynamically adjusts CSS variables and element colors for dark and light backgrounds.
     """
-    acc = accent or palette.ACCENT_PRIMARY
-    bg = bg_color or palette.BACKGROUND_PURE_BLACK  # #000000 by default or custom RGB
-    border_subtle = palette.BORDER_SUBTLE
-    text = palette.TEXT_PRIMARY
-    text_sec = palette.TEXT_SECONDARY
-    text_muted = palette.TEXT_MUTED
+    bg = bg_color or PALETTE.BACKGROUND_PURE_BLACK
+    is_light = is_light_color(bg)
+    pal = palette or get_adaptive_palette(bg)
+    acc = accent or pal.ACCENT_PRIMARY
+
+    if is_light:
+        text = "#09090B"
+        text_sec = "#27272A"
+        text_muted = "#71717A"
+        border_subtle = "rgba(0, 0, 0, 0.10)"
+        btn_bg = "rgba(0, 0, 0, 0.05)"
+        btn_hover = "rgba(0, 0, 0, 0.10)"
+        code_bg = "rgba(0, 0, 0, 0.05)"
+        code_color = "#18181B"
+        scrollbar_thumb = "rgba(0, 0, 0, 0.20)"
+        scrollbar_hover = "rgba(0, 0, 0, 0.38)"
+    else:
+        text = "#FFFFFF"
+        text_sec = "#E4E4E7"
+        text_muted = "#A1A1AA"
+        border_subtle = "rgba(255, 255, 255, 0.08)"
+        btn_bg = "rgba(255, 255, 255, 0.05)"
+        btn_hover = "rgba(255, 255, 255, 0.12)"
+        code_bg = "rgba(255, 255, 255, 0.05)"
+        code_color = "#E4E4E7"
+        scrollbar_thumb = "rgba(255, 255, 255, 0.15)"
+        scrollbar_hover = "rgba(255, 255, 255, 0.28)"
 
     return f"""
     /* =========================================================================
-       1. NATIVE ANKI CSS VARIABLES - VOID BLACK PALETTE
+       1. NATIVE ANKI CSS VARIABLES - ADAPTIVE CONTRAST
        ========================================================================= */
     :root, .nightMode, body.nightMode {{
         --canvas: {bg} !important;
@@ -272,20 +384,20 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
         color: {text} !important;
     }}
     a:hover, a.deckname:hover, a.deck:hover {{
-        color: #FFFFFF !important;
+        color: {text_sec} !important;
     }}
 
-    /* 4. BUTTONS & TOOLBAR ITEMS (Pure Color, Native Dimensions) */
+    /* 4. BUTTONS & TOOLBAR ITEMS */
     button, .toolbar a, .nav-link {{
-        background-color: rgba(255, 255, 255, 0.05) !important;
+        background-color: {btn_bg} !important;
         color: {text} !important;
         border: 1px solid {border_subtle} !important;
         border-radius: 4px !important;
     }}
     button:hover, .toolbar a:hover, .nav-link:hover {{
-        background-color: rgba(255, 255, 255, 0.12) !important;
-        color: #FFFFFF !important;
-        border-color: rgba(255, 255, 255, 0.25) !important;
+        background-color: {btn_hover} !important;
+        color: {text} !important;
+        border-color: {border_subtle} !important;
     }}
 
     /* 5. MINIMALIST COUNTER BADGES */
@@ -308,23 +420,23 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
         font-weight: 600 !important;
     }}
     code, pre {{
-        background-color: rgba(255, 255, 255, 0.05) !important;
-        color: #E4E4E7 !important;
+        background-color: {code_bg} !important;
+        color: {code_color} !important;
         border-radius: 3px !important;
     }}
 
     /* 7. EASE RATING BUTTON ACCENTS */
     button#ease1, .ease1 {{ border-color: rgba(248, 113, 113, 0.40) !important; color: #FCA5A5 !important; }}
-    button#ease1:hover, .ease1:hover {{ background-color: rgba(248, 113, 113, 0.15) !important; border-color: #F87171 !important; color: #FFFFFF !important; }}
+    button#ease1:hover, .ease1:hover {{ background-color: rgba(248, 113, 113, 0.15) !important; border-color: #F87171 !important; color: {text} !important; }}
 
     button#ease2, .ease2 {{ border-color: rgba(251, 191, 36, 0.40) !important; color: #FDE047 !important; }}
-    button#ease2:hover, .ease2:hover {{ background-color: rgba(251, 191, 36, 0.15) !important; border-color: #FBBF24 !important; color: #FFFFFF !important; }}
+    button#ease2:hover, .ease2:hover {{ background-color: rgba(251, 191, 36, 0.15) !important; border-color: #FBBF24 !important; color: {text} !important; }}
 
     button#ease3, .ease3 {{ border-color: rgba(56, 189, 248, 0.40) !important; color: #7DD3FC !important; }}
-    button#ease3:hover, .ease3:hover {{ background-color: rgba(56, 189, 248, 0.15) !important; border-color: #38BDF8 !important; color: #FFFFFF !important; }}
+    button#ease3:hover, .ease3:hover {{ background-color: rgba(56, 189, 248, 0.15) !important; border-color: #38BDF8 !important; color: {text} !important; }}
 
     button#ease4, .ease4 {{ border-color: rgba(74, 222, 128, 0.40) !important; color: #86EFAC !important; }}
-    button#ease4:hover, .ease4:hover {{ background-color: rgba(74, 222, 128, 0.15) !important; border-color: #4ADE80 !important; color: #FFFFFF !important; }}
+    button#ease4:hover, .ease4:hover {{ background-color: rgba(74, 222, 128, 0.15) !important; border-color: #4ADE80 !important; color: {text} !important; }}
 
     /* 8. CLEAN SCROLLBARS */
     ::-webkit-scrollbar {{
@@ -333,10 +445,11 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
         background: transparent !important;
     }}
     ::-webkit-scrollbar-thumb {{
-        background: rgba(255, 255, 255, 0.15) !important;
+        background: {scrollbar_thumb} !important;
         border-radius: 3px !important;
     }}
     ::-webkit-scrollbar-thumb:hover {{
-        background: rgba(255, 255, 255, 0.28) !important;
+        background: {scrollbar_hover} !important;
     }}
     """
+

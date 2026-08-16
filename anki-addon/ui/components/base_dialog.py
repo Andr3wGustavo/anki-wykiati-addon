@@ -6,14 +6,17 @@ Provides clean English header layout, translucent action buttons, and responsive
 from typing import Any, Optional
 
 try:
-    from ...theme.palette import PALETTE
+    from ...core.config import config
+    from ...theme.palette import PALETTE, is_light_color
     from ...theme.styles import generate_qss
 except (ImportError, ValueError):
     try:
-        from ..theme.palette import PALETTE
+        from ..core.config import config
+        from ..theme.palette import PALETTE, is_light_color
         from ..theme.styles import generate_qss
     except (ImportError, ValueError):
-        from theme.palette import PALETTE
+        from core.config import config
+        from theme.palette import PALETTE, is_light_color
         from theme.styles import generate_qss
 
 # Qt Imports
@@ -97,8 +100,15 @@ class BaseToolkitDialog(QDialog):
         if hasattr(self, "setSizeGripEnabled"):
             self.setSizeGripEnabled(True)
 
-        # Apply zero-lag glass stylesheet
-        self.setStyleSheet(generate_qss())
+        # Apply adaptive theme stylesheet
+        bg = config.get("theme.background", PALETTE.BACKGROUND_PURE_BLACK)
+        accent = config.get("theme.accent", PALETTE.ACCENT_PRIMARY)
+        self.setStyleSheet(generate_qss(accent=accent, bg_color=bg))
+
+        is_light = is_light_color(bg)
+        title_color = "#09090B" if is_light else "#FFFFFF"
+        sub_color = "#3F3F46" if is_light else "#A1A1AA"
+        border_color = "rgba(0, 0, 0, 0.10)" if is_light else "rgba(255, 255, 255, 0.08)"
 
         self._root_layout = QVBoxLayout(self)
         self._root_layout.setContentsMargins(18, 16, 18, 16)
@@ -107,21 +117,21 @@ class BaseToolkitDialog(QDialog):
         # Header Frame (Fixed Top - Minimalist Linear style)
         header_frame = QFrame(self)
         header_frame.setStyleSheet(
-            "background: transparent; "
-            "border-bottom: 1px solid rgba(255, 255, 255, 0.08); "
-            "padding-bottom: 8px; margin-bottom: 2px;"
+            f"background: transparent; "
+            f"border-bottom: 1px solid {border_color}; "
+            f"padding-bottom: 8px; margin-bottom: 2px;"
         )
         header_layout = QVBoxLayout(header_frame)
         header_layout.setContentsMargins(0, 0, 0, 0)
         header_layout.setSpacing(2)
 
         self.lbl_title = QLabel(title, header_frame)
-        self.lbl_title.setStyleSheet("font-size: 15px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.01em;")
+        self.lbl_title.setStyleSheet(f"font-size: 15px; font-weight: 700; color: {title_color}; letter-spacing: -0.01em;")
         header_layout.addWidget(self.lbl_title)
 
         if subtitle:
             self.lbl_subtitle = QLabel(subtitle, header_frame)
-            self.lbl_subtitle.setStyleSheet("font-size: 11px; color: #A1A1AA; line-height: 1.4;")
+            self.lbl_subtitle.setStyleSheet(f"font-size: 11px; color: {sub_color}; line-height: 1.4;")
             self.lbl_subtitle.setWordWrap(True)
             header_layout.addWidget(self.lbl_subtitle)
 
