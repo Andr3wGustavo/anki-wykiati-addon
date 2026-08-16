@@ -54,6 +54,7 @@ class ThemeEngine:
         config.subscribe("theme", self._on_config_changed)
         config.subscribe("theme.enabled", self._on_config_changed)
         config.subscribe("theme.accent", self._on_config_changed)
+        config.subscribe("theme.background", self._on_config_changed)
 
         if config.get("theme.enabled", True):
             self.activate()
@@ -66,15 +67,16 @@ class ThemeEngine:
             self.deactivate()
 
     def activate(self) -> None:
-        """Activate Full Black #000000 theme across Qt widgets and WebViews."""
+        """Activate Full Black #000000 / Custom RGB theme across Qt widgets and WebViews."""
         if not ANKI_AVAILABLE or mw is None:
             self._is_active = True
-            logger.info("[ThemeEngine] Full Black theme active (Headless/Mock mode).")
+            logger.info("[ThemeEngine] Theme active (Headless/Mock mode).")
             return
 
         try:
             accent = config.get("theme.accent", self._palette.ACCENT_PRIMARY)
-            qss = generate_qss(self._palette, accent=accent)
+            bg_color = config.get("theme.background", self._palette.BACKGROUND_PURE_BLACK)
+            qss = generate_qss(self._palette, accent=accent, bg_color=bg_color)
 
             # Store original stylesheet on first activation
             if self._original_stylesheet is None:
@@ -88,14 +90,14 @@ class ThemeEngine:
                 # Force Qt dark palette for native frames
                 if QPalette is not None and QColor is not None:
                     palette = QPalette()
-                    palette.setColor(QPalette.ColorRole.Window, QColor("#000000"))
+                    palette.setColor(QPalette.ColorRole.Window, QColor(bg_color))
                     palette.setColor(QPalette.ColorRole.WindowText, QColor("#FFFFFF"))
-                    palette.setColor(QPalette.ColorRole.Base, QColor("#000000"))
-                    palette.setColor(QPalette.ColorRole.AlternateBase, QColor("#08080A"))
+                    palette.setColor(QPalette.ColorRole.Base, QColor(bg_color))
+                    palette.setColor(QPalette.ColorRole.AlternateBase, QColor(bg_color))
                     palette.setColor(QPalette.ColorRole.ToolTipBase, QColor("#121214"))
                     palette.setColor(QPalette.ColorRole.ToolTipText, QColor("#FFFFFF"))
                     palette.setColor(QPalette.ColorRole.Text, QColor("#FFFFFF"))
-                    palette.setColor(QPalette.ColorRole.Button, QColor("#0D0D10"))
+                    palette.setColor(QPalette.ColorRole.Button, QColor(bg_color))
                     palette.setColor(QPalette.ColorRole.ButtonText, QColor("#FFFFFF"))
                     palette.setColor(QPalette.ColorRole.BrightText, QColor("#FFFFFF"))
                     palette.setColor(QPalette.ColorRole.Highlight, QColor(accent))
@@ -116,7 +118,7 @@ class ThemeEngine:
             # 3. Refresh active webviews safely
             self._refresh_views()
 
-            logger.info("[ThemeEngine] Full Black #000000 Theme activated.")
+            logger.info(f"[ThemeEngine] Theme activated (bg={bg_color}, accent={accent}).")
 
         except Exception as e:
             logger.error(f"[ThemeEngine] Failed activating theme: {e}", exc_info=True)
@@ -145,19 +147,20 @@ class ThemeEngine:
 
             self._refresh_views()
             self._is_active = False
-            logger.info("[ThemeEngine] Full Black Theme deactivated.")
+            logger.info("[ThemeEngine] Theme deactivated.")
 
         except Exception as e:
             logger.error(f"[ThemeEngine] Error deactivating theme: {e}", exc_info=True)
 
     def _on_webview_will_set_content(self, web_content: Any, context: Optional[Any] = None) -> None:
-        """Inject zero-lag full black CSS and direct Logo element into DeckBrowser start screen."""
+        """Inject zero-lag custom background CSS and direct Logo element into DeckBrowser start screen."""
         if not self._is_active:
             return
 
         try:
             accent = config.get("theme.accent", self._palette.ACCENT_PRIMARY)
-            css = generate_webview_css(self._palette, accent=accent)
+            bg_color = config.get("theme.background", self._palette.BACKGROUND_PURE_BLACK)
+            css = generate_webview_css(self._palette, accent=accent, bg_color=bg_color)
 
             logo_b64 = LOGO_PNG_BASE64
             style_tag = f"<style id='awt-fullblack-theme'>{css}</style>"

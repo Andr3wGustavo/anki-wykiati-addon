@@ -97,6 +97,37 @@ class TestImageIngestion(unittest.TestCase):
         finally:
             media_manager.download_and_save_image = original_download
 
+    def test_image_only_front_layout(self):
+        config.set("discord.image_card_layout", "image_only_front", save=False)
+        event = DiscordMessageEvent(
+            id="msg_img_003",
+            content="Some caption that should not appear on back",
+            author=DiscordUser(id="user_doc", name="Doctor"),
+            channel=DiscordChannel(id="channel_img_123"),
+            attachments=[
+                DiscordAttachment(
+                    id="att_3",
+                    url="https://via.placeholder.com/150",
+                    filename="radiology.png",
+                )
+            ],
+        )
+
+        original_download = media_manager.download_and_save_image
+        media_manager.download_and_save_image = lambda url, fn=None: (True, "discord_radiology.png", "mockhash789")
+
+        try:
+            success, reply = self.bridge.handle_incoming_message("", event)
+            self.assertTrue(success)
+
+            job = job_queue.get_next()
+            self.assertIsNotNone(job)
+            self.assertIn('<img src="discord_radiology.png">', job.payload.front)
+            self.assertEqual(job.payload.back, "")
+
+        finally:
+            media_manager.download_and_save_image = original_download
+
 
 if __name__ == "__main__":
     unittest.main()

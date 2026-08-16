@@ -31,22 +31,39 @@ except ImportError:
             print("Or view the HTML live preview by opening 'preview.html' in your browser!")
             sys.exit(0)
 
+from ui.about_dialog import AboutDialog
 from ui.dashboard import DashboardDialog
+from ui.deck_rules_dialog import DeckRulesDialog
 from ui.discord_settings import DiscordSettingsDialog
+from ui.help_dialog import HelpDialog
+from ui.theme_settings import ThemeSettingsDialog
 
 
 def main():
-    print(f"[*] Starting Standalone GUI Preview with {QT_LIB}...")
+    target = sys.argv[1].lower() if len(sys.argv) > 1 else "dashboard"
+    print(f"[*] Starting Standalone GUI Preview ({target}) with {QT_LIB}...")
     app = QApplication(sys.argv)
     
-    # Apply iOS Liquid Glass theme
+    # Apply Liquid Glass theme
     qss = generate_qss()
     app.setStyleSheet(qss)
     
-    dash = DashboardDialog()
-    dash.show()
+    if target in ("theme", "rgb", "color"):
+        dlg = ThemeSettingsDialog()
+    elif target in ("discord", "image", "images"):
+        dlg = DiscordSettingsDialog()
+    elif target in ("help", "guide"):
+        dlg = HelpDialog()
+    elif target in ("rules", "deck"):
+        dlg = DeckRulesDialog()
+    elif target in ("about", "info"):
+        dlg = AboutDialog()
+    else:
+        dlg = DashboardDialog()
+        
+    dlg.show()
     
-    print("[OK] iOS Liquid Glass Dashboard Dialog is now open on your screen!")
+    print(f"[OK] Preview Dialog ({target}) is now active on your screen!")
     sys.exit(app.exec() if hasattr(app, "exec") else app.exec_())
 
 

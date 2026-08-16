@@ -7,6 +7,29 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.1.0] - 2026-08-16
+
+### Adicionado
+- **Diálogos de Configuração 100% Responsivos com Barra de Rolagem**:
+  - `BaseToolkitDialog` agora envolve o conteúdo em um `QScrollArea` transparente e fluido com scrollbars escuras de alta performance.
+  - Ajuste de tamanho dinâmico sem quebra de layout ou cortes em telas menores e monitores de qualquer resolução.
+- **Estúdio de Tema com Círculo RGB Interativo (`RGBWheelWidget`)**:
+  - Seletor circular de cores RGB em gradiente cônico com detecção precisa de clique e arrasto para escolher qualquer cor de fundo.
+  - Suporte completo a cores de fundo customizadas (`theme.background`), com atualização dinâmica de variáveis CSS `--canvas` e folhas de estilo Qt em tempo real.
+  - Presets rápidos para modos OLED: *🖤 Full Black AMOLED (#000000)*, *🌌 Deep Midnight (#0B0E14)*, *🌲 Forest Night (#08120C)*, *🪐 Obsidian Dark (#121214)*, *🔮 Cosmic Violet (#0E0B14)* e *⚓ Cyberpunk Dark (#0D1117)*.
+  - Card de pré-visualização ao vivo atualizado em tempo real dentro do diálogo.
+- **Modo Somente Imagem na Frente (Front-Only Image Cards)**:
+  - Opção no layout de imagem `image_only_front` para criação de flashcards puramente visuais, onde a imagem recebida do Discord fica exclusivamente na frente e o verso permanece limpo.
+  - Roteamento configurável de deck de destino (ex: `Medicina::Anatomia`) com criação automática do deck.
+- **Guia Didático e Documentação Interna Integrada (`HelpDialog`)**:
+  - Novo diálogo didático e ação no menu *Help & Setup Guide...* com instruções detalhadas passo a passo para configuração de canais do Discord, Bot Token, modo desenvolvedor, círculo RGB e REST Webhook.
+  - Caixas de dicas didáticas embutidas no próprio diálogo de configurações do Discord.
+- **Galeria Visual no README.md com 6 Espaços Formatados**:
+  - 3 espaços dedicados para exemplos do Dashboard (Métricas em Tempo Real, Criador Rápido de Cards e Fila FIFO de Jobs).
+  - 3 espaços dedicados para exemplos das Configurações (Canais de Imagem do Discord, Estúdio de Tema com Círculo RGB e Regras de Roteamento de Decks).
+
+---
+
 ## [1.0.0] - 2026-08-15
 
 ### Adicionado

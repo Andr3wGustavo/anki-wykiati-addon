@@ -7,13 +7,13 @@ from typing import Optional
 from .palette import PALETTE, ThemePalette
 
 
-def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) -> str:
+def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None, bg_color: Optional[str] = None) -> str:
     """
     Clean, Minimalist Qt StyleSheet (QSS) for native Anki windows and dialogs.
-    Applies pure void black and clean borders without altering layout.
+    Applies custom RGB background color (default #000000) and clean glass borders.
     """
     acc = accent or palette.ACCENT_PRIMARY
-    bg = palette.BACKGROUND_PURE_BLACK  # #000000
+    bg = bg_color or palette.BACKGROUND_PURE_BLACK  # #000000 by default or custom RGB
     border_subtle = palette.BORDER_SUBTLE
     border_strong = palette.BORDER_STRONG
     text = palette.TEXT_PRIMARY
@@ -173,16 +173,16 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
     """
 
 
-def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] = None) -> str:
+def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] = None, bg_color: Optional[str] = None) -> str:
     """
-    Pure, Minimalist Void Black (#000000) CSS for Anki WebViews.
+    Pure, Minimalist Custom Background (#000000 by default or custom RGB) CSS for Anki WebViews.
     Changes ONLY the colors:
-    - Pure black (#000000) canvas and backgrounds
+    - Pure black / custom RGB background canvas and backgrounds
     - Crisp high-contrast text
     - Preserves 100% of native Anki layout, tables, buttons, and centering
     """
     acc = accent or palette.ACCENT_PRIMARY
-    bg = palette.BACKGROUND_PURE_BLACK  # #000000
+    bg = bg_color or palette.BACKGROUND_PURE_BLACK  # #000000 by default or custom RGB
     border_subtle = palette.BORDER_SUBTLE
     text = palette.TEXT_PRIMARY
     text_sec = palette.TEXT_SECONDARY

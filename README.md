@@ -4,11 +4,86 @@ A modular, high-performance Anki add-on providing automated image and flashcard 
 
 ---
 
-## Visual Showcase & Result
+## Visual Showcase & Interface Gallery
+
+Explore the visual design, operational dashboard, and configuration studio below.
+
+### 📊 Dashboard & Operational Monitoring (3 Examples)
 
 <div align="center">
-  <img src="imgs/anki%20full%20black.png" alt="Anki Wykiati Full Black Theme" width="90%" style="border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);" />
-  <p><em>Anki Wykiati Full Black Interface — True #000000 Void Background with Centered Card Layout and Floating Translucent Controls.</em></p>
+  <table>
+    <tr>
+      <td width="50%" align="center">
+        <!-- DASHBOARD IMAGE SLOT 1 -->
+        <a href="imgs/dashboard_01_metrics.png">
+          <img src="imgs/anki%20full%20black.png" alt="Dashboard Slot 1: Operational Metrics & Sync Monitor" width="100%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);" />
+        </a>
+        <br />
+        <strong>1. Operational Metrics & Sync Monitor</strong>
+        <p><em>Real-time counter tiles for cards created, images ingested, queue latency, and bridge health.</em></p>
+      </td>
+      <td width="50%" align="center">
+        <!-- DASHBOARD IMAGE SLOT 2 -->
+        <a href="imgs/dashboard_02_quick_creator.png">
+          <img src="imgs/anki%20full%20black.png" alt="Dashboard Slot 2: Manual Card Quick Creator" width="100%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);" />
+        </a>
+        <br />
+        <strong>2. Manual Flashcard Quick Creator</strong>
+        <p><em>Live testing workbench to create, format, and push cards directly into decks with auto-tagging.</em></p>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2" align="center">
+        <!-- DASHBOARD IMAGE SLOT 3 -->
+        <a href="imgs/dashboard_03_job_queue.png">
+          <img src="imgs/anki%20full%20black.png" alt="Dashboard Slot 3: Background Job Queue & Sync History" width="90%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);" />
+        </a>
+        <br />
+        <strong>3. Asynchronous FIFO Job Queue & History</strong>
+        <p><em>Real-time job execution table displaying processing states, note IDs, timestamps, and error logs.</em></p>
+      </td>
+    </tr>
+  </table>
+</div>
+
+---
+
+### ⚙️ Configuration & Feature Studio (3 Examples)
+
+<div align="center">
+  <table>
+    <tr>
+      <td width="50%" align="center">
+        <!-- CONFIG IMAGE SLOT 1 -->
+        <a href="imgs/config_01_discord_images.png">
+          <img src="imgs/anki%20full%20black.png" alt="Config Slot 1: Discord Bot & Image Ingestion" width="100%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);" />
+        </a>
+        <br />
+        <strong>4. Discord Bot & Image Ingestion Settings</strong>
+        <p><em>Configure filtered image channels, target decks (e.g. <code>Medicine::Anatomy</code>), and Front-Only image card mode.</em></p>
+      </td>
+      <td width="50%" align="center">
+        <!-- CONFIG IMAGE SLOT 2 -->
+        <a href="imgs/config_02_rgb_theme_studio.png">
+          <img src="imgs/anki%20full%20black.png" alt="Config Slot 2: RGB Color Wheel & Theme Studio" width="100%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);" />
+        </a>
+        <br />
+        <strong>5. Interactive RGB Color Wheel Studio</strong>
+        <p><em>Circular RGB color wheel and OLED preset swatches to customize the global background and iOS accents.</em></p>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2" align="center">
+        <!-- CONFIG IMAGE SLOT 3 -->
+        <a href="imgs/config_03_deck_routing_rules.png">
+          <img src="imgs/anki%20full%20black.png" alt="Config Slot 3: Smart Deck Routing Rules" width="90%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);" />
+        </a>
+        <br />
+        <strong>6. Smart Tag & Keyword Deck Routing Rules</strong>
+        <p><em>Rule-based routing engine that maps tags and message keywords to target hierarchical decks automatically.</em></p>
+      </td>
+    </tr>
+  </table>
 </div>
 
 ---
@@ -60,13 +135,14 @@ The visual design is inspired by modern developer software interfaces (Linear, V
 
 The primary workflow automatically pulls images from filtered Discord channels into specific Anki decks:
 
-1. In Anki, open **Tools -> Anki Wykiati Toolkit -> Discord and Image Ingestion Settings**.
-2. Enter the channel ID in **Image Channels (IDs)** (e.g., `123456789012345678`).
-3. Set your target deck in **Target Image Deck** (e.g., `Medicine::Cardiology` or `Wykiati::Deck`).
-4. Select card layout:
-   - **Image on Front / Caption on Back** (Default): The downloaded image `<img src="discord_xxxx.png">` is placed on the front; message caption or text is placed on the back.
-   - **Question on Front / Image on Back**: Text is placed on the front; image is placed on the back.
-5. Save settings. Whenever an image is posted in the configured channel, the add-on automatically pulls the image into your Anki collection.
+1. In Anki, open **Tools -> Anki Wykiati Toolkit -> Discord and Image Settings...** (or press `Help & Setup Guide...` for interactive instructions).
+2. Enter the channel ID in **Image Channels (IDs)** (e.g., `119283746509182736`).
+3. Set your target deck in **Target Image Deck** (e.g., `Medicine::Anatomy` or `Images::Discord`). If the deck does not exist, the add-on automatically creates it.
+4. Select your preferred **Card Layout Mode**:
+   - **Image on Front Only (Empty Back / Visual Card)**: The downloaded image `<img src="discord_xxxx.png">` is placed exclusively on the front of the flashcard, with an empty back for pure visual identification training.
+   - **Image on Front / Caption on Back**: The image is placed on the front; the Discord message caption/notes are placed on the back.
+   - **Question/Caption on Front / Image on Back**: The message text is placed on the front as a question; the image is revealed on the back.
+5. Save settings. Whenever an image is posted in the configured channel, the add-on automatically downloads and persists the image into your Anki collection.
 
 ---
 
@@ -109,9 +185,13 @@ The codebase is organized in decoupled layers following SOLID principles and Cle
 ### Key Modules:
 - `anki/media.py`: Handles downloading binary image data, computing SHA-256 hashes, and writing files directly to `mw.col.media`.
 - `anki/notes.py` & `anki/decks.py`: Manages safe creation of notes and nested deck structures (`Parent::Child`).
-- `discord/bridge.py`: Routes incoming messages and attachments to either image ingestion or structured parsing.
+- `discord/bridge.py`: Routes incoming messages and attachments to either image ingestion or structured parsing with front-only card mode.
 - `discord/client.py`: Dual-mode client with an embedded HTTP server and lightweight Discord REST poller.
-- `theme/styles.py` & `theme/palette.py`: Generates Void Black QSS for Qt widgets and CSS for Anki webviews.
+- `theme/styles.py` & `theme/palette.py`: Generates custom RGB / Void Black QSS for Qt widgets and CSS for Anki webviews.
+- `theme/engine.py`: Dynamic theme engine that updates stylesheets and webviews in real time upon color changes.
+- `ui/components/base_dialog.py`: Base responsive dialog with automatic scrollable container and smooth dark scrollbars.
+- `ui/theme_settings.py`: Theme Studio with interactive circular RGB Color Wheel and dark preset swatches.
+- `ui/help_dialog.py`: Built-in step-by-step didactic guide and documentation inside the add-on.
 - `sync/queue.py` & `sync/worker.py`: Thread-safe persistent FIFO queue with automatic retries.
 
 ---
@@ -187,7 +267,7 @@ test_addon.bat
 ```
 
 Menu options:
-- **[1]** Run all 38 automated unit tests (headless).
+- **[1]** Run all automated unit tests (headless).
 - **[2]** Build clean `.ankiaddon` distributable package.
 - **[3]** Start local HTTP Webhook Bridge on `127.0.0.1:8765`.
 - **[4]** Send a test flashcard via PowerShell to local webhook.
@@ -222,14 +302,15 @@ All settings can be customized through the GUI dialogs or directly in `config.js
 | Setting Path | Type | Default | Description |
 |---|---|---|---|
 | `theme.enabled` | boolean | `true` | Enables or disables the visual theme |
-| `theme.accent` | string | `"#FFFFFF"` | Accent color hex code |
-| `theme.apply_to_webviews` | boolean | `true` | Applies Full Black theme to all WebViews |
-| `theme.pure_black_reviewer` | boolean | `true` | Forces Pure Black #000000 during card review |
+| `theme.background` | string | `"#000000"` | Global background color (Full Black AMOLED or custom RGB from Wheel) |
+| `theme.accent` | string | `"#FFFFFF"` | Accent color hex code (e.g. `"#0A84FF"`, `"#30D158"`) |
+| `theme.apply_to_webviews` | boolean | `true` | Applies Full Black / Custom RGB theme to all WebViews |
+| `theme.pure_black_reviewer` | boolean | `true` | Forces Dark background during card review |
 | `discord.enabled` | boolean | `false` | Enables the Discord Bot polling worker |
 | `discord.bot_token` | string | `""` | Discord Bot secret token |
 | `discord.image_channels` | list | `[]` | Channel IDs where every image is automatically ingested |
 | `discord.image_default_deck` | string | `"Images::Discord"` | Target deck for automatically ingested images |
-| `discord.image_card_layout` | string | `"image_front"` | Layout mode (`"image_front"` or `"image_back"`) |
+| `discord.image_card_layout` | string | `"image_only_front"` | Layout mode (`"image_only_front"`, `"image_front"`, or `"image_back"`) |
 | `discord.channel_ids` | list | `[]` | Channels allowed for `!anki` commands |
 | `discord.http_bridge_enabled` | boolean | `true` | Starts the local HTTP REST server |
 | `discord.http_bridge_port` | integer | `8765` | Local HTTP server port |

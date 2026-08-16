@@ -14,6 +14,7 @@ try:
     from .dashboard import DashboardDialog
     from .deck_rules_dialog import DeckRulesDialog
     from .discord_settings import DiscordSettingsDialog
+    from .help_dialog import HelpDialog
     from .templates_dialog import TemplatesDialog
     from .theme_settings import ThemeSettingsDialog
 except (ImportError, ValueError):
@@ -25,6 +26,7 @@ except (ImportError, ValueError):
     from ui.dashboard import DashboardDialog
     from ui.deck_rules_dialog import DeckRulesDialog
     from ui.discord_settings import DiscordSettingsDialog
+    from ui.help_dialog import HelpDialog
     from ui.templates_dialog import TemplatesDialog
     from ui.theme_settings import ThemeSettingsDialog
 
@@ -91,6 +93,11 @@ class ToolkitMenuManager:
 
             self._submenu.addSeparator()
 
+            # Help Action
+            act_help = QAction("Help & Setup Guide...", mw)
+            act_help.triggered.connect(self.show_help)
+            self._submenu.addAction(act_help)
+
             # About Action
             act_about = QAction("About Wykiati Toolkit...", mw)
             act_about.triggered.connect(self.show_about)
@@ -140,6 +147,12 @@ class ToolkitMenuManager:
         if not ANKI_AVAILABLE or mw is None:
             return
         dialog = TemplatesDialog(mw)
+        dialog.exec()
+
+    def show_help(self) -> None:
+        if not ANKI_AVAILABLE or mw is None:
+            return
+        dialog = HelpDialog(mw)
         dialog.exec()
 
     def show_about(self) -> None:

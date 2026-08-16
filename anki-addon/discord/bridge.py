@@ -167,10 +167,13 @@ class DiscordBridge:
             # Strip image URL from caption text
             clean_caption = IMAGE_URL_REGEX.sub("", caption).strip()
 
-            if layout == "image_back":
+            if layout in ("image_only_front", "image_front_empty_back", "front_only"):
+                front = img_tag
+                back = ""
+            elif layout == "image_back":
                 front = clean_caption or "Identify this image"
                 back = img_tag
-            else:
+            else:  # "image_front"
                 front = img_tag
                 back = clean_caption or "Visual Reference"
 

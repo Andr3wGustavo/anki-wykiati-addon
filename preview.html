@@ -516,8 +516,51 @@
             </div>
         </section>
 
-        <!-- Right System Metrics -->
+        <!-- Right System Metrics & Interactive RGB Theme Studio -->
         <aside class="sidebar">
+            <!-- RGB Background Color Studio -->
+            <div class="sidebar-box">
+                <div class="sidebar-title">🎨 RGB Background Studio</div>
+                <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">
+                    Click the presets or use the RGB color picker to dynamically change the entire app background color:
+                </p>
+                <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 12px;">
+                    <input type="color" id="rgbPicker" value="#000000" onchange="changeBgColor(this.value)" style="width: 38px; height: 32px; border: 1px solid var(--border-subtle); border-radius: 4px; background: transparent; cursor: pointer;">
+                    <input type="text" id="rgbHexInput" class="minimal-input" value="#000000" oninput="changeBgColor(this.value)" style="flex: 1;">
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 12px;">
+                    <button class="btn-square-glass" style="font-size: 10px; height: 28px; border-left: 3px solid #333333;" onclick="changeBgColor('#000000')">🖤 Void Black</button>
+                    <button class="btn-square-glass" style="font-size: 10px; height: 28px; border-left: 3px solid #0B0E14;" onclick="changeBgColor('#0B0E14')">🌌 Midnight</button>
+                    <button class="btn-square-glass" style="font-size: 10px; height: 28px; border-left: 3px solid #08120C;" onclick="changeBgColor('#08120C')">🌲 Forest</button>
+                    <button class="btn-square-glass" style="font-size: 10px; height: 28px; border-left: 3px solid #0E0B14;" onclick="changeBgColor('#0E0B14')">🔮 Cosmic</button>
+                </div>
+            </div>
+
+            <!-- Discord & Image Settings Preview -->
+            <div class="sidebar-box">
+                <div class="sidebar-title">⚡ Discord & Image Channel</div>
+                <div class="input-group">
+                    <label class="input-label">Image Channel ID</label>
+                    <input type="text" class="minimal-input" value="119283746509182736" readonly>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Target Deck</label>
+                    <input type="text" class="minimal-input" value="Medicine::Cardiology" readonly>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Card Layout Mode</label>
+                    <select id="selCardLayout" class="minimal-input" onchange="updateCardLayout(this.value)">
+                        <option value="front_only">Image on Front Only (Empty Back)</option>
+                        <option value="front_caption" selected>Image on Front / Caption on Back</option>
+                        <option value="back_image">Question on Front / Image on Back</option>
+                    </select>
+                </div>
+                <button class="btn-square-glass" style="width: 100%; margin-top: 14px;" onclick="simulateImageIngest()">
+                    Simulate Image Push
+                </button>
+            </div>
+
+            <!-- Pipeline Metrics -->
             <div class="sidebar-box">
                 <div class="sidebar-title">Pipeline Statistics</div>
                 <div class="metric-row">
@@ -533,24 +576,9 @@
                     <span class="metric-value">0</span>
                 </div>
                 <div class="metric-row">
-                    <span class="metric-label">Engine Theme</span>
-                    <span class="metric-value">Void Black</span>
+                    <span class="metric-label">Theme Mode</span>
+                    <span class="metric-value" id="valThemeName">Void Black (#000000)</span>
                 </div>
-            </div>
-
-            <div class="sidebar-box">
-                <div class="sidebar-title">Channel Configuration</div>
-                <div class="input-group">
-                    <label class="input-label">Image Channel ID</label>
-                    <input type="text" class="minimal-input" value="119283746509182736" readonly>
-                </div>
-                <div class="input-group">
-                    <label class="input-label">Target Deck</label>
-                    <input type="text" class="minimal-input" value="Medicine::Cardiology" readonly>
-                </div>
-                <button class="btn-square-glass" style="width: 100%; margin-top: 14px;" onclick="simulateImageIngest()">
-                    Simulate Image Push
-                </button>
             </div>
         </aside>
 
@@ -591,6 +619,43 @@
         function simulateImageIngest() {
             const count = document.getElementById('valImages');
             count.innerText = parseInt(count.innerText) + 1;
+        }
+
+        function changeBgColor(hex) {
+            if (!hex || !hex.startsWith('#')) return;
+            document.documentElement.style.setProperty('--bg-void', hex);
+            document.body.style.backgroundColor = hex;
+            document.getElementById('rgbPicker').value = hex;
+            document.getElementById('rgbHexInput').value = hex;
+            
+            const themeLabel = document.getElementById('valThemeName');
+            if (hex === '#000000') {
+                themeLabel.innerText = 'Void Black (#000000)';
+            } else {
+                themeLabel.innerText = `Custom RGB (${hex})`;
+            }
+        }
+
+        function updateCardLayout(layout) {
+            const prompt = document.querySelector('.card-prompt');
+            const drawer = document.getElementById('answerDrawer');
+            const imgContainer = document.querySelector('.image-container');
+
+            if (layout === 'front_only') {
+                imgContainer.style.display = 'flex';
+                prompt.style.display = 'none';
+                drawer.innerHTML = '<em>(Visual Card — No back text needed)</em>';
+            } else if (layout === 'back_image') {
+                imgContainer.style.display = 'none';
+                prompt.style.display = 'block';
+                prompt.innerText = 'Identify the primary cardiac structures:';
+                drawer.innerHTML = '<div style="text-align:center;"><img src="https://images.unsplash.com/photo-1530026405186-ed1f139313f8?auto=format&fit=crop&w=700&q=80" style="max-width:100%; border-radius:4px;" /><p style="margin-top:8px;">Heart Ventricles & Atria Diagram</p></div>';
+            } else {
+                imgContainer.style.display = 'flex';
+                prompt.style.display = 'block';
+                prompt.innerText = 'Identify the primary anatomical structures and flow direction indicated in this image:';
+                drawer.innerHTML = '1. <strong>Left Atrium & Left Ventricle:</strong> Receive oxygenated blood from pulmonary veins and pump through the Aorta.<br><br>2. <strong>Right Atrium & Right Ventricle:</strong> Receive systemic deoxygenated blood and direct flow to the pulmonary artery.';
+            }
         }
 
         // Monochromatic Timer

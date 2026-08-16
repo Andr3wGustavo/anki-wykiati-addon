@@ -72,12 +72,14 @@ class DiscordSettingsDialog(BaseToolkitDialog):
         super().__init__(
             parent,
             title="Discord and Image Ingestion Settings",
-            subtitle="Configure automatic image channels, bot polling, and local HTTP bridge.",
+            subtitle="Configure automatic image channels, target decks, front-only cards, and local HTTP bridge.",
+            width=680,
+            height=580,
         )
         if not QT_AVAILABLE:
             return
 
-        self.setMinimumSize(620, 530)
+        self.setMinimumSize(520, 420)
         self._build_ui()
         self._load_values()
 
@@ -85,34 +87,63 @@ class DiscordSettingsDialog(BaseToolkitDialog):
         main_layout = QVBoxLayout()
         main_layout.setSpacing(14)
 
+        # 0. Didactic Step-by-Step Setup Guide
+        guide_frame = QFrame(self)
+        guide_frame.setStyleSheet(
+            f"background-color: {PALETTE.BACKGROUND_SURFACE}; "
+            f"border: 1px solid {PALETTE.BORDER_DEFAULT}; "
+            f"border-radius: 6px; padding: 12px;"
+        )
+        guide_layout = QVBoxLayout(guide_frame)
+        guide_layout.setSpacing(6)
+
+        lbl_guide_title = QLabel("💡 Guia Rápido de Configuração / Quick Setup Guide", guide_frame)
+        lbl_guide_title.setStyleSheet("font-size: 13px; font-weight: bold; color: #FFFFFF;")
+        guide_layout.addWidget(lbl_guide_title)
+
+        lbl_guide_body = QLabel(
+            "• <b>1. Copiar ID do Canal no Discord:</b> No Discord, ative <i>Configurações do Usuário > Avançado > Modo Desenvolvedor</i>. "
+            "Depois, clique com botão direito no canal onde você envia as imagens e clique em <b>Copiar ID do Canal</b>.<br>"
+            "• <b>2. Deck de Destino:</b> Digite o nome do Deck do Anki (ex: <code>Medicina::Anatomia</code> ou <code>Imagens::Discord</code>). Se o deck não existir, ele será criado automaticamente.<br>"
+            "• <b>3. Somente Imagem na Frente:</b> Para que a imagem apareça sozinha na frente do card sem verso, selecione <b>Image on Front Only (Empty Back)</b>.<br>"
+            "• <b>4. Bot Poller vs HTTP Bridge:</b> Para polling em nuvem, insira o <i>Bot Token</i> do Discord Developer Portal. Para usar scripts locais, mantenha o <i>Local HTTP Bridge</i> ativo (porta 8765).",
+            guide_frame,
+        )
+        lbl_guide_body.setWordWrap(True)
+        lbl_guide_body.setStyleSheet(f"font-size: 11px; color: {PALETTE.TEXT_SECONDARY}; line-height: 1.45;")
+        guide_layout.addWidget(lbl_guide_body)
+
+        main_layout.addWidget(guide_frame)
+
         # 1. Image Channels & Auto-Ingestion (Top Priority Feature)
         group_images = QGroupBox("Dedicated Image Channels (Auto-Ingestion)", self)
         img_layout = QFormLayout(group_images)
-        img_layout.setSpacing(8)
+        img_layout.setSpacing(10)
 
         self.txt_image_channels = QLineEdit(self)
-        self.txt_image_channels.setPlaceholderText("Channel IDs receiving filtered images (comma-separated, e.g. 123456789012345678)")
+        self.txt_image_channels.setPlaceholderText("Channel IDs (comma-separated, e.g. 119283746509182736)")
         img_layout.addRow("Image Channels (IDs):", self.txt_image_channels)
 
         self.txt_image_deck = QLineEdit(self)
-        self.txt_image_deck.setPlaceholderText("Target deck for automatically ingested images (e.g. Medicine::Anatomy)")
+        self.txt_image_deck.setPlaceholderText("Target Deck (e.g. Medicine::Anatomy or Images::Discord)")
         img_layout.addRow("Target Image Deck:", self.txt_image_deck)
 
         self.combo_img_layout = QComboBox(self)
+        self.combo_img_layout.addItem("Image on Front Only (Empty Back / Visual Card)", "image_only_front")
         self.combo_img_layout.addItem("Image on Front / Caption on Back", "image_front")
-        self.combo_img_layout.addItem("Question on Front / Image on Back", "image_back")
-        img_layout.addRow("Card Layout:", self.combo_img_layout)
+        self.combo_img_layout.addItem("Question/Caption on Front / Image on Back", "image_back")
+        img_layout.addRow("Card Layout Mode:", self.combo_img_layout)
 
         self.txt_image_tags = QLineEdit(self)
-        self.txt_image_tags.setPlaceholderText("Automatic tags (comma-separated, e.g. discord, anatomy, wykiati)")
+        self.txt_image_tags.setPlaceholderText("Automatic tags (comma-separated, e.g. discord, anatomy, visual)")
         img_layout.addRow("Auto Tags:", self.txt_image_tags)
 
         main_layout.addWidget(group_images)
 
         # 2. General Discord Bot Credentials
-        group_bot = QGroupBox("Discord Bot Credentials", self)
+        group_bot = QGroupBox("Discord Bot Credentials (Background Poller)", self)
         bot_layout = QFormLayout(group_bot)
-        bot_layout.setSpacing(8)
+        bot_layout.setSpacing(10)
 
         self.chk_bot_enabled = QCheckBox("Enable Discord Bot Background Poller", self)
         self.chk_bot_enabled.setStyleSheet("font-weight: 600;")
@@ -126,7 +157,7 @@ class DiscordSettingsDialog(BaseToolkitDialog):
 
         self.txt_channels = QLineEdit(self)
         self.txt_channels.setPlaceholderText("General text channels allowed for !anki commands (comma-separated)")
-        bot_layout.addRow("General Text Channels (IDs):", self.txt_channels)
+        bot_layout.addRow("Text Channels (IDs):", self.txt_channels)
 
         self.txt_users = QLineEdit(self)
         self.txt_users.setPlaceholderText("Authorized Discord User IDs (leave empty to allow all)")
@@ -142,7 +173,7 @@ class DiscordSettingsDialog(BaseToolkitDialog):
         # 3. Local HTTP Bridge
         group_http = QGroupBox("Local HTTP Webhook Bridge (127.0.0.1)", self)
         http_layout = QFormLayout(group_http)
-        http_layout.setSpacing(8)
+        http_layout.setSpacing(10)
 
         self.chk_http_enabled = QCheckBox("Enable Local REST Webhook Server", self)
         http_layout.addRow("HTTP Server Status:", self.chk_http_enabled)

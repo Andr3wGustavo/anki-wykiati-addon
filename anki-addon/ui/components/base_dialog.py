@@ -24,8 +24,11 @@ try:
         QHBoxLayout,
         QLabel,
         QPushButton,
+        QScrollArea,
+        QSizePolicy,
         QVBoxLayout,
         QWidget,
+        Qt,
     )
     QT_AVAILABLE = True
 except ImportError:
@@ -36,9 +39,12 @@ except ImportError:
             QHBoxLayout,
             QLabel,
             QPushButton,
+            QScrollArea,
+            QSizePolicy,
             QVBoxLayout,
             QWidget,
         )
+        from PyQt6.QtCore import Qt
         QT_AVAILABLE = True
     except ImportError:
         try:
@@ -48,26 +54,30 @@ except ImportError:
                 QHBoxLayout,
                 QLabel,
                 QPushButton,
+                QScrollArea,
+                QSizePolicy,
                 QVBoxLayout,
                 QWidget,
             )
+            from PyQt5.QtCore import Qt
             QT_AVAILABLE = True
         except ImportError:
-            QDialog = QFrame = QHBoxLayout = QLabel = QPushButton = QVBoxLayout = QWidget = object
+            QDialog = QFrame = QHBoxLayout = QLabel = QPushButton = QScrollArea = QSizePolicy = QVBoxLayout = QWidget = Qt = object
             QT_AVAILABLE = False
 
 
 class BaseToolkitDialog(QDialog):
     """
-    Standard base dialog with Void Black background, square glass cards, and crisp footer actions.
+    Standard base dialog with Void Black background, square glass cards,
+    and a fluid, responsive scrollable body container.
     """
     def __init__(
         self,
         parent: Optional[Any] = None,
         title: str = "Wykiati Toolkit",
         subtitle: str = "",
-        width: int = 560,
-        height: int = 420,
+        width: int = 640,
+        height: int = 540,
     ) -> None:
         if not QT_AVAILABLE:
             return
@@ -75,7 +85,11 @@ class BaseToolkitDialog(QDialog):
 
         self.setWindowTitle(title)
         self.resize(width, height)
-        self.setMinimumSize(460, 320)
+        self.setMinimumSize(480, 360)
+
+        # Allow resizing & maximizing
+        if hasattr(self, "setSizeGripEnabled"):
+            self.setSizeGripEnabled(True)
 
         # Apply zero-lag glass stylesheet
         self.setStyleSheet(generate_qss())
@@ -84,7 +98,7 @@ class BaseToolkitDialog(QDialog):
         self._root_layout.setContentsMargins(16, 16, 16, 16)
         self._root_layout.setSpacing(12)
 
-        # Header Frame
+        # Header Frame (Fixed Top)
         header_frame = QFrame(self)
         header_frame.setStyleSheet(
             f"background-color: {PALETTE.BACKGROUND_SURFACE}; "
@@ -102,17 +116,35 @@ class BaseToolkitDialog(QDialog):
         if subtitle:
             self.lbl_subtitle = QLabel(subtitle, header_frame)
             self.lbl_subtitle.setStyleSheet(f"font-size: 12px; color: {PALETTE.TEXT_MUTED};")
+            self.lbl_subtitle.setWordWrap(True)
             header_layout.addWidget(self.lbl_subtitle)
 
         self._root_layout.addWidget(header_frame)
 
-        # Body Layout (subclasses insert content here)
-        self.body_layout = QVBoxLayout()
-        self.body_layout.setSpacing(12)
-        self._root_layout.addLayout(self.body_layout, 1)
+        # Responsive Body Scroll Area (makes ALL panels scrollable & responsive)
+        self.scroll_area = QScrollArea(self)
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame if hasattr(QFrame, "Shape") else 0)
+        self.scroll_area.setStyleSheet(
+            "QScrollArea { background: transparent; border: none; }"
+            "QScrollBar:vertical { background: transparent; width: 6px; margin: 0; }"
+            "QScrollBar::handle:vertical { background: rgba(255, 255, 255, 0.20); border-radius: 3px; min-height: 24px; }"
+            "QScrollBar::handle:vertical:hover { background: rgba(255, 255, 255, 0.35); }"
+        )
 
-        # Footer Actions
+        self.scroll_content = QWidget()
+        self.scroll_content.setStyleSheet("background: transparent;")
+        
+        self.body_layout = QVBoxLayout(self.scroll_content)
+        self.body_layout.setContentsMargins(0, 4, 4, 4)
+        self.body_layout.setSpacing(12)
+
+        self.scroll_area.setWidget(self.scroll_content)
+        self._root_layout.addWidget(self.scroll_area, 1)
+
+        # Footer Actions (Fixed Bottom)
         footer_layout = QHBoxLayout()
+        footer_layout.setContentsMargins(0, 4, 0, 0)
         footer_layout.addStretch()
 
         self.btn_cancel = QPushButton("Cancel", self)
@@ -125,3 +157,4 @@ class BaseToolkitDialog(QDialog):
         footer_layout.addWidget(self.btn_save)
 
         self._root_layout.addLayout(footer_layout)
+
