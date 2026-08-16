@@ -10,11 +10,13 @@ try:
     from ..core.constants import TOOLS_MENU_ENTRY
     from ..core.logger import logger
     from ..theme.engine import theme_engine
+    from ..timer.pomodoro import pomodoro_engine
     from .about_dialog import AboutDialog
     from .dashboard import DashboardDialog
     from .deck_rules_dialog import DeckRulesDialog
     from .discord_settings import DiscordSettingsDialog
     from .help_dialog import HelpDialog
+    from .pomodoro_dialog import PomodoroDialog
     from .templates_dialog import TemplatesDialog
     from .theme_settings import ThemeSettingsDialog
 except (ImportError, ValueError):
@@ -22,11 +24,13 @@ except (ImportError, ValueError):
     from core.constants import TOOLS_MENU_ENTRY
     from core.logger import logger
     from theme.engine import theme_engine
+    from timer.pomodoro import pomodoro_engine
     from ui.about_dialog import AboutDialog
     from ui.dashboard import DashboardDialog
     from ui.deck_rules_dialog import DeckRulesDialog
     from ui.discord_settings import DiscordSettingsDialog
     from ui.help_dialog import HelpDialog
+    from ui.pomodoro_dialog import PomodoroDialog
     from ui.templates_dialog import TemplatesDialog
     from ui.theme_settings import ThemeSettingsDialog
 
@@ -62,6 +66,12 @@ class ToolkitMenuManager:
             act_dash.setShortcut(QKeySequence("Ctrl+Shift+D"))
             act_dash.triggered.connect(self.show_dashboard)
             self._submenu.addAction(act_dash)
+
+            # Pomodoro Studio Action
+            act_pomodoro = QAction("Focus Timer & Pomodoro Studio...", mw)
+            act_pomodoro.setShortcut(QKeySequence("Ctrl+Shift+P"))
+            act_pomodoro.triggered.connect(self.show_pomodoro)
+            self._submenu.addAction(act_pomodoro)
 
             # Toggle Full Black Theme Quick Action
             act_toggle = QAction("Toggle Full Black Theme", mw)
@@ -114,6 +124,12 @@ class ToolkitMenuManager:
         if not ANKI_AVAILABLE or mw is None:
             return
         dialog = DashboardDialog(mw)
+        dialog.exec()
+
+    def show_pomodoro(self) -> None:
+        if not ANKI_AVAILABLE or mw is None:
+            return
+        dialog = PomodoroDialog(mw)
         dialog.exec()
 
     def toggle_pure_black_theme(self) -> None:
