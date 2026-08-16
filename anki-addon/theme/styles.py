@@ -100,19 +100,19 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
         color: {text};
     }}
 
-    /* Square Glass Buttons */
+    /* Native Clean Glass Buttons */
     QPushButton {{
-        background-color: rgba(255, 255, 255, 0.04);
-        color: {text};
+        background-color: rgba(255, 255, 255, 0.05);
+        color: #FFFFFF;
         border: 1px solid {border};
         border-radius: 4px;
-        padding: 7px 16px;
+        padding: 6px 16px;
         font-size: 13px;
         font-weight: 500;
-        min-height: 18px;
+        min-height: 24px;
     }}
     QPushButton:hover {{
-        background-color: rgba(255, 255, 255, 0.09);
+        background-color: rgba(255, 255, 255, 0.10);
         border-color: {border_strong};
         color: #FFFFFF;
     }}
@@ -121,15 +121,15 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None) 
         border-color: {border_subtle};
     }}
     QPushButton:default, QPushButton[primary="true"] {{
-        background-color: rgba(255, 255, 255, 0.14);
+        background-color: rgba(255, 255, 255, 0.15);
         color: #FFFFFF;
-        border: 1px solid rgba(255, 255, 255, 0.30);
+        border: 1px solid rgba(255, 255, 255, 0.35);
         font-weight: 600;
         border-radius: 4px;
     }}
     QPushButton:default:hover, QPushButton[primary="true"]:hover {{
-        background-color: rgba(255, 255, 255, 0.22);
-        border-color: rgba(255, 255, 255, 0.45);
+        background-color: rgba(255, 255, 255, 0.25);
+        border-color: rgba(255, 255, 255, 0.50);
     }}
 
     /* Input Fields */
@@ -216,10 +216,10 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
     """
     Ultra-Lightweight, Zero-Lag Solid Void Black (#000000) CSS for Anki WebViews.
     - True #000000 pure black (no grey boxes)
-    - Perfectly centered bottom ease buttons
+    - Perfectly centered bottom ease buttons via native table centering
     - Correctly sized sync button & toolbar items (no giant icons)
+    - Clean, non-destructive block layout on DeckBrowser and Reviewer
     - Square glass buttons with crisp borders
-    - Fluid, responsive standard typography
     """
     acc = accent or palette.ACCENT_PRIMARY
     bg = palette.BACKGROUND_PURE_BLACK  # #000000
@@ -262,7 +262,6 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
         margin: 0 !important;
         padding: 0 !important;
         width: 100% !important;
-        min-height: 100% !important;
         box-sizing: border-box !important;
         -webkit-font-smoothing: antialiased !important;
     }}
@@ -292,14 +291,10 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
         background-color: {bg} !important;
         background: {bg} !important;
         border-bottom: 1px solid {border_subtle} !important;
-        padding: 4px 12px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        flex-wrap: wrap !important;
-        gap: 4px !important;
+        padding: 5px 12px !important;
+        text-align: center !important;
         width: 100% !important;
-        min-height: 38px !important;
+        box-sizing: border-box !important;
     }}
 
     /* Constrain all icons/SVGs so Sync never becomes gigantic */
@@ -321,7 +316,7 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
         color: {text_sec} !important;
         border: 1px solid rgba(255, 255, 255, 0.10) !important;
         border-radius: 4px !important;
-        padding: 4px 10px !important;
+        padding: 4px 11px !important;
         margin: 0 2px !important;
         font-size: 12px !important;
         font-weight: 500 !important;
@@ -336,6 +331,7 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
         cursor: pointer !important;
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
         transition: background 0.08s ease, border-color 0.08s ease !important;
+        vertical-align: middle !important;
     }}
 
     .toolbar a:hover, nav.navbar a:hover, .nav-link:hover, a.nav-link:hover, .toolbar button:hover, #header a:hover, #header button:hover {{
@@ -345,18 +341,16 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
     }}
 
     /* =========================================================================
-       3. DECK BROWSER (START SCREEN - PURE VOID BLACK)
+       3. DECK BROWSER (MIDDLE LIST - CLEAN BLOCK TABLE, PURE VOID BLACK)
        ========================================================================= */
     #deckbrowser {{
         background-color: {bg} !important;
         background: {bg} !important;
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        width: 100% !important;
-        max-width: 860px !important;
+        max-width: 820px !important;
         margin: 0 auto !important;
-        padding: 10px 14px 28px 14px !important;
+        padding: 16px 16px 32px 16px !important;
+        text-align: left !important;
+        box-sizing: border-box !important;
     }}
 
     #deckbrowser table.deck-table, .deck-table {{
@@ -365,7 +359,7 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
         border-collapse: separate !important;
         border-spacing: 0 4px !important;
         width: 100% !important;
-        margin: 8px auto 16px auto !important;
+        margin: 12px auto !important;
     }}
 
     tr.deck {{
@@ -377,12 +371,12 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
     }}
 
     tr.deck:hover {{
-        background: rgba(255, 255, 255, 0.05) !important;
+        background: rgba(255, 255, 255, 0.04) !important;
         border-color: rgba(255, 255, 255, 0.16) !important;
     }}
 
     td.decktd {{
-        padding: 9px 12px !important;
+        padding: 10px 14px !important;
         border: none !important;
         vertical-align: middle !important;
         background: transparent !important;
@@ -392,7 +386,21 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
         color: {text} !important;
         font-weight: 500 !important;
         text-decoration: none !important;
-        font-size: 13px !important;
+        font-size: 14px !important;
+    }}
+
+    /* Gear / Options Button in Deck Browser */
+    .opts a, a.gears, .gears {{
+        color: {text_muted} !important;
+        text-decoration: none !important;
+        font-size: 14px !important;
+        padding: 4px 6px !important;
+        border-radius: 4px !important;
+        transition: color 0.08s ease, background 0.08s ease !important;
+    }}
+    .opts a:hover, a.gears:hover {{
+        color: #FFFFFF !important;
+        background: rgba(255, 255, 255, 0.08) !important;
     }}
 
     /* Minimalist High-Contrast Counters */
@@ -416,13 +424,13 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
     }}
 
     /* =========================================================================
-       4. CARD REVIEWER (SOLID VOID BLACK #000000 - NO GREY CARD BOX)
+       4. CARD REVIEWER (SOLID VOID BLACK #000000 - NO GREY BOX)
        ========================================================================= */
     #qa {{
         background-color: {bg} !important;
         background: {bg} !important;
         width: 100% !important;
-        max-width: 860px !important;
+        max-width: 820px !important;
         margin: 0 auto !important;
         padding: 16px !important;
         text-align: center !important;
@@ -434,7 +442,7 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
         background-color: {bg} !important;
         color: {text} !important;
         width: 100% !important;
-        max-width: 840px !important;
+        max-width: 820px !important;
         margin: 0 auto !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
         border-radius: 4px !important;
@@ -505,7 +513,7 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
     }}
 
     /* =========================================================================
-       5. BOTTOM ACTION BAR (PERFECTLY CENTERED SQUARE GLASS BUTTONS)
+       5. BOTTOM ACTION BAR (PERFECTLY CENTERED VIA NATIVE TABLE LAYOUT)
        ========================================================================= */
     #bottomWeb, body#bottomWeb, #bottomBar, footer {{
         background-color: {bg} !important;
@@ -516,55 +524,86 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
         margin: 0 !important;
         text-align: center !important;
         box-sizing: border-box !important;
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
     }}
 
-    /* Center Anki's internal table and cells */
-    #outer, #middle, table.nobootstrap, table#outer {{
+    /* Center Anki's native table and cells */
+    #outer {{
+        display: table !important;
+        width: 100% !important;
+        height: 100% !important;
         margin: 0 auto !important;
-        text-align: center !important;
+        border-collapse: collapse !important;
+        background: transparent !important;
+    }}
+
+    #outer > tr, #outer > tbody > tr {{
+        display: table-row !important;
+    }}
+
+    #outer td {{
+        display: table-cell !important;
+        vertical-align: middle !important;
         border: none !important;
+        background: transparent !important;
+    }}
+
+    #middle {{
+        text-align: center !important;
+        width: 100% !important;
+    }}
+
+    table.nobootstrap {{
+        display: inline-table !important;
+        margin: 0 auto !important;
+        border-collapse: separate !important;
+        border-spacing: 4px 0 !important;
         background: transparent !important;
         width: auto !important;
     }}
 
-    table.nobootstrap tr, table.nobootstrap td, #middle td, #outer td {{
-        text-align: center !important;
+    table.nobootstrap td {{
+        padding: 0 !important;
         vertical-align: middle !important;
-        padding: 2px 3px !important;
+        text-align: center !important;
         border: none !important;
         background: transparent !important;
     }}
 
+    .stat {{
+        width: 10% !important;
+        min-width: 50px !important;
+        color: {text_muted} !important;
+        font-size: 11px !important;
+        font-family: "JetBrains Mono", monospace !important;
+        padding: 0 10px !important;
+    }}
+    #time {{ text-align: left !important; }}
+    #stat2 {{ text-align: right !important; }}
+
     /* Uniform Square Glass Bottom Buttons */
     #bottomWeb button, .nobootstrap button, button.ease-button, button.btn, 
     button#ease1, button#ease2, button#ease3, button#ease4, button#ansbtn {{
-        background: rgba(255, 255, 255, 0.04) !important;
+        background: rgba(255, 255, 255, 0.05) !important;
         color: {text} !important;
         border: 1px solid rgba(255, 255, 255, 0.12) !important;
         border-radius: 4px !important;
-        padding: 6px 18px !important;
-        margin: 0 3px !important;
+        padding: 6px 16px !important;
+        margin: 0 2px !important;
         font-family: "Inter", sans-serif !important;
         font-size: 13px !important;
         font-weight: 500 !important;
         cursor: pointer !important;
-        height: 34px !important;
-        min-height: 34px !important;
-        max-height: 36px !important;
-        display: inline-flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
+        min-height: 32px !important;
+        height: auto !important;
+        display: inline-block !important;
+        text-align: center !important;
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
         transition: background 0.08s ease, border-color 0.08s ease !important;
         vertical-align: middle !important;
     }}
 
     #bottomWeb button:hover, button.ease-button:hover, button#ansbtn:hover {{
-        background: rgba(255, 255, 255, 0.10) !important;
+        background: rgba(255, 255, 255, 0.12) !important;
         border-color: rgba(255, 255, 255, 0.28) !important;
         color: #FFFFFF !important;
     }}
@@ -575,10 +614,11 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
         background: rgba(255, 255, 255, 0.10) !important;
         border-color: rgba(255, 255, 255, 0.25) !important;
         font-weight: 600 !important;
+        padding: 8px 24px !important;
     }}
     button#ansbtn:hover {{
-        background: rgba(255, 255, 255, 0.18) !important;
-        border-color: rgba(255, 255, 255, 0.40) !important;
+        background: rgba(255, 255, 255, 0.20) !important;
+        border-color: rgba(255, 255, 255, 0.45) !important;
     }}
 
     /* Discrete Color Accents for Ease Buttons */
