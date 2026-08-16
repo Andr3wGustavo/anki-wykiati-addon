@@ -151,7 +151,7 @@ class ThemeEngine:
             logger.error(f"[ThemeEngine] Error deactivating theme: {e}", exc_info=True)
 
     def _on_webview_will_set_content(self, web_content: Any, context: Optional[Any] = None) -> None:
-        """Inject full black CSS and direct Logo element into DeckBrowser start screen."""
+        """Inject zero-lag full black CSS and direct Logo element into DeckBrowser start screen."""
         if not self._is_active:
             return
 
@@ -160,40 +160,36 @@ class ThemeEngine:
             css = generate_webview_css(self._palette, accent=accent)
 
             logo_b64 = LOGO_PNG_BASE64
-
             style_tag = f"<style id='awt-fullblack-theme'>{css}</style>"
-            js_tag = f"""
-            <script id='awt-fullblack-enforce'>
-            (function() {{
-                function applyBlackAndLogo() {{
-                    document.documentElement.style.setProperty('background', '#000000', 'important');
-                    document.documentElement.style.setProperty('background-color', '#000000', 'important');
-                    if (document.body) {{
-                        document.body.style.setProperty('background', '#000000', 'important');
-                        document.body.style.setProperty('background-color', '#000000', 'important');
-                    }}
 
-                    // Direct injection of logo into Deck Browser
-                    var db = document.querySelector('#deckbrowser');
-                    if (db && !document.querySelector('#wykiati-logo-banner') && '{logo_b64}') {{
-                        var banner = document.createElement('div');
-                        banner.id = 'wykiati-logo-banner';
-                        banner.style.cssText = 'text-align: center; margin: 24px auto 10px auto; width: 100%; max-width: 860px; pointer-events: none;';
-                        banner.innerHTML = '<img src="{logo_b64}" alt="Wykiati Logo" style="max-width: 170px; height: auto; opacity: 0.9; display: block; margin: 0 auto; border: none !important; box-shadow: none !important; background: transparent !important;" />';
-                        db.insertBefore(banner, db.firstChild);
+            # Lightweight logo banner injection only when logo data exists
+            js_tag = ""
+            if logo_b64:
+                js_tag = f"""
+                <script id='awt-fullblack-enforce'>
+                (function() {{
+                    function injectLogo() {{
+                        var db = document.querySelector('#deckbrowser');
+                        if (db && !document.querySelector('#wykiati-logo-banner')) {{
+                            var banner = document.createElement('div');
+                            banner.id = 'wykiati-logo-banner';
+                            banner.style.cssText = 'text-align: center; margin: 18px auto 8px auto; width: 100%; max-width: 880px; pointer-events: none;';
+                            banner.innerHTML = '<img src="{logo_b64}" alt="Wykiati Logo" style="max-width: 160px; height: auto; opacity: 0.92; display: block; margin: 0 auto; border: none !important; box-shadow: none !important; background: transparent !important;" />';
+                            db.insertBefore(banner, db.firstChild);
+                        }}
                     }}
-                }}
-                applyBlackAndLogo();
-                if (document.readyState === 'loading') {{
-                    document.addEventListener('DOMContentLoaded', applyBlackAndLogo);
-                }}
-            }})();
-            </script>
-            """
+                    if (document.readyState === 'loading') {{
+                        document.addEventListener('DOMContentLoaded', injectLogo, {{ once: true }});
+                    }} else {{
+                        injectLogo();
+                    }}
+                }})();
+                </script>
+                """
 
             if hasattr(web_content, "head"):
                 web_content.head += style_tag + js_tag
-            if hasattr(web_content, "css"):
+            elif hasattr(web_content, "css"):
                 web_content.css.append(css)
         except Exception as e:
             logger.error(f"[ThemeEngine] Failed injecting webview content: {e}")

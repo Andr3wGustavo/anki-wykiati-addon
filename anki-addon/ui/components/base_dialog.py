@@ -59,7 +59,7 @@ except ImportError:
 
 class BaseToolkitDialog(QDialog):
     """
-    Standard base dialog with iOS Liquid Glass header, body layout, and footer actions.
+    Standard base dialog with Void Black background, square glass cards, and crisp footer actions.
     """
     def __init__(
         self,
@@ -77,26 +77,26 @@ class BaseToolkitDialog(QDialog):
         self.resize(width, height)
         self.setMinimumSize(460, 320)
 
-        # Apply glass stylesheet
+        # Apply zero-lag glass stylesheet
         self.setStyleSheet(generate_qss())
 
         self._root_layout = QVBoxLayout(self)
-        self._root_layout.setContentsMargins(18, 18, 18, 18)
-        self._root_layout.setSpacing(14)
+        self._root_layout.setContentsMargins(16, 16, 16, 16)
+        self._root_layout.setSpacing(12)
 
         # Header Frame
         header_frame = QFrame(self)
         header_frame.setStyleSheet(
             f"background-color: {PALETTE.BACKGROUND_SURFACE}; "
             f"border: 1px solid {PALETTE.BORDER_DEFAULT}; "
-            f"border-radius: 12px; padding: 12px;"
+            f"border-radius: 6px; padding: 10px;"
         )
         header_layout = QVBoxLayout(header_frame)
         header_layout.setContentsMargins(8, 4, 8, 4)
         header_layout.setSpacing(3)
 
         self.lbl_title = QLabel(title, header_frame)
-        self.lbl_title.setStyleSheet("font-size: 16px; font-weight: bold; color: #FFFFFF;")
+        self.lbl_title.setStyleSheet("font-size: 15px; font-weight: bold; color: #FFFFFF;")
         header_layout.addWidget(self.lbl_title)
 
         if subtitle:

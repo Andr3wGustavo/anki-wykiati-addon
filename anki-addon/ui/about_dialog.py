@@ -56,7 +56,7 @@ class AboutDialog(BaseToolkitDialog):
         info_frame.setStyleSheet(
             f"background-color: {PALETTE.BACKGROUND_SURFACE}; "
             f"border: 1px solid {PALETTE.BORDER_DEFAULT}; "
-            f"border-radius: 12px; padding: 14px;"
+            f"border-radius: 6px; padding: 14px;"
         )
         info_layout = QVBoxLayout(info_frame)
         info_layout.setSpacing(6)

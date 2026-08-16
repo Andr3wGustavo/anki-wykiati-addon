@@ -122,7 +122,7 @@ class DashboardDialog(BaseToolkitDialog):
         test_frame.setStyleSheet(
             f"background-color: {PALETTE.BACKGROUND_SURFACE}; "
             f"border: 1px solid {PALETTE.BORDER_DEFAULT}; "
-            f"border-radius: 12px; padding: 10px;"
+            f"border-radius: 6px; padding: 10px;"
         )
         test_layout = QVBoxLayout(test_frame)
         test_layout.setSpacing(8)
@@ -191,7 +191,7 @@ class DashboardDialog(BaseToolkitDialog):
         frame.setStyleSheet(
             f"background-color: {PALETTE.BACKGROUND_SURFACE_ELEVATED}; "
             f"border: 1px solid {PALETTE.BORDER_DEFAULT}; "
-            f"border-radius: 12px; padding: 10px;"
+            f"border-radius: 6px; padding: 10px;"
         )
         layout = QVBoxLayout(frame)
         layout.setContentsMargins(10, 8, 10, 8)

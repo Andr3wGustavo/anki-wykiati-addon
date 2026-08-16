@@ -31,6 +31,7 @@ EXCLUDED_NAMES = {
     ".gitkeep",
     "anki_addon.log",
     "anki_discord_toolkit.log",
+    "anki_wykiati_toolkit.log",
 }
 
 EXCLUDED_EXTENSIONS = {

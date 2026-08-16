@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anki Wykiati Toolkit — Ultra Minimal Void Black Preview</title>
+    <title>Anki Wykiati Toolkit — Full Black & Square Glass Preview</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-void: #000000;
-            --surface-glass: rgba(255, 255, 255, 0.025);
-            --surface-elevated: rgba(255, 255, 255, 0.05);
-            --surface-hover: rgba(255, 255, 255, 0.08);
-            --border-subtle: rgba(255, 255, 255, 0.07);
-            --border-highlight: rgba(255, 255, 255, 0.16);
+            --surface-glass: rgba(255, 255, 255, 0.03);
+            --surface-elevated: rgba(255, 255, 255, 0.06);
+            --surface-hover: rgba(255, 255, 255, 0.10);
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --border-highlight: rgba(255, 255, 255, 0.22);
             --text-primary: #FFFFFF;
             --text-secondary: #A1A1AA;
-            --text-muted: #52525B;
+            --text-muted: #71717A;
             --accent-subtle: #38BDF8;
             --success-subtle: #4ADE80;
             --warning-subtle: #FBBF24;
@@ -30,111 +30,163 @@
             padding: 0;
             font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             -webkit-font-smoothing: antialiased;
-            letter-spacing: -0.015em;
+            letter-spacing: -0.012em;
         }
 
         body {
             background-color: var(--bg-void);
+            background: var(--bg-void);
             min-height: 100vh;
             color: var(--text-primary);
-            padding: 32px 24px;
+            padding: clamp(16px, 3vw, 36px) clamp(12px, 2.5vw, 28px);
             display: flex;
             flex-direction: column;
             align-items: center;
+            width: 100%;
         }
 
-        /* Top Bar */
+        /* Top Header Bar */
         .header-bar {
             width: 100%;
-            max-width: 1040px;
+            max-width: 1080px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 0 28px 0;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 8px 0 20px 0;
             border-bottom: 1px solid var(--border-subtle);
-            margin-bottom: 32px;
+            margin-bottom: 24px;
         }
 
         .brand {
             display: flex;
             align-items: baseline;
-            gap: 12px;
+            gap: 10px;
         }
 
         .brand-title {
-            font-size: 15px;
-            font-weight: 600;
+            font-size: 16px;
+            font-weight: 700;
             color: var(--text-primary);
             letter-spacing: -0.02em;
         }
 
         .brand-meta {
-            font-size: 13px;
+            font-size: 12px;
             color: var(--text-muted);
-            font-weight: 400;
+            font-weight: 500;
         }
 
+        /* Square Glass Navigation Tabs */
         .nav-tabs-row {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             background: var(--surface-glass);
             border: 1px solid var(--border-subtle);
-            border-radius: 20px;
+            border-radius: 6px;
             padding: 4px;
         }
 
         .tab-btn {
             background: transparent;
-            border: none;
-            color: var(--text-muted);
+            border: 1px solid transparent;
+            color: var(--text-secondary);
             padding: 6px 14px;
-            border-radius: 16px;
+            border-radius: 4px;
             font-size: 12px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.1s ease;
         }
 
-        .tab-btn.active {
-            background: rgba(255, 255, 255, 0.08);
-            color: var(--text-primary);
+        .tab-btn:hover {
+            color: #FFFFFF;
+            background: rgba(255, 255, 255, 0.05);
         }
 
-        /* Deck Browser Start Screen Container with Watermark Logo */
+        .tab-btn.active {
+            background: rgba(255, 255, 255, 0.12);
+            color: var(--text-primary);
+            border-color: rgba(255, 255, 255, 0.20);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        }
+
+        /* Session Focus Timer */
+        .session-timer-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--surface-glass);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            padding: 6px 14px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.1s ease;
+        }
+
+        .session-timer-pill:hover {
+            background: var(--surface-hover);
+            border-color: var(--border-highlight);
+        }
+
+        .timer-indicator {
+            width: 7px;
+            height: 7px;
+            border-radius: 2px;
+            background-color: var(--text-muted);
+            transition: background-color 0.2s ease;
+        }
+
+        /* Main Workspace Flex Grid */
+        .workspace {
+            width: 100%;
+            max-width: 1080px;
+            display: grid;
+            grid-template-columns: 1.35fr 0.65fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        @media (max-width: 880px) {
+            .workspace {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Deck Browser Start Screen */
         .deckbrowser-screen {
             width: 100%;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 130' width='400' height='130'%3E%3Cg fill='none' stroke='rgba(255,255,255,0.06)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='200,10 238,55 200,100 162,55' /%3E%3Cline x1='200' y1='10' x2='200' y2='100' /%3E%3Cline x1='162' y1='55' x2='238' y2='55' /%3E%3Ccircle cx='200' cy='55' r='4' fill='rgba(255,255,255,0.1)' /%3E%3C/g%3E%3Ctext x='200' y='122' text-anchor='middle' font-family='Inter, Segoe UI, sans-serif' font-size='11' font-weight='600' letter-spacing='7' fill='rgba(255,255,255,0.08)'%3EWYKIATI%3C/text%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: center 30px;
-            background-size: min(340px, 45vw) auto;
-            padding-top: 140px;
             display: flex;
             flex-direction: column;
             align-items: center;
+            padding: 8px 0 24px 0;
         }
 
         .deck-table-preview {
             width: 100%;
-            max-width: 720px;
             border-collapse: separate;
             border-spacing: 0 6px;
         }
 
         .deck-row-preview {
-            background: rgba(255, 255, 255, 0.02);
+            background: rgba(255, 255, 255, 0.025);
             border: 1px solid var(--border-subtle);
-            border-radius: 12px;
-            transition: all 0.1s ease;
+            border-radius: 6px;
+            transition: all 0.08s ease;
         }
 
         .deck-row-preview:hover {
-            background: rgba(255, 255, 255, 0.05);
-            border-color: rgba(255, 255, 255, 0.14);
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.18);
         }
 
         .deck-row-preview td {
-            padding: 12px 18px;
+            padding: 12px 16px;
             font-size: 14px;
+            vertical-align: middle;
         }
 
         .deck-row-preview a {
@@ -143,166 +195,175 @@
             font-weight: 500;
         }
 
-        /* Workspace Grid */
-        .workspace {
-            width: 100%;
-            max-width: 1040px;
-            display: grid;
-            grid-template-columns: 1.3fr 0.7fr;
-            gap: 32px;
-        }
-
-        @media (max-width: 860px) {
-            .workspace {
-                grid-template-columns: 1fr;
-            }
-        }
-
         /* Card Reviewer Section */
         .card-panel {
-            background: var(--surface-glass);
+            background: rgba(255, 255, 255, 0.025);
             border: 1px solid var(--border-subtle);
-            border-radius: 18px;
-            padding: 32px;
-            backdrop-filter: blur(20px);
+            border-radius: 6px;
+            padding: clamp(20px, 3.5vw, 36px);
             display: flex;
             flex-direction: column;
+            align-items: center;
+            text-align: center;
             position: relative;
+            box-shadow: 0 10px 36px rgba(0, 0, 0, 0.9);
+            width: 100%;
         }
 
         .deck-path {
-            font-size: 12px;
+            font-size: 11px;
             color: var(--text-muted);
             text-transform: uppercase;
-            letter-spacing: 0.04em;
-            margin-bottom: 20px;
-            font-weight: 500;
+            letter-spacing: 0.05em;
+            margin-bottom: 16px;
+            font-weight: 600;
         }
 
         .image-container {
             width: 100%;
-            border-radius: 12px;
+            border-radius: 4px;
             overflow: hidden;
             border: 1px solid var(--border-subtle);
-            margin-bottom: 20px;
+            margin-bottom: 18px;
             background: #000000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         .image-container img {
-            width: 100%;
+            max-width: 100%;
+            max-height: clamp(180px, 50vh, 480px);
             height: auto;
+            width: auto;
             display: block;
-            filter: grayscale(15%) contrast(105%);
+            object-fit: contain;
+            border-radius: 4px;
         }
 
         .card-prompt {
-            font-size: 16px;
+            font-size: clamp(15px, 1.8vw, 17px);
             font-weight: 500;
             color: var(--text-primary);
-            line-height: 1.5;
-            margin-bottom: 24px;
+            line-height: 1.55;
+            margin-bottom: 20px;
+            max-width: 100%;
         }
 
         .answer-drawer {
             display: none;
-            background: rgba(255, 255, 255, 0.02);
+            background: rgba(255, 255, 255, 0.03);
             border: 1px solid var(--border-subtle);
-            border-radius: 12px;
-            padding: 18px;
+            border-radius: 6px;
+            padding: 16px;
             font-size: 14px;
             color: var(--text-secondary);
             line-height: 1.6;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
+            width: 100%;
+            text-align: left;
         }
 
-        /* Floating Pill Buttons */
-        .btn-pill {
-            background: var(--surface-elevated);
+        /* Square Glass Buttons */
+        .btn-square-glass {
+            background: rgba(255, 255, 255, 0.04);
             color: var(--text-primary);
             border: 1px solid var(--border-subtle);
-            border-radius: 20px;
-            padding: 10px 22px;
+            border-radius: 4px;
+            padding: 9px 20px;
             font-size: 13px;
             font-weight: 500;
             cursor: pointer;
-            backdrop-filter: blur(16px);
-            transition: all 0.12s ease;
+            transition: all 0.08s ease;
             text-align: center;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .btn-pill:hover {
-            background: var(--surface-hover);
+        .btn-square-glass:hover {
+            background: rgba(255, 255, 255, 0.10);
             border-color: var(--border-highlight);
+            color: #FFFFFF;
         }
 
-        .btn-pill-primary {
-            background: #FFFFFF;
-            color: #000000;
-            border: 1px solid #FFFFFF;
+        .btn-primary-glass {
+            background: rgba(255, 255, 255, 0.12);
+            color: #FFFFFF;
+            border: 1px solid rgba(255, 255, 255, 0.30);
             font-weight: 600;
             width: 100%;
-            padding: 12px 24px;
-            border-radius: 22px;
+            padding: 11px 24px;
+            border-radius: 4px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.20);
         }
 
-        .btn-pill-primary:hover {
-            background: #E4E4E7;
-            border-color: #E4E4E7;
+        .btn-primary-glass:hover {
+            background: rgba(255, 255, 255, 0.20);
+            border-color: rgba(255, 255, 255, 0.45);
         }
 
         .review-ratings-row {
             display: none;
             grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
+            gap: 8px;
             width: 100%;
         }
 
         .btn-rating {
-            background: var(--surface-glass);
+            background: rgba(255, 255, 255, 0.04);
             border: 1px solid var(--border-subtle);
-            border-radius: 16px;
-            padding: 10px 8px;
+            border-radius: 4px;
+            padding: 9px 8px;
             font-size: 12px;
-            color: var(--text-secondary);
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.12s ease;
-        }
-
-        .btn-rating:hover {
-            background: var(--surface-hover);
-            color: var(--text-primary);
-            border-color: var(--border-highlight);
+            transition: all 0.08s ease;
+            text-align: center;
         }
 
         .btn-rating small {
             display: block;
             color: var(--text-muted);
             font-size: 10px;
+            font-weight: 400;
             margin-top: 2px;
         }
+
+        .btn-rating.ease1 { border-color: rgba(248, 113, 113, 0.35); color: #FCA5A5; }
+        .btn-rating.ease1:hover { background: rgba(248, 113, 113, 0.15); border-color: #F87171; color: #FFFFFF; }
+
+        .btn-rating.ease2 { border-color: rgba(251, 191, 36, 0.35); color: #FDE047; }
+        .btn-rating.ease2:hover { background: rgba(251, 191, 36, 0.15); border-color: #FBBF24; color: #FFFFFF; }
+
+        .btn-rating.ease3 { border-color: rgba(56, 189, 248, 0.35); color: #7DD3FC; }
+        .btn-rating.ease3:hover { background: rgba(56, 189, 248, 0.15); border-color: #38BDF8; color: #FFFFFF; }
+
+        .btn-rating.ease4 { border-color: rgba(74, 222, 128, 0.35); color: #86EFAC; }
+        .btn-rating.ease4:hover { background: rgba(74, 222, 128, 0.15); border-color: #4ADE80; color: #FFFFFF; }
 
         /* Sidebar Info */
         .sidebar {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 16px;
         }
 
         .sidebar-box {
-            background: var(--surface-glass);
+            background: rgba(255, 255, 255, 0.025);
             border: 1px solid var(--border-subtle);
-            border-radius: 16px;
-            padding: 22px;
-            backdrop-filter: blur(20px);
+            border-radius: 6px;
+            padding: 18px;
         }
 
         .sidebar-title {
-            font-size: 12px;
+            font-size: 11px;
             color: var(--text-muted);
             text-transform: uppercase;
-            letter-spacing: 0.04em;
-            margin-bottom: 16px;
-            font-weight: 500;
+            letter-spacing: 0.05em;
+            margin-bottom: 14px;
+            font-weight: 600;
         }
 
         .metric-row {
@@ -324,28 +385,29 @@
 
         .metric-value {
             color: var(--text-primary);
-            font-weight: 500;
+            font-weight: 600;
             font-family: "JetBrains Mono", monospace;
-            font-size: 12px;
+            font-size: 13px;
         }
 
         .input-group {
-            margin-top: 14px;
+            margin-top: 12px;
         }
 
         .input-label {
             display: block;
             font-size: 11px;
             color: var(--text-muted);
-            margin-bottom: 6px;
+            margin-bottom: 5px;
+            font-weight: 500;
         }
 
         .minimal-input {
             width: 100%;
-            background: rgba(255, 255, 255, 0.02);
+            background: #060608;
             border: 1px solid var(--border-subtle);
-            border-radius: 8px;
-            padding: 8px 12px;
+            border-radius: 4px;
+            padding: 7px 10px;
             font-size: 12px;
             color: var(--text-primary);
             font-family: "JetBrains Mono", monospace;
@@ -363,7 +425,7 @@
     <header class="header-bar">
         <div class="brand">
             <span class="brand-title">Anki Wykiati</span>
-            <span class="brand-meta">Void Black Minimal</span>
+            <span class="brand-meta">Void Black & Square Glass</span>
         </div>
 
         <div class="nav-tabs-row">
@@ -381,33 +443,33 @@
     <main class="workspace" id="mainWorkspace">
         
         <!-- View 1: Deck Browser Start Screen with Direct Logo Injection -->
-        <section class="deckbrowser-screen" id="homeView" style="padding-top: 24px; background-image: none;">
-            <div style="text-align: center; margin-bottom: 24px;">
-                <img src="imgs/logo_nova.png" alt="Wykiati Logo" style="max-width: 170px; height: auto; opacity: 0.92; display: block; margin: 0 auto;" />
+        <section class="deckbrowser-screen" id="homeView">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <img src="imgs/logo_nova.png" alt="Wykiati Logo" style="max-width: 160px; height: auto; opacity: 0.92; display: block; margin: 0 auto; border: none; background: transparent;" />
             </div>
             <table class="deck-table-preview">
                 <tr class="deck-row-preview">
                     <td><a href="#" onclick="switchView('study')">Medicine::Cardiology</a></td>
                     <td style="text-align: right;">
-                        <span style="color: #38BDF8; font-weight: 600; font-family: monospace; margin-right: 12px;">15</span>
-                        <span style="color: #FBBF24; font-weight: 600; font-family: monospace; margin-right: 12px;">4</span>
-                        <span style="color: #4ADE80; font-weight: 600; font-family: monospace;">28</span>
+                        <span style="color: #38BDF8; font-weight: 600; font-family: 'JetBrains Mono', monospace; margin-right: 12px;">15</span>
+                        <span style="color: #FBBF24; font-weight: 600; font-family: 'JetBrains Mono', monospace; margin-right: 12px;">4</span>
+                        <span style="color: #4ADE80; font-weight: 600; font-family: 'JetBrains Mono', monospace;">28</span>
                     </td>
                 </tr>
                 <tr class="deck-row-preview">
                     <td><a href="#" onclick="switchView('study')">Computer Science::Networking</a></td>
                     <td style="text-align: right;">
-                        <span style="color: #38BDF8; font-weight: 600; font-family: monospace; margin-right: 12px;">8</span>
-                        <span style="color: #FBBF24; font-weight: 600; font-family: monospace; margin-right: 12px;">0</span>
-                        <span style="color: #4ADE80; font-weight: 600; font-family: monospace;">12</span>
+                        <span style="color: #38BDF8; font-weight: 600; font-family: 'JetBrains Mono', monospace; margin-right: 12px;">8</span>
+                        <span style="color: #FBBF24; font-weight: 600; font-family: 'JetBrains Mono', monospace; margin-right: 12px;">0</span>
+                        <span style="color: #4ADE80; font-weight: 600; font-family: 'JetBrains Mono', monospace;">12</span>
                     </td>
                 </tr>
                 <tr class="deck-row-preview">
                     <td><a href="#" onclick="switchView('study')">Languages::Advanced English</a></td>
                     <td style="text-align: right;">
-                        <span style="color: #38BDF8; font-weight: 600; font-family: monospace; margin-right: 12px;">22</span>
-                        <span style="color: #FBBF24; font-weight: 600; font-family: monospace; margin-right: 12px;">2</span>
-                        <span style="color: #4ADE80; font-weight: 600; font-family: monospace;">45</span>
+                        <span style="color: #38BDF8; font-weight: 600; font-family: 'JetBrains Mono', monospace; margin-right: 12px;">22</span>
+                        <span style="color: #FBBF24; font-weight: 600; font-family: 'JetBrains Mono', monospace; margin-right: 12px;">2</span>
+                        <span style="color: #4ADE80; font-weight: 600; font-family: 'JetBrains Mono', monospace;">45</span>
                     </td>
                 </tr>
             </table>
@@ -426,19 +488,19 @@
             </div>
 
             <div class="answer-drawer" id="answerDrawer">
-                1. Left Atrium & Left Ventricle: Receive oxygenated blood from pulmonary veins and pump through the Aorta.<br>
-                2. Right Atrium & Right Ventricle: Receive systemic deoxygenated blood and direct flow to the pulmonary artery.
+                1. <strong>Left Atrium & Left Ventricle:</strong> Receive oxygenated blood from pulmonary veins and pump through the Aorta.<br><br>
+                2. <strong>Right Atrium & Right Ventricle:</strong> Receive systemic deoxygenated blood and direct flow to the pulmonary artery.
             </div>
 
-            <button class="btn-pill-primary" id="btnReveal" onclick="revealAnswer()">
+            <button class="btn-primary-glass" id="btnReveal" onclick="revealAnswer()">
                 Show Answer
             </button>
 
             <div class="review-ratings-row" id="ratingsRow">
-                <button class="btn-rating" onclick="resetCard()">Again<small>1m</small></button>
-                <button class="btn-rating" onclick="resetCard()">Hard<small>10m</small></button>
-                <button class="btn-rating" onclick="resetCard()">Good<small>1d</small></button>
-                <button class="btn-rating" onclick="resetCard()">Easy<small>4d</small></button>
+                <button class="btn-rating ease1" onclick="resetCard()">Again<small>1m</small></button>
+                <button class="btn-rating ease2" onclick="resetCard()">Hard<small>10m</small></button>
+                <button class="btn-rating ease3" onclick="resetCard()">Good<small>1d</small></button>
+                <button class="btn-rating ease4" onclick="resetCard()">Easy<small>4d</small></button>
             </div>
         </section>
 
@@ -474,7 +536,7 @@
                     <label class="input-label">Target Deck</label>
                     <input type="text" class="minimal-input" value="Medicine::Cardiology" readonly>
                 </div>
-                <button class="btn-pill" style="width: 100%; margin-top: 14px;" onclick="simulateImageIngest()">
+                <button class="btn-square-glass" style="width: 100%; margin-top: 14px;" onclick="simulateImageIngest()">
                     Simulate Image Push
                 </button>
             </div>
@@ -539,12 +601,12 @@
                         clearInterval(timerHandle);
                         secondsLeft = 25 * 60;
                         timerActive = false;
-                        ind.style.backgroundColor = '#A1A1AA';
+                        ind.style.backgroundColor = '#71717A';
                     }
                 }, 1000);
             } else {
                 clearInterval(timerHandle);
-                ind.style.backgroundColor = '#A1A1AA';
+                ind.style.backgroundColor = '#71717A';
             }
         }
     </script>
