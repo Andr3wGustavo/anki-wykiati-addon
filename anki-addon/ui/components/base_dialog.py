@@ -95,27 +95,27 @@ class BaseToolkitDialog(QDialog):
         self.setStyleSheet(generate_qss())
 
         self._root_layout = QVBoxLayout(self)
-        self._root_layout.setContentsMargins(16, 16, 16, 16)
-        self._root_layout.setSpacing(12)
+        self._root_layout.setContentsMargins(20, 18, 20, 18)
+        self._root_layout.setSpacing(14)
 
-        # Header Frame (Fixed Top)
+        # Header Frame (Fixed Top - Minimalist Linear style)
         header_frame = QFrame(self)
         header_frame.setStyleSheet(
-            f"background-color: {PALETTE.BACKGROUND_SURFACE}; "
-            f"border: 1px solid {PALETTE.BORDER_DEFAULT}; "
-            f"border-radius: 6px; padding: 10px;"
+            "background: transparent; "
+            "border-bottom: 1px solid rgba(255, 255, 255, 0.08); "
+            "padding-bottom: 10px; margin-bottom: 2px;"
         )
         header_layout = QVBoxLayout(header_frame)
-        header_layout.setContentsMargins(8, 4, 8, 4)
+        header_layout.setContentsMargins(0, 0, 0, 0)
         header_layout.setSpacing(3)
 
         self.lbl_title = QLabel(title, header_frame)
-        self.lbl_title.setStyleSheet("font-size: 15px; font-weight: bold; color: #FFFFFF;")
+        self.lbl_title.setStyleSheet("font-size: 16px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.01em;")
         header_layout.addWidget(self.lbl_title)
 
         if subtitle:
             self.lbl_subtitle = QLabel(subtitle, header_frame)
-            self.lbl_subtitle.setStyleSheet(f"font-size: 12px; color: {PALETTE.TEXT_MUTED};")
+            self.lbl_subtitle.setStyleSheet("font-size: 12px; color: #A1A1AA; line-height: 1.4;")
             self.lbl_subtitle.setWordWrap(True)
             header_layout.addWidget(self.lbl_subtitle)
 
@@ -124,11 +124,18 @@ class BaseToolkitDialog(QDialog):
         # Responsive Body Scroll Area (makes ALL panels scrollable & responsive)
         self.scroll_area = QScrollArea(self)
         self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame if hasattr(QFrame, "Shape") else 0)
+        try:
+            if hasattr(QFrame, "Shape") and hasattr(QFrame.Shape, "NoFrame"):
+                self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+            elif hasattr(QFrame, "NoFrame"):
+                self.scroll_area.setFrameShape(QFrame.NoFrame)
+        except Exception:
+            pass
+
         self.scroll_area.setStyleSheet(
             "QScrollArea { background: transparent; border: none; }"
             "QScrollBar:vertical { background: transparent; width: 6px; margin: 0; }"
-            "QScrollBar::handle:vertical { background: rgba(255, 255, 255, 0.20); border-radius: 3px; min-height: 24px; }"
+            "QScrollBar::handle:vertical { background: rgba(255, 255, 255, 0.18); border-radius: 3px; min-height: 24px; }"
             "QScrollBar::handle:vertical:hover { background: rgba(255, 255, 255, 0.35); }"
         )
 
@@ -136,15 +143,16 @@ class BaseToolkitDialog(QDialog):
         self.scroll_content.setStyleSheet("background: transparent;")
         
         self.body_layout = QVBoxLayout(self.scroll_content)
-        self.body_layout.setContentsMargins(0, 4, 4, 4)
-        self.body_layout.setSpacing(12)
+        self.body_layout.setContentsMargins(0, 4, 6, 4)
+        self.body_layout.setSpacing(14)
 
         self.scroll_area.setWidget(self.scroll_content)
         self._root_layout.addWidget(self.scroll_area, 1)
 
         # Footer Actions (Fixed Bottom)
         footer_layout = QHBoxLayout()
-        footer_layout.setContentsMargins(0, 4, 0, 0)
+        footer_layout.setContentsMargins(0, 8, 0, 0)
+        footer_layout.setSpacing(10)
         footer_layout.addStretch()
 
         self.btn_cancel = QPushButton("Cancel", self)

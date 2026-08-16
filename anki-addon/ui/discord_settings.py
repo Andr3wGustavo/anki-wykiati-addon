@@ -82,89 +82,91 @@ class DiscordSettingsDialog(BaseToolkitDialog):
         if not QT_AVAILABLE:
             return
 
-        self.setMinimumSize(520, 420)
+        self.setMinimumSize(540, 440)
         self._build_ui()
         self._load_values()
 
     def _build_ui(self) -> None:
         main_layout = QVBoxLayout()
-        main_layout.setSpacing(14)
+        main_layout.setSpacing(16)
 
-        # 0. Didactic Step-by-Step Setup Guide
+        # 0. Modern Minimalist Setup Guide (English)
         guide_frame = QFrame(self)
         guide_frame.setStyleSheet(
-            f"background-color: {PALETTE.BACKGROUND_SURFACE}; "
-            f"border: 1px solid {PALETTE.BORDER_DEFAULT}; "
-            f"border-radius: 6px; padding: 12px;"
+            "background-color: rgba(255, 255, 255, 0.03); "
+            "border: 1px solid rgba(56, 189, 248, 0.25); "
+            "border-radius: 8px; padding: 14px;"
         )
         guide_layout = QVBoxLayout(guide_frame)
-        guide_layout.setSpacing(6)
+        guide_layout.setSpacing(8)
 
-        lbl_guide_title = QLabel("💡 Guia Rápido de Configuração / Quick Setup Guide", guide_frame)
-        lbl_guide_title.setStyleSheet("font-size: 13px; font-weight: bold; color: #FFFFFF;")
+        lbl_guide_title = QLabel("⚡ Quick Setup Guide", guide_frame)
+        lbl_guide_title.setStyleSheet("font-size: 13px; font-weight: 700; color: #38BDF8; letter-spacing: -0.01em;")
         guide_layout.addWidget(lbl_guide_title)
 
         lbl_guide_body = QLabel(
-            "• <b>1. Copiar ID do Canal no Discord:</b> No Discord, ative <i>Configurações do Usuário > Avançado > Modo Desenvolvedor</i>. "
-            "Depois, clique com botão direito no canal onde você envia as imagens e clique em <b>Copiar ID do Canal</b>.<br>"
-            "• <b>2. Deck de Destino:</b> Digite o nome do Deck do Anki (ex: <code>Medicina::Anatomia</code> ou <code>Imagens::Discord</code>). Se o deck não existir, ele será criado automaticamente.<br>"
-            "• <b>3. Somente Imagem na Frente:</b> Para que a imagem apareça sozinha na frente do card sem verso, selecione <b>Image on Front Only (Empty Back)</b>.<br>"
-            "• <b>4. Bot Poller vs HTTP Bridge:</b> Para polling em nuvem, insira o <i>Bot Token</i> do Discord Developer Portal. Para usar scripts locais, mantenha o <i>Local HTTP Bridge</i> ativo (porta 8765).",
+            "• <b>1. Channel ID:</b> In Discord, enable <i>User Settings &gt; Advanced &gt; Developer Mode</i>. "
+            "Right-click your image channel and select <b>Copy Channel ID</b>.<br>"
+            "• <b>2. Target Deck:</b> Enter your desired Anki deck (e.g. <code>Medicine::Anatomy</code>). It will be auto-created if it doesn't exist.<br>"
+            "• <b>3. Visual Cards:</b> Select <b>Image on Front Only (Empty Back)</b> to display images on the front with no back text required.<br>"
+            "• <b>4. Integration:</b> Use <b>Bot Poller</b> for automatic cloud polling or <b>Local HTTP Bridge</b> (port 8765) for local script automation.",
             guide_frame,
         )
         lbl_guide_body.setWordWrap(True)
-        lbl_guide_body.setStyleSheet(f"font-size: 11px; color: {PALETTE.TEXT_SECONDARY}; line-height: 1.45;")
+        lbl_guide_body.setStyleSheet("font-size: 11px; color: #D4D4D8; line-height: 1.5;")
         guide_layout.addWidget(lbl_guide_body)
 
         main_layout.addWidget(guide_frame)
 
-        # 1. Image Channels & Auto-Ingestion (Top Priority Feature)
-        group_images = QGroupBox("Dedicated Image Channels (Auto-Ingestion)", self)
+        # 1. Dedicated Image Ingestion Channels
+        group_images = QGroupBox("Image Channels & Ingestion Rules", self)
         img_layout = QFormLayout(group_images)
-        img_layout.setSpacing(10)
+        img_layout.setSpacing(12)
 
         self.txt_image_channels = QLineEdit(self)
-        self.txt_image_channels.setPlaceholderText("Channel IDs (comma-separated, e.g. 119283746509182736)")
+        self.txt_image_channels.setPlaceholderText("e.g. 119283746509182736, 987654321098765432")
         img_layout.addRow("Image Channels (IDs):", self.txt_image_channels)
 
         self.txt_image_deck = QLineEdit(self)
-        self.txt_image_deck.setPlaceholderText("Target Deck (e.g. Medicine::Anatomy or Images::Discord)")
-        img_layout.addRow("Target Image Deck:", self.txt_image_deck)
+        self.txt_image_deck.setPlaceholderText("e.g. Medicine::Anatomy or Images::Discord")
+        img_layout.addRow("Target Deck:", self.txt_image_deck)
 
         self.combo_img_layout = QComboBox(self)
         self.combo_img_layout.addItem("Image on Front Only (Empty Back / Visual Card)", "image_only_front")
         self.combo_img_layout.addItem("Image on Front / Caption on Back", "image_front")
-        self.combo_img_layout.addItem("Question/Caption on Front / Image on Back", "image_back")
+        self.combo_img_layout.addItem("Question on Front / Image on Back", "image_back")
         img_layout.addRow("Card Layout Mode:", self.combo_img_layout)
 
         self.txt_image_tags = QLineEdit(self)
-        self.txt_image_tags.setPlaceholderText("Automatic tags (comma-separated, e.g. discord, anatomy, visual)")
-        img_layout.addRow("Auto Tags:", self.txt_image_tags)
+        self.txt_image_tags.setPlaceholderText("e.g. discord, anatomy, visual")
+        img_layout.addRow("Automatic Tags:", self.txt_image_tags)
 
         main_layout.addWidget(group_images)
 
-        # 2. General Discord Bot Credentials
-        group_bot = QGroupBox("Discord Bot Credentials (Background Poller)", self)
+        # 2. General Discord Bot Poller
+        group_bot = QGroupBox("Discord Bot Credentials (Cloud Poller)", self)
         bot_layout = QFormLayout(group_bot)
-        bot_layout.setSpacing(10)
+        bot_layout.setSpacing(12)
 
         self.chk_bot_enabled = QCheckBox("Enable Discord Bot Background Poller", self)
         self.chk_bot_enabled.setStyleSheet("font-weight: 600;")
-        bot_layout.addRow("Bot Poller Status:", self.chk_bot_enabled)
+        bot_layout.addRow("Poller Status:", self.chk_bot_enabled)
 
         self.txt_token = QLineEdit(self)
-        if hasattr(QLineEdit, "EchoMode"):
+        if hasattr(QLineEdit, "EchoMode") and hasattr(QLineEdit.EchoMode, "Password"):
             self.txt_token.setEchoMode(QLineEdit.EchoMode.Password)
+        elif hasattr(QLineEdit, "Password"):
+            self.txt_token.setEchoMode(QLineEdit.Password)
         self.txt_token.setPlaceholderText("Bot Secret Token from Discord Developer Portal")
         bot_layout.addRow("Bot Token:", self.txt_token)
 
         self.txt_channels = QLineEdit(self)
-        self.txt_channels.setPlaceholderText("General text channels allowed for !anki commands (comma-separated)")
-        bot_layout.addRow("Text Channels (IDs):", self.txt_channels)
+        self.txt_channels.setPlaceholderText("Text channels allowed for !anki commands (comma-separated)")
+        bot_layout.addRow("Allowed Channels:", self.txt_channels)
 
         self.txt_users = QLineEdit(self)
         self.txt_users.setPlaceholderText("Authorized Discord User IDs (leave empty to allow all)")
-        bot_layout.addRow("Authorized Users (IDs):", self.txt_users)
+        bot_layout.addRow("Authorized Users:", self.txt_users)
 
         self.spin_interval = QSpinBox(self)
         self.spin_interval.setRange(2, 60)
@@ -174,16 +176,16 @@ class DiscordSettingsDialog(BaseToolkitDialog):
         main_layout.addWidget(group_bot)
 
         # 3. Local HTTP Bridge
-        group_http = QGroupBox("Local HTTP Webhook Bridge (127.0.0.1)", self)
+        group_http = QGroupBox("Local HTTP REST Bridge Server", self)
         http_layout = QFormLayout(group_http)
-        http_layout.setSpacing(10)
+        http_layout.setSpacing(12)
 
-        self.chk_http_enabled = QCheckBox("Enable Local REST Webhook Server", self)
-        http_layout.addRow("HTTP Server Status:", self.chk_http_enabled)
+        self.chk_http_enabled = QCheckBox("Enable Local HTTP Webhook Server (127.0.0.1)", self)
+        http_layout.addRow("Bridge Status:", self.chk_http_enabled)
 
         self.spin_http_port = QSpinBox(self)
         self.spin_http_port.setRange(1024, 65535)
-        http_layout.addRow("HTTP Port:", self.spin_http_port)
+        http_layout.addRow("Bridge Port:", self.spin_http_port)
 
         main_layout.addWidget(group_http)
 

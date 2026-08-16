@@ -120,18 +120,19 @@ class DashboardDialog(BaseToolkitDialog):
         # 2. Quick Card Test Box
         test_frame = QFrame(self)
         test_frame.setStyleSheet(
-            f"background-color: {PALETTE.BACKGROUND_SURFACE}; "
-            f"border: 1px solid {PALETTE.BORDER_DEFAULT}; "
-            f"border-radius: 6px; padding: 10px;"
+            "background-color: rgba(255, 255, 255, 0.025); "
+            "border: 1px solid rgba(255, 255, 255, 0.08); "
+            "border-radius: 8px; padding: 14px;"
         )
         test_layout = QVBoxLayout(test_frame)
-        test_layout.setSpacing(8)
+        test_layout.setSpacing(10)
 
         test_title = QLabel("Manual Flashcard Quick Creator", test_frame)
-        test_title.setStyleSheet("font-weight: bold; color: #FFFFFF; font-size: 13px;")
+        test_title.setStyleSheet("font-weight: 700; color: #FFFFFF; font-size: 13px; letter-spacing: -0.01em;")
         test_layout.addWidget(test_title)
 
         input_row = QHBoxLayout()
+        input_row.setSpacing(10)
         self.txt_front = QLineEdit(test_frame)
         self.txt_front.setPlaceholderText("Front / Question")
         input_row.addWidget(self.txt_front, 2)
@@ -145,7 +146,7 @@ class DashboardDialog(BaseToolkitDialog):
         input_row.addWidget(self.txt_deck, 1)
 
         self.txt_tags = QLineEdit(test_frame)
-        self.txt_tags.setPlaceholderText("Tags (e.g. test, cardiology)")
+        self.txt_tags.setPlaceholderText("Tags (e.g. test, anatomy)")
         input_row.addWidget(self.txt_tags, 1)
 
         self.btn_create_test = QPushButton("Create Card", test_frame)
@@ -158,12 +159,13 @@ class DashboardDialog(BaseToolkitDialog):
 
         # 3. Recent Activity & Jobs Table
         table_header_layout = QHBoxLayout()
+        table_header_layout.setSpacing(10)
         table_label = QLabel("Recent Synchronization Jobs", self)
-        table_label.setStyleSheet("font-weight: bold; color: #FFFFFF; font-size: 13px;")
+        table_label.setStyleSheet("font-weight: 700; color: #FFFFFF; font-size: 13px; letter-spacing: -0.01em;")
         table_header_layout.addWidget(table_label)
         table_header_layout.addStretch()
 
-        self.btn_sync_now = QPushButton("Process Queue Now", self)
+        self.btn_sync_now = QPushButton("Process Queue", self)
         self.btn_sync_now.clicked.connect(self._sync_queue_now)
         table_header_layout.addWidget(self.btn_sync_now)
 
@@ -189,20 +191,20 @@ class DashboardDialog(BaseToolkitDialog):
     def _create_stat_card(self, title: str, initial_value: str, color: str, grid: QGridLayout, row: int, col: int) -> QLabel:
         frame = QFrame(self)
         frame.setStyleSheet(
-            f"background-color: {PALETTE.BACKGROUND_SURFACE_ELEVATED}; "
-            f"border: 1px solid {PALETTE.BORDER_DEFAULT}; "
-            f"border-radius: 6px; padding: 10px;"
+            "background-color: rgba(255, 255, 255, 0.03); "
+            "border: 1px solid rgba(255, 255, 255, 0.08); "
+            "border-radius: 8px; padding: 12px;"
         )
         layout = QVBoxLayout(frame)
-        layout.setContentsMargins(10, 8, 10, 8)
-        layout.setSpacing(2)
+        layout.setContentsMargins(8, 6, 8, 6)
+        layout.setSpacing(4)
 
         lbl_title = QLabel(title, frame)
-        lbl_title.setStyleSheet(f"font-size: 11px; color: {PALETTE.TEXT_MUTED}; text-transform: uppercase; font-weight: 600;")
+        lbl_title.setStyleSheet("font-size: 11px; color: #A1A1AA; text-transform: uppercase; font-weight: 600; letter-spacing: 0.04em;")
         layout.addWidget(lbl_title)
 
         lbl_val = QLabel(initial_value, frame)
-        lbl_val.setStyleSheet(f"font-size: 22px; font-weight: bold; color: {color};")
+        lbl_val.setStyleSheet(f"font-size: 24px; font-weight: 700; color: {color}; letter-spacing: -0.02em;")
         layout.addWidget(lbl_val)
 
         grid.addWidget(frame, row, col)

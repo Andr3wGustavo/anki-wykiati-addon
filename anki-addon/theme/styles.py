@@ -22,7 +22,7 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None, 
 
     return f"""
     /* =========================================================================
-       NATIVE ANKI WIDGETS - CLEAN VOID BLACK COLOR PALETTE
+       NATIVE ANKI WIDGETS - CLEAN VOID BLACK COLOR PALETTE & SQUARE GLASS
        ========================================================================= */
     QMainWindow, QDialog, QFrame, QSplitter, QStackedWidget, QScrollArea, QAbstractScrollArea {{
         background-color: {bg};
@@ -46,10 +46,12 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None, 
         color: {text};
         border: 1px solid {border_strong};
         padding: 4px;
+        border-radius: 6px;
     }}
     QMenu::item {{
         padding: 6px 20px 6px 10px;
         color: {text_sec};
+        border-radius: 4px;
     }}
     QMenu::item:selected {{
         background-color: rgba(255, 255, 255, 0.08);
@@ -65,21 +67,23 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None, 
         background-color: rgba(255, 255, 255, 0.04);
         color: {text_sec};
         border: 1px solid {border_subtle};
-        border-radius: 4px;
-        padding: 4px 10px;
+        border-radius: 6px;
+        padding: 5px 12px;
     }}
     QToolBar QToolButton:hover {{
         background-color: rgba(255, 255, 255, 0.09);
         color: {text};
     }}
 
-    /* Native Standard Buttons */
+    /* Modern Minimalist Glass Buttons */
     QPushButton {{
         background-color: rgba(255, 255, 255, 0.05);
-        color: {text};
+        color: {text_sec};
         border: 1px solid {border_subtle};
-        border-radius: 4px;
-        padding: 5px 14px;
+        border-radius: 6px;
+        padding: 7px 18px;
+        font-size: 13px;
+        font-weight: 500;
     }}
     QPushButton:hover {{
         background-color: rgba(255, 255, 255, 0.10);
@@ -90,43 +94,71 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None, 
         background-color: rgba(255, 255, 255, 0.02);
     }}
     QPushButton:default, QPushButton[primary="true"] {{
-        background-color: rgba(255, 255, 255, 0.15);
-        color: #FFFFFF;
-        border: 1px solid rgba(255, 255, 255, 0.35);
+        background-color: #FFFFFF;
+        color: #000000;
+        border: 1px solid #FFFFFF;
         font-weight: 600;
     }}
     QPushButton:default:hover, QPushButton[primary="true"]:hover {{
-        background-color: rgba(255, 255, 255, 0.22);
-        border-color: rgba(255, 255, 255, 0.50);
+        background-color: #E4E4E7;
+        border-color: #E4E4E7;
+        color: #000000;
     }}
 
-    /* Input Fields */
+    /* Modern Sleek Input Fields */
     QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QComboBox {{
-        background-color: #08080A;
+        background-color: #060608;
         color: {text};
         border: 1px solid {border_subtle};
-        border-radius: 4px;
-        padding: 5px 8px;
+        border-radius: 6px;
+        padding: 7px 10px;
+        font-size: 13px;
     }}
     QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus, QSpinBox:focus, QComboBox:focus {{
         border: 1px solid {palette.BORDER_FOCUS};
-        background-color: #0E0E12;
+        background-color: #0B0B0F;
     }}
 
-    /* Group Boxes */
+    /* Modern Minimalist Section Card Group Boxes */
     QGroupBox {{
-        background-color: transparent;
+        background-color: rgba(255, 255, 255, 0.025);
         border: 1px solid {border_subtle};
-        border-radius: 4px;
-        margin-top: 10px;
-        padding-top: 10px;
-        color: {text_sec};
+        border-radius: 8px;
+        margin-top: 14px;
+        padding: 16px 14px 14px 14px;
+        font-weight: 600;
+        font-size: 12px;
+        color: #FFFFFF;
     }}
     QGroupBox::title {{
         subcontrol-origin: margin;
         subcontrol-position: top left;
-        left: 10px;
-        padding: 0 4px;
+        left: 12px;
+        padding: 0 6px;
+        background-color: #0A0A0E;
+        border-radius: 4px;
+        color: {text_sec};
+    }}
+
+    /* Modern CheckBoxes */
+    QCheckBox {{
+        color: {text};
+        font-size: 13px;
+        spacing: 8px;
+    }}
+    QCheckBox::indicator {{
+        width: 16px;
+        height: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.20);
+        border-radius: 4px;
+        background-color: #060608;
+    }}
+    QCheckBox::indicator:checked {{
+        background-color: #FFFFFF;
+        border-color: #FFFFFF;
+    }}
+    QCheckBox::indicator:hover {{
+        border-color: rgba(255, 255, 255, 0.50);
     }}
 
     /* Tables and Lists */
@@ -134,6 +166,7 @@ def generate_qss(palette: ThemePalette = PALETTE, accent: Optional[str] = None, 
         background-color: {bg};
         color: {text};
         border: 1px solid {border_subtle};
+        border-radius: 6px;
         gridline-color: {border_subtle};
         selection-background-color: rgba(255, 255, 255, 0.08);
         selection-color: {text};
