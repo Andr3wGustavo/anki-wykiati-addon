@@ -28,6 +28,10 @@
       "discord",
       "image"
     ],
+    "optimize_images": true,
+    "max_image_dimension": 1920,
+    "image_quality": 85,
+    "convert_to_webp": true,
     "authorized_users": [],
     "guild_ids": [],
     "polling_interval_seconds": 5,
@@ -72,6 +76,8 @@
   },
   "stats": {
     "cards_created": 0,
+    "images_ingested": 0,
+    "bytes_saved": 0,
     "messages_processed": 0,
     "failed_jobs": 0,
     "last_sync_timestamp": 0

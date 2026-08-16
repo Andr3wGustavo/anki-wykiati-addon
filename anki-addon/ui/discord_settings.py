@@ -143,6 +143,15 @@ class DiscordSettingsDialog(BaseToolkitDialog):
         self.txt_image_tags.setPlaceholderText("e.g. discord, anatomy, visual")
         img_layout.addRow("Automatic Tags:", self.txt_image_tags)
 
+        # Image Compression & WebP Optimizer Row
+        self.chk_optimize_images = QCheckBox("⚡ Auto-Optimize & Convert to WebP (Saves up to 85% Disk Space)", self)
+        self.chk_optimize_images.setStyleSheet("font-weight: 600;")
+        img_layout.addRow("Image Optimizer:", self.chk_optimize_images)
+
+        self.lbl_savings_stats = QLabel("", self)
+        self.lbl_savings_stats.setStyleSheet("font-size: 11px; color: #4ADE80; font-weight: 500;")
+        img_layout.addRow("Storage Saved:", self.lbl_savings_stats)
+
         # On-Demand Sync Row
         sync_row = QHBoxLayout()
         sync_row.setSpacing(8)
@@ -220,6 +229,18 @@ class DiscordSettingsDialog(BaseToolkitDialog):
             if self.combo_img_layout.itemData(i) == layout:
                 self.combo_img_layout.setCurrentIndex(i)
                 break
+
+        self.chk_optimize_images.setChecked(config.get("discord.optimize_images", True))
+        
+        saved_bytes = config.get("stats.bytes_saved", 0)
+        ingested_count = config.get("stats.images_ingested", 0)
+        if saved_bytes > 1024 * 1024:
+            savings_str = f"⚡ {saved_bytes / (1024*1024):.2f} MB saved ({ingested_count} images compressed)"
+        elif saved_bytes > 0:
+            savings_str = f"⚡ {saved_bytes / 1024:.1f} KB saved ({ingested_count} images compressed)"
+        else:
+            savings_str = "⚡ 0 KB saved (Ready to compress incoming images)"
+        self.lbl_savings_stats.setText(savings_str)
 
         self.chk_bot_enabled.setChecked(config.get("discord.enabled", False))
         self.txt_token.setText(config.get("discord.bot_token", ""))
@@ -304,6 +325,7 @@ class DiscordSettingsDialog(BaseToolkitDialog):
             config.set("discord.image_default_deck", self.txt_image_deck.text().strip() or "Images::Discord", save=False)
             config.set("discord.image_default_tags", image_tags, save=False)
             config.set("discord.image_card_layout", self.combo_img_layout.currentData(), save=False)
+            config.set("discord.optimize_images", self.chk_optimize_images.isChecked(), save=False)
 
             config.set("discord.enabled", self.chk_bot_enabled.isChecked(), save=False)
             config.set("discord.bot_token", self.txt_token.text().strip(), save=False)

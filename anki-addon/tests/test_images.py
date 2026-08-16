@@ -128,6 +128,24 @@ class TestImageIngestion(unittest.TestCase):
         finally:
             media_manager.download_and_save_image = original_download
 
+    def test_image_optimization_toggle(self):
+        m = MediaManager()
+        raw_mock = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"
+        
+        # When optimize_images is disabled
+        config.set("discord.optimize_images", False, save=False)
+        data, ext, saved = m.optimize_image_data(raw_mock, "png")
+        self.assertEqual(data, raw_mock)
+        self.assertEqual(ext, "png")
+        self.assertEqual(saved, 0)
+
+    def test_gif_animation_preserved(self):
+        m = MediaManager()
+        raw_gif = b"GIF89a\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\x00\x00\x00!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;"
+        data, ext, saved = m.optimize_image_data(raw_gif, "gif")
+        self.assertEqual(ext, "gif")
+        self.assertEqual(data, raw_gif)
+
 
 if __name__ == "__main__":
     unittest.main()
