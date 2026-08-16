@@ -397,7 +397,7 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
     }}
 
     /* =========================================================================
-       4. CARD REVIEWER - FLEXBOX CENTERED CARD & ZOOM-SAFE IMAGES
+       4. CARD REVIEWER - EQUALIZED FRONT & BACK ZOOM, SCALE & TYPOGRAPHY
        ========================================================================= */
     #qa {{
         display: flex !important;
@@ -405,14 +405,18 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
         align-items: center !important;
         justify-content: center !important;
         width: 100% !important;
-        min-height: calc(100vh - 120px) !important;
-        padding: 16px !important;
+        max-width: 860px !important;
         margin: 0 auto !important;
+        padding: 16px !important;
+        box-sizing: border-box !important;
+        -webkit-text-size-adjust: 100% !important;
+        text-size-adjust: 100% !important;
     }}
 
     .card {{
         width: 100% !important;
-        max-width: clamp(320px, 90vw, 840px) !important;
+        max-width: 840px !important;
+        min-width: 320px !important;
         margin: auto !important;
         display: flex !important;
         flex-direction: column !important;
@@ -421,33 +425,58 @@ def generate_webview_css(palette: ThemePalette = PALETTE, accent: Optional[str] 
         background: rgba(255, 255, 255, 0.025) !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
         border-radius: 6px !important;
-        padding: clamp(20px, 4vw, 36px) clamp(16px, 3vw, 32px) !important;
+        padding: 30px 24px !important;
         box-shadow: 0 10px 36px rgba(0, 0, 0, 0.85) !important;
         word-break: break-word !important;
         overflow-wrap: anywhere !important;
+        box-sizing: border-box !important;
+        font-size: 16px !important;
+        line-height: 1.6 !important;
+        -webkit-text-size-adjust: 100% !important;
+        text-size-adjust: 100% !important;
     }}
 
-    /* Responsive, Centered Image Container */
-    img {{
-        display: block !important;
-        margin: 14px auto !important;
-        max-width: 100% !important;
-        max-height: clamp(180px, 55vh, 520px) !important;
-        width: auto !important;
-        height: auto !important;
-        object-fit: contain !important;
-        border-radius: 4px !important;
-        border: 1px solid rgba(255, 255, 255, 0.10) !important;
-        background: #000000 !important;
+    /* Equalized typography for both Front side and Back side */
+    .card, .card p, .card div, .card span, .card h1, .card h2, .card h3, .card h4, .card li, .card td, .card th, #qa, #content, #answer {{
+        font-size: 16px !important;
+        line-height: 1.6 !important;
+        font-family: "Inter", "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+        box-sizing: border-box !important;
+        -webkit-text-size-adjust: 100% !important;
+        text-size-adjust: 100% !important;
     }}
 
     .card p, .card div, .card h1, .card h2, .card h3 {{
         text-align: center !important;
         margin-left: auto !important;
         margin-right: auto !important;
-        font-size: clamp(14px, 1.6vw, 17px) !important;
-        line-height: 1.6 !important;
         max-width: 100% !important;
+    }}
+
+    /* Answer Separator Line - Clean & Non-disruptive */
+    hr, #answer, hr#answer {{
+        border: none !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+        margin: 20px auto !important;
+        width: 100% !important;
+        max-width: 480px !important;
+        height: 1px !important;
+        background: transparent !important;
+        display: block !important;
+    }}
+
+    /* Responsive, Centered Image Container - Identical on Front and Back */
+    .card img, #qa img, img {{
+        display: block !important;
+        margin: 14px auto !important;
+        max-width: 100% !important;
+        max-height: 480px !important;
+        width: auto !important;
+        height: auto !important;
+        object-fit: contain !important;
+        border-radius: 4px !important;
+        border: 1px solid rgba(255, 255, 255, 0.10) !important;
+        background: #000000 !important;
     }}
 
     /* Minimalist Cloze Deletion */
