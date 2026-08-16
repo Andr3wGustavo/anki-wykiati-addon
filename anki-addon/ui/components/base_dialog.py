@@ -76,8 +76,8 @@ class BaseToolkitDialog(QDialog):
         parent: Optional[Any] = None,
         title: str = "Wykiati Toolkit",
         subtitle: str = "",
-        width: int = 640,
-        height: int = 540,
+        width: int = 580,
+        height: int = 460,
     ) -> None:
         if not QT_AVAILABLE:
             return
@@ -85,7 +85,13 @@ class BaseToolkitDialog(QDialog):
 
         self.setWindowTitle(title)
         self.resize(width, height)
-        self.setMinimumSize(480, 360)
+        self.setMinimumSize(440, 320)
+
+        try:
+            if hasattr(Qt, "WidgetAttribute") and hasattr(Qt.WidgetAttribute, "WA_StyledBackground"):
+                self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        except Exception:
+            pass
 
         # Allow resizing & maximizing
         if hasattr(self, "setSizeGripEnabled"):
@@ -95,35 +101,45 @@ class BaseToolkitDialog(QDialog):
         self.setStyleSheet(generate_qss())
 
         self._root_layout = QVBoxLayout(self)
-        self._root_layout.setContentsMargins(20, 18, 20, 18)
-        self._root_layout.setSpacing(14)
+        self._root_layout.setContentsMargins(18, 16, 18, 16)
+        self._root_layout.setSpacing(12)
 
         # Header Frame (Fixed Top - Minimalist Linear style)
         header_frame = QFrame(self)
         header_frame.setStyleSheet(
             "background: transparent; "
             "border-bottom: 1px solid rgba(255, 255, 255, 0.08); "
-            "padding-bottom: 10px; margin-bottom: 2px;"
+            "padding-bottom: 8px; margin-bottom: 2px;"
         )
         header_layout = QVBoxLayout(header_frame)
         header_layout.setContentsMargins(0, 0, 0, 0)
-        header_layout.setSpacing(3)
+        header_layout.setSpacing(2)
 
         self.lbl_title = QLabel(title, header_frame)
-        self.lbl_title.setStyleSheet("font-size: 16px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.01em;")
+        self.lbl_title.setStyleSheet("font-size: 15px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.01em;")
         header_layout.addWidget(self.lbl_title)
 
         if subtitle:
             self.lbl_subtitle = QLabel(subtitle, header_frame)
-            self.lbl_subtitle.setStyleSheet("font-size: 12px; color: #A1A1AA; line-height: 1.4;")
+            self.lbl_subtitle.setStyleSheet("font-size: 11px; color: #A1A1AA; line-height: 1.4;")
             self.lbl_subtitle.setWordWrap(True)
             header_layout.addWidget(self.lbl_subtitle)
 
         self._root_layout.addWidget(header_frame)
 
-        # Responsive Body Scroll Area (makes ALL panels scrollable & responsive)
+        # Responsive Body Scroll Area (Vertical-Only Scrolling)
         self.scroll_area = QScrollArea(self)
         self.scroll_area.setWidgetResizable(True)
+        try:
+            if hasattr(Qt, "ScrollBarPolicy"):
+                self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+                self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+            elif hasattr(Qt, "ScrollBarAlwaysOff"):
+                self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+                self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        except Exception:
+            pass
+
         try:
             if hasattr(QFrame, "Shape") and hasattr(QFrame.Shape, "NoFrame"):
                 self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
@@ -143,8 +159,8 @@ class BaseToolkitDialog(QDialog):
         self.scroll_content.setStyleSheet("background: transparent;")
         
         self.body_layout = QVBoxLayout(self.scroll_content)
-        self.body_layout.setContentsMargins(0, 4, 6, 4)
-        self.body_layout.setSpacing(14)
+        self.body_layout.setContentsMargins(0, 4, 4, 4)
+        self.body_layout.setSpacing(12)
 
         self.scroll_area.setWidget(self.scroll_content)
         self._root_layout.addWidget(self.scroll_area, 1)

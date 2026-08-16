@@ -226,9 +226,9 @@ class ThemeSettingsDialog(BaseToolkitDialog):
         super().__init__(
             parent,
             title="Theme & Appearance Studio",
-            subtitle="Full Black #000000 AMOLED base or custom RGB background with iOS Liquid Glass styling.",
-            width=680,
-            height=580,
+            subtitle="Minimalist Void Black (#000000) or custom RGB background with native Anki button styling.",
+            width=580,
+            height=460,
         )
         if not QT_AVAILABLE:
             return
@@ -243,15 +243,15 @@ class ThemeSettingsDialog(BaseToolkitDialog):
         layout.setSpacing(14)
 
         # 1. General Theme Toggles
-        group_general = QGroupBox("General Theme Settings", self)
+        group_general = QGroupBox("Theme Configuration", self)
         form_general = QFormLayout(group_general)
         form_general.setSpacing(10)
 
         self.chk_theme_enabled = QCheckBox("Enable Full Black / Custom RGB Theme", self)
         self.chk_theme_enabled.setStyleSheet("font-weight: 600;")
-        form_general.addRow("Theme Status:", self.chk_theme_enabled)
+        form_general.addRow("Status:", self.chk_theme_enabled)
 
-        self.chk_webviews = QCheckBox("Apply Theme to WebViews (Deck Browser, Stats, Reviewer)", self)
+        self.chk_webviews = QCheckBox("Apply Theme to WebViews (Deck Browser & Reviewer)", self)
         form_general.addRow("WebViews:", self.chk_webviews)
 
         self.chk_reviewer = QCheckBox("Force Dark Background during Card Reviews", self)
@@ -259,138 +259,87 @@ class ThemeSettingsDialog(BaseToolkitDialog):
 
         layout.addWidget(group_general)
 
-        # 2. RGB Background Color Studio (RGB Circle + Presets + Hex)
-        group_bg = QGroupBox("Background Color Studio (RGB Circle / OLED Modes)", self)
-        bg_main_layout = QVBoxLayout(group_bg)
-        bg_main_layout.setSpacing(10)
+        # 2. RGB Background & Accent Color Studio
+        group_colors = QGroupBox("Color Customization (RGB Studio)", self)
+        colors_layout = QVBoxLayout(group_colors)
+        colors_layout.setSpacing(12)
 
-        bg_controls_row = QHBoxLayout()
-        bg_controls_row.setSpacing(16)
+        wheel_row = QHBoxLayout()
+        wheel_row.setSpacing(16)
 
         # RGB Color Wheel Widget
         self.rgb_wheel = RGBWheelWidget(self, initial_hex=self._current_bg)
         self.rgb_wheel.set_on_color_changed(self._set_bg_hex)
-        bg_controls_row.addWidget(self.rgb_wheel)
+        wheel_row.addWidget(self.rgb_wheel)
 
-        # Inputs and Quick Controls
-        bg_right_layout = QVBoxLayout()
-        bg_right_layout.setSpacing(8)
+        # Color Inputs Form
+        inputs_form = QFormLayout()
+        inputs_form.setSpacing(10)
 
-        lbl_bg_desc = QLabel("Click on the RGB Circle to dynamically change the app background color, or enter a Hex code:", self)
-        lbl_bg_desc.setStyleSheet(f"font-size: 11px; color: {PALETTE.TEXT_MUTED};")
-        lbl_bg_desc.setWordWrap(True)
-        bg_right_layout.addWidget(lbl_bg_desc)
-
+        # Background Hex Row
         bg_input_row = QHBoxLayout()
+        bg_input_row.setSpacing(8)
         self.txt_bg = QLineEdit(self)
         self.txt_bg.setPlaceholderText("#000000")
         self.txt_bg.textChanged.connect(self._on_bg_text_changed)
-        bg_input_row.addWidget(self.txt_bg)
+        bg_input_row.addWidget(self.txt_bg, 1)
 
-        self.btn_pick_bg = QPushButton("Pick from Palette...", self)
+        self.btn_pick_bg = QPushButton("Palette...", self)
         self.btn_pick_bg.clicked.connect(self._pick_bg_dialog)
         bg_input_row.addWidget(self.btn_pick_bg)
 
         self.bg_preview_swatch = QLabel(self)
         self.bg_preview_swatch.setFixedSize(32, 28)
-        self.bg_preview_swatch.setStyleSheet(f"background-color: {self._current_bg}; border-radius: 4px; border: 1px solid rgba(255,255,255,0.3);")
+        self.bg_preview_swatch.setStyleSheet(f"background-color: {self._current_bg}; border-radius: 4px; border: 1px solid rgba(255,255,255,0.25);")
         bg_input_row.addWidget(self.bg_preview_swatch)
 
-        bg_right_layout.addLayout(bg_input_row)
+        inputs_form.addRow("Background (RGB):", bg_input_row)
 
-        # Background Presets Grid
-        lbl_bg_presets = QLabel("OLED & Dark Presets:", self)
-        lbl_bg_presets.setStyleSheet(f"font-size: 11px; font-weight: 600; color: {PALETTE.TEXT_SECONDARY}; margin-top: 4px;")
-        bg_right_layout.addWidget(lbl_bg_presets)
-
-        bg_presets_grid = QGridLayout()
-        bg_presets_grid.setSpacing(6)
-        bg_presets = [
-            ("🖤 Full Black AMOLED", "#000000"),
-            ("🌌 Deep Midnight", "#0B0E14"),
-            ("🌲 Forest Night", "#08120C"),
-            ("🪐 Obsidian Dark", "#121214"),
-            ("🔮 Cosmic Violet", "#0E0B14"),
-            ("⚓ Cyberpunk Dark", "#0D1117"),
-        ]
-        for idx, (name, hex_c) in enumerate(bg_presets):
-            btn = QPushButton(name, self)
-            btn.setStyleSheet(f"font-size: 10px; padding: 4px 6px; text-align: left; border-left: 3px solid {hex_c if hex_c != '#000000' else '#333333'};")
-            btn.clicked.connect(lambda _, c=hex_c: self._set_bg_hex(c))
-            row = idx // 2
-            col = idx % 2
-            bg_presets_grid.addWidget(btn, row, col)
-
-        bg_right_layout.addLayout(bg_presets_grid)
-        bg_controls_row.addLayout(bg_right_layout, 1)
-
-        bg_main_layout.addLayout(bg_controls_row)
-        layout.addWidget(group_bg)
-
-        # 3. Interface Accent Color
-        group_accent = QGroupBox("Interface Accent Color", self)
-        form_accent = QFormLayout(group_accent)
-        form_accent.setSpacing(10)
-
+        # Accent Hex Row
         accent_row = QHBoxLayout()
+        accent_row.setSpacing(8)
         self.txt_accent = QLineEdit(self)
-        self.txt_accent.setPlaceholderText("#FFFFFF")
+        self.txt_accent.setPlaceholderText("#0A84FF")
         self.txt_accent.textChanged.connect(self._on_accent_text_changed)
-        accent_row.addWidget(self.txt_accent)
+        accent_row.addWidget(self.txt_accent, 1)
 
-        self.btn_pick_color = QPushButton("Pick Color...", self)
+        self.btn_pick_color = QPushButton("Palette...", self)
         self.btn_pick_color.clicked.connect(self._pick_accent_dialog)
         accent_row.addWidget(self.btn_pick_color)
 
         self.color_preview = QLabel(self)
         self.color_preview.setFixedSize(32, 28)
-        self.color_preview.setStyleSheet(f"background-color: {self._current_accent}; border-radius: 4px; border: 1px solid #FFFFFF;")
+        self.color_preview.setStyleSheet(f"background-color: {self._current_accent}; border-radius: 4px; border: 1px solid rgba(255,255,255,0.25);")
         accent_row.addWidget(self.color_preview)
 
-        form_accent.addRow("Accent Color (Hex):", accent_row)
+        inputs_form.addRow("Accent Color:", accent_row)
 
-        # Quick Accent Presets
-        presets_layout = QHBoxLayout()
-        accent_presets = [
-            ("Monochrome", "#FFFFFF"),
-            ("Apple Blue", "#0A84FF"),
-            ("Emerald Green", "#30D158"),
-            ("Indigo Purple", "#5E5CE6"),
-            ("Crimson Red", "#FF453A"),
-            ("Amber Orange", "#FF9F0A"),
-            ("Cyan Mint", "#38BDF8"),
-        ]
-        for name, hex_code in accent_presets:
-            btn_p = QPushButton(name, self)
-            btn_p.setStyleSheet(f"font-size: 11px; padding: 4px 8px; border-left: 3px solid {hex_code};")
-            btn_p.clicked.connect(lambda _, c=hex_code: self._set_accent_hex(c))
-            presets_layout.addWidget(btn_p)
+        wheel_row.addLayout(inputs_form, 1)
+        colors_layout.addLayout(wheel_row)
+        layout.addWidget(group_colors)
 
-        form_accent.addRow("Presets:", presets_layout)
-        layout.addWidget(group_accent)
-
-        # 4. Live Visual Preview Card
-        group_preview = QGroupBox("Live Theme Preview", self)
+        # 3. Live Visual Preview Card
+        group_preview = QGroupBox("Live Preview", self)
         preview_layout = QVBoxLayout(group_preview)
         
         self.preview_card = QFrame(self)
         self.preview_card.setStyleSheet(
-            f"background-color: {self._current_bg}; border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; padding: 14px;"
+            f"background-color: {self._current_bg}; border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; padding: 12px;"
         )
         p_card_layout = QVBoxLayout(self.preview_card)
         p_card_layout.setSpacing(6)
 
-        self.lbl_p_title = QLabel("Preview Deck: Medicine::Cardiology", self.preview_card)
-        self.lbl_p_title.setStyleSheet("font-size: 13px; font-weight: bold; color: #FFFFFF;")
+        self.lbl_p_title = QLabel("Medicine::Cardiology (Sample Card)", self.preview_card)
+        self.lbl_p_title.setStyleSheet("font-size: 13px; font-weight: 700; color: #FFFFFF;")
         p_card_layout.addWidget(self.lbl_p_title)
 
-        self.lbl_p_text = QLabel("Front of flashcard with custom background and active accent highlight.", self.preview_card)
+        self.lbl_p_text = QLabel("Flashcard front with dynamic background and active accent highlight.", self.preview_card)
         self.lbl_p_text.setStyleSheet("font-size: 12px; color: #A1A1AA;")
         p_card_layout.addWidget(self.lbl_p_text)
 
         preview_btn_row = QHBoxLayout()
         self.btn_p_sample = QPushButton("Show Answer", self.preview_card)
-        self.btn_p_sample.setStyleSheet(f"background-color: rgba(255,255,255,0.12); color: #FFFFFF; border: 1px solid {self._current_accent}; border-radius: 4px; padding: 5px 14px;")
+        self.btn_p_sample.setStyleSheet(f"background-color: rgba(255,255,255,0.08); color: #FFFFFF; border: 1px solid {self._current_accent}; border-radius: 4px; padding: 5px 14px;")
         preview_btn_row.addWidget(self.btn_p_sample)
         preview_btn_row.addStretch()
         p_card_layout.addLayout(preview_btn_row)

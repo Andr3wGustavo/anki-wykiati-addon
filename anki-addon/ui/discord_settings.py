@@ -76,13 +76,13 @@ class DiscordSettingsDialog(BaseToolkitDialog):
             parent,
             title="Discord and Image Ingestion Settings",
             subtitle="Configure automatic image channels, target decks, front-only cards, and local HTTP bridge.",
-            width=680,
-            height=580,
+            width=580,
+            height=480,
         )
         if not QT_AVAILABLE:
             return
 
-        self.setMinimumSize(540, 440)
+        self.setMinimumSize(460, 340)
         self._build_ui()
         self._load_values()
 

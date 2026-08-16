@@ -149,12 +149,13 @@ class HelpDialog(BaseToolkitDialog):
             parent,
             title="Help & Setup Guide",
             subtitle=f"{ADDON_NAME} v{ADDON_VERSION} — Documentation and Setup Reference",
-            width=720,
-            height=600,
+            width=620,
+            height=500,
         )
         if not QT_AVAILABLE:
             return
 
+        self.setMinimumSize(480, 360)
         self._build_ui()
 
     def _build_ui(self) -> None:
