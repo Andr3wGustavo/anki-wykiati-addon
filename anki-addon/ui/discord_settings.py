@@ -22,6 +22,7 @@ if QT_AVAILABLE:
             QCheckBox,
             QComboBox,
             QFormLayout,
+            QFrame,
             QGroupBox,
             QHBoxLayout,
             QLabel,
@@ -37,6 +38,7 @@ if QT_AVAILABLE:
                 QCheckBox,
                 QComboBox,
                 QFormLayout,
+                QFrame,
                 QGroupBox,
                 QHBoxLayout,
                 QLabel,
@@ -51,6 +53,7 @@ if QT_AVAILABLE:
                 QCheckBox,
                 QComboBox,
                 QFormLayout,
+                QFrame,
                 QGroupBox,
                 QHBoxLayout,
                 QLabel,
@@ -61,7 +64,7 @@ if QT_AVAILABLE:
                 QVBoxLayout,
             )
 else:
-    QCheckBox = QComboBox = QFormLayout = QGroupBox = QHBoxLayout = QLabel = QLineEdit = QMessageBox = QPushButton = QSpinBox = QVBoxLayout = object
+    QCheckBox = QComboBox = QFormLayout = QFrame = QGroupBox = QHBoxLayout = QLabel = QLineEdit = QMessageBox = QPushButton = QSpinBox = QVBoxLayout = object
 
 
 class DiscordSettingsDialog(BaseToolkitDialog):

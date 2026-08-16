@@ -109,15 +109,16 @@ class RGBWheelWidget(QWidget):
     Renders an antialiased circular spectrum and allows picking colors by clicking or dragging.
     """
     def __init__(self, parent: Optional[QWidget] = None, initial_hex: str = "#000000") -> None:
-        super().__init__(parent)
-        self.setFixedSize(130, 130)
-        try:
-            if hasattr(Qt, "CursorShape") and hasattr(Qt.CursorShape, "CrossCursor"):
-                self.setCursor(Qt.CursorShape.CrossCursor)
-            elif hasattr(Qt, "CrossCursor"):
-                self.setCursor(Qt.CrossCursor)
-        except Exception:
-            pass
+        if QT_AVAILABLE:
+            super().__init__(parent)
+            self.setFixedSize(130, 130)
+            try:
+                if hasattr(Qt, "CursorShape") and hasattr(Qt.CursorShape, "CrossCursor"):
+                    self.setCursor(Qt.CursorShape.CrossCursor)
+                elif hasattr(Qt, "CrossCursor"):
+                    self.setCursor(Qt.CrossCursor)
+            except Exception:
+                pass
         self._current_hex = initial_hex
         self._selected_hue = 0.0
         self._selected_sat = 0.0
