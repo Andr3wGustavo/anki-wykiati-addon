@@ -111,7 +111,13 @@ class RGBWheelWidget(QWidget):
     def __init__(self, parent: Optional[QWidget] = None, initial_hex: str = "#000000") -> None:
         super().__init__(parent)
         self.setFixedSize(130, 130)
-        self.setCursor(getattr(Qt.CursorShape, "CrossCursor", None) or getattr(Qt, "CrossCursor", None) or 0)
+        try:
+            if hasattr(Qt, "CursorShape") and hasattr(Qt.CursorShape, "CrossCursor"):
+                self.setCursor(Qt.CursorShape.CrossCursor)
+            elif hasattr(Qt, "CrossCursor"):
+                self.setCursor(Qt.CrossCursor)
+        except Exception:
+            pass
         self._current_hex = initial_hex
         self._selected_hue = 0.0
         self._selected_sat = 0.0
@@ -128,75 +134,87 @@ class RGBWheelWidget(QWidget):
     def paintEvent(self, event: Any) -> None:
         if not QT_AVAILABLE or not hasattr(QPainter, "Antialiasing"):
             return
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing if hasattr(QPainter, "RenderHint") else QPainter.Antialiasing)
+        try:
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing if hasattr(QPainter, "RenderHint") else QPainter.Antialiasing)
 
-        w = self.width()
-        h = self.height()
-        radius = min(w, h) / 2.0 - 4.0
-        center = QPointF(w / 2.0, h / 2.0)
+            w = self.width()
+            h = self.height()
+            radius = min(w, h) / 2.0 - 4.0
+            center = QPointF(w / 2.0, h / 2.0)
 
-        # 1. Circular hue spectrum
-        conical = QConicalGradient(center, 0)
-        conical.setColorAt(0.0 / 6.0, QColor(255, 0, 0))
-        conical.setColorAt(1.0 / 6.0, QColor(255, 255, 0))
-        conical.setColorAt(2.0 / 6.0, QColor(0, 255, 0))
-        conical.setColorAt(3.0 / 6.0, QColor(0, 255, 255))
-        conical.setColorAt(4.0 / 6.0, QColor(0, 0, 255))
-        conical.setColorAt(5.0 / 6.0, QColor(255, 0, 255))
-        conical.setColorAt(1.0, QColor(255, 0, 0))
+            # 1. Circular hue spectrum
+            conical = QConicalGradient(center, 0)
+            conical.setColorAt(0.0 / 6.0, QColor(255, 0, 0))
+            conical.setColorAt(1.0 / 6.0, QColor(255, 255, 0))
+            conical.setColorAt(2.0 / 6.0, QColor(0, 255, 0))
+            conical.setColorAt(3.0 / 6.0, QColor(0, 255, 255))
+            conical.setColorAt(4.0 / 6.0, QColor(0, 0, 255))
+            conical.setColorAt(5.0 / 6.0, QColor(255, 0, 255))
+            conical.setColorAt(1.0, QColor(255, 0, 0))
 
-        painter.setPen(QPen(QColor(255, 255, 255, 40), 1))
-        painter.setBrush(QBrush(conical))
-        painter.drawEllipse(center, radius, radius)
+            painter.setPen(QPen(QColor(255, 255, 255, 40), 1))
+            painter.setBrush(QBrush(conical))
+            painter.drawEllipse(center, radius, radius)
 
-        # 2. Dark/Light center overlay
-        radial = QRadialGradient(center, radius)
-        radial.setColorAt(0.0, QColor(0, 0, 0, 230))
-        radial.setColorAt(0.7, QColor(0, 0, 0, 100))
-        radial.setColorAt(1.0, QColor(0, 0, 0, 0))
-        painter.setBrush(QBrush(radial))
-        painter.setPen(getattr(Qt.PenStyle, "NoPen", None) or getattr(Qt, "NoPen", None) or 0)
-        painter.drawEllipse(center, radius, radius)
+            # 2. Dark/Light center overlay
+            radial = QRadialGradient(center, radius)
+            radial.setColorAt(0.0, QColor(0, 0, 0, 230))
+            radial.setColorAt(0.7, QColor(0, 0, 0, 100))
+            radial.setColorAt(1.0, QColor(0, 0, 0, 0))
+            painter.setPen(QPen(QColor(0, 0, 0, 0)))
+            painter.setBrush(QBrush(radial))
+            painter.drawEllipse(center, radius, radius)
 
-        # 3. Outer border ring
-        painter.setPen(QPen(QColor(255, 255, 255, 60), 1.5))
-        painter.setBrush(getattr(Qt.BrushStyle, "NoBrush", None) or getattr(Qt, "NoBrush", None) or 0)
-        painter.drawEllipse(center, radius, radius)
-        painter.end()
+            # 3. Outer border ring
+            painter.setPen(QPen(QColor(255, 255, 255, 60), 1.5))
+            painter.setBrush(QBrush(QColor(0, 0, 0, 0)))
+            painter.drawEllipse(center, radius, radius)
+            painter.end()
+        except Exception:
+            pass
 
     def mousePressEvent(self, event: Any) -> None:
         self._handle_mouse(event)
 
     def mouseMoveEvent(self, event: Any) -> None:
-        if getattr(event, "buttons", lambda: 0)() & (getattr(Qt.MouseButton, "LeftButton", None) or getattr(Qt, "LeftButton", 1)):
-            self._handle_mouse(event)
+        self._handle_mouse(event)
 
     def _handle_mouse(self, event: Any) -> None:
-        pos = event.pos()
-        w = self.width()
-        h = self.height()
-        cx = w / 2.0
-        cy = h / 2.0
-        dx = pos.x() - cx
-        dy = pos.y() - cy
-        dist = math.sqrt(dx * dx + dy * dy)
-        radius = min(w, h) / 2.0 - 4.0
+        try:
+            pos = event.position() if hasattr(event, "position") else event.pos()
+            w = self.width()
+            h = self.height()
+            cx = w / 2.0
+            cy = h / 2.0
+            dx = float(pos.x()) - cx
+            dy = float(pos.y()) - cy
+            dist = math.sqrt(dx * dx + dy * dy)
+            radius = min(w, h) / 2.0 - 4.0
 
-        if dist <= radius:
-            # Angle in degrees [0, 360)
-            angle = (math.degrees(math.atan2(dy, dx)) + 360.0) % 360.0
-            # Saturation [0, 1]
-            sat = min(1.0, dist / radius)
-            # Value/Brightness scaled for deep dark tones
-            val = max(0.05, min(0.95, sat))
+            if dist <= radius:
+                # Angle in degrees [0, 360)
+                angle = (math.degrees(math.atan2(dy, dx)) + 360.0) % 360.0
+                # Saturation [0, 1]
+                sat = min(1.0, dist / radius)
+                # Value/Brightness scaled for deep dark tones
+                val = max(0.05, min(0.95, sat))
 
-            color = QColor()
-            color.setHsvF(angle / 360.0, sat, val)
-            hex_code = color.name()
-            self._current_hex = hex_code
-            if self._on_color_changed:
-                self._on_color_changed(hex_code)
+                color = None
+                if hasattr(QColor, "fromHsvF"):
+                    color = QColor.fromHsvF(angle / 360.0, sat, val)
+                if color is None or not getattr(color, "isValid", lambda: True)():
+                    color = QColor()
+                    if hasattr(color, "setHsvF"):
+                        color.setHsvF(angle / 360.0, sat, val)
+                
+                if color and getattr(color, "isValid", lambda: True)():
+                    hex_code = color.name()
+                    self._current_hex = hex_code
+                    if self._on_color_changed:
+                        self._on_color_changed(hex_code)
+        except Exception:
+            pass
 
 
 class ThemeSettingsDialog(BaseToolkitDialog):

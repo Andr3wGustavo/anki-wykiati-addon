@@ -109,18 +109,34 @@ class ConfigManager:
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         return os.path.join(base_dir, DEFAULT_CONFIG_FILENAME)
 
+    def _get_addon_package_name(self) -> str:
+        """Dynamically resolve the installed addon folder name."""
+        try:
+            parts = __name__.split(".")
+            if parts and parts[0] and parts[0] != "core":
+                return parts[0]
+            if mw and hasattr(mw, "addonManager") and mw.addonManager:
+                # Try to get folder from module or fallback to constants
+                mod = getattr(mw.addonManager, "addonFromModule", lambda m: "")(__name__)
+                if mod:
+                    return str(mod)
+        except Exception:
+            pass
+        return "anki_wykiati_toolkit"
+
     def load_config(self) -> None:
         """Load configuration from Anki AddonManager or fallback to config.json."""
         loaded_data: Optional[Dict[str, Any]] = None
 
         if mw and hasattr(mw, "addonManager") and mw.addonManager:
             try:
-                anki_config = mw.addonManager.getConfig(ADDON_PACKAGE)
+                pkg = self._get_addon_package_name()
+                anki_config = mw.addonManager.getConfig(pkg)
                 if isinstance(anki_config, dict) and anki_config:
                     loaded_data = anki_config
-                    logger.info("[ConfigManager] Loaded configuration from Anki AddonManager.")
+                    logger.info(f"[ConfigManager] Loaded configuration from Anki AddonManager for '{pkg}'.")
             except Exception as e:
-                logger.warning(f"[ConfigManager] Could not read from Anki AddonManager: {e}")
+                logger.debug(f"[ConfigManager] Notice on read from Anki AddonManager: {e}")
 
         if loaded_data is None:
             config_path = self._get_local_config_path()
@@ -192,16 +208,16 @@ class ConfigManager:
                         logger.error(f"[ConfigManager] Root callback error on '{root_key}': {e}")
 
     def save_config(self) -> None:
-        """Persist current configuration to Anki AddonManager or config.json."""
+        """Persist current configuration to Anki AddonManager and config.json."""
         if mw and hasattr(mw, "addonManager") and mw.addonManager:
             try:
-                mw.addonManager.writeConfig(ADDON_PACKAGE, self._config)
-                logger.debug("[ConfigManager] Configuration persisted via Anki AddonManager.")
-                return
+                pkg = self._get_addon_package_name()
+                mw.addonManager.writeConfig(pkg, self._config)
+                logger.debug(f"[ConfigManager] Configuration persisted via Anki AddonManager for '{pkg}'.")
             except Exception as e:
-                logger.warning(f"[ConfigManager] Anki writeConfig failed: {e}")
+                logger.debug(f"[ConfigManager] Anki writeConfig notice: {e}")
 
-        # Local save
+        # Always save locally as safe fallback
         config_path = self._get_local_config_path()
         try:
             with open(config_path, "w", encoding="utf-8") as f:
