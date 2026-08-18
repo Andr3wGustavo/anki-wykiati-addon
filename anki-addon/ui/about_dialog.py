@@ -20,15 +20,19 @@ except (ImportError, ValueError):
 if QT_AVAILABLE:
     try:
         from aqt import mw
-        from aqt.qt import QFrame, QLabel, QTextEdit, QVBoxLayout
+        from aqt.qt import QDesktopServices, QFrame, QLabel, QPushButton, QTextEdit, QUrl, QVBoxLayout
     except ImportError:
         try:
-            from PyQt6.QtWidgets import QFrame, QLabel, QTextEdit, QVBoxLayout
+            from PyQt6.QtCore import QUrl
+            from PyQt6.QtGui import QDesktopServices
+            from PyQt6.QtWidgets import QFrame, QLabel, QPushButton, QTextEdit, QVBoxLayout
         except ImportError:
-            from PyQt5.QtWidgets import QFrame, QLabel, QTextEdit, QVBoxLayout
+            from PyQt5.QtCore import QUrl
+            from PyQt5.QtGui import QDesktopServices
+            from PyQt5.QtWidgets import QFrame, QLabel, QPushButton, QTextEdit, QVBoxLayout
         mw = None
 else:
-    QFrame = QLabel = QTextEdit = QVBoxLayout = object
+    QDesktopServices = QFrame = QLabel = QPushButton = QTextEdit = QUrl = QVBoxLayout = object
     mw = None
 
 
@@ -102,6 +106,15 @@ class AboutDialog(BaseToolkitDialog):
         txt_diag.setReadOnly(True)
         txt_diag.setStyleSheet("font-family: monospace; font-size: 11px;")
         layout.addWidget(txt_diag)
+
+        # Sponsor Button (Buy Me A Coffee)
+        btn_coffee = QPushButton("☕ Support Development (Buy Me A Coffee)", self)
+        btn_coffee.setStyleSheet(
+            "background-color: #FFDD00; color: #000000; font-weight: bold; font-size: 12px; "
+            "border-radius: 6px; padding: 9px 14px; border: none; cursor: pointer;"
+        )
+        btn_coffee.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://buymeacoffee.com/wykiati")))
+        layout.addWidget(btn_coffee)
 
         # Custom buttons
         self.btn_save.setVisible(False)

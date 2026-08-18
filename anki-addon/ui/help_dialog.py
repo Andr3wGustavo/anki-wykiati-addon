@@ -124,7 +124,7 @@ tags: biology, cellular, energy
     </div>
 
     <!-- SECTION 5: LOCAL HTTP REST WEBHOOK -->
-    <div style="border-left: 3px solid #F472B6; padding-left: 12px; margin-bottom: 10px;">
+    <div style="border-left: 3px solid #F472B6; padding-left: 12px; margin-bottom: 22px;">
         <h3 style="color: #FFFFFF; margin: 0 0 6px 0; font-size: 13px; font-weight: 600;">5. Local HTTP REST API Webhook</h3>
         <p style="color: #A1A1AA; font-size: 12px; margin: 0 0 8px 0;">
             The add-on embeds an asynchronous HTTP server on <code>http://127.0.0.1:8765/api/card</code> for direct integration with Python scripts, browser extensions, or command-line tools:
@@ -134,6 +134,18 @@ curl -X POST http://127.0.0.1:8765/api/card \
   -H "Content-Type: application/json" \
   -d '{"image_url": "https://example.com/diagram.png", "deck": "Medicine::Anatomy"}'
         </pre>
+    </div>
+
+    <!-- SECTION 6: SUPPORT & COMMUNITY -->
+    <div style="border-left: 3px solid #FFDD00; padding-left: 12px; margin-bottom: 10px;">
+        <h3 style="color: #FFDD00; margin: 0 0 6px 0; font-size: 13px; font-weight: 600;">☕ 6. Support &amp; Contributions</h3>
+        <p style="color: #A1A1AA; font-size: 12px; margin: 0 0 8px 0;">
+            Enjoying Anki Wykiati Toolkit? Support continuous development, new AI image occlusion features, and official AnkiWeb releases:
+        </p>
+        <p style="margin: 0; font-size: 12px;">
+            👉 <a href="https://buymeacoffee.com/wykiati" style="color: #FFDD00; font-weight: bold; text-decoration: none;">buymeacoffee.com/wykiati</a> &nbsp;|&nbsp; 
+            ⭐ <a href="https://github.com/Andr3wGustavo/anki-wykiati-addon" style="color: #38BDF8; text-decoration: none;">GitHub Repository</a>
+        </p>
     </div>
 
 </div>

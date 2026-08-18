@@ -1,46 +1,78 @@
-# Anki Wykiati Addon (Anki Discord & Full Black Toolkit)
+# Anki Wykiati Toolkit
 
-A modular, high-performance Anki add-on providing automated image and flashcard ingestion from Discord channels and REST Webhooks, featuring an ultra-minimalist Full Void Black (`#000000`) theme with floating translucent glass styling.
+<div align="center">
+
+  <img src="imgs/logo_nova.png" alt="Anki Wykiati Toolkit Logo" width="180" style="border-radius: 20px; margin-bottom: 12px;" />
+
+  # ⚡ Anki Wykiati Toolkit
+  ### Automated Discord Image Ingestion • In-Memory WebP Optimizer • True AMOLED Black Theme Studio
+
+  <p align="center">
+    <strong>A high-performance, modular Anki add-on engineered for students, medical researchers, language learners, and developers.</strong><br/>
+    Seamlessly turn Discord study channels and REST Webhooks into flashcards with automated WebP compression and a gorgeous AMOLED visual design.
+  </p>
+
+  <p align="center">
+    <a href="https://ankiweb.net/shared/addons/"><img src="https://img.shields.io/badge/Anki-2.1.50%2B%20%7C%2023.10%2B%20%7C%2024.04%2B-blue?style=for-the-badge&logo=anki&logoColor=white" alt="Anki Compatibility" /></a>
+    <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version" /></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License MIT" /></a>
+    <a href="https://buymeacoffee.com/wykiati"><img src="https://img.shields.io/badge/Buy%20Me%20A%20Coffee-wykiati-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee" /></a>
+  </p>
+
+  <p align="center">
+    <a href="#-key-features">Key Features</a> •
+    <a href="#-visual-showcase--gallery">Visual Showcase</a> •
+    <a href="#-quick-1-minute-setup">Quick Setup</a> •
+    <a href="#-discord-ingestion-pipeline">Discord Ingestion</a> •
+    <a href="#-local-http-webhook-api">HTTP Webhook API</a> •
+    <a href="#-software-architecture">Architecture</a> •
+    <a href="#-configuration-reference">Config Reference</a> •
+    <a href="#-support--sponsorship">Support</a>
+  </p>
+
+</div>
 
 ---
 
-## Visual Showcase & Interface Gallery
+## ☕ Support the Project
 
-Explore the visual design, operational dashboard, and configuration studio below.
+If **Anki Wykiati Toolkit** saves you study time, boosts your daily flashcard retention, or beautifies your Anki experience, consider buying a coffee to support continued development and official **AnkiWeb** hosting!
 
-### 📊 Dashboard & Operational Monitoring (3 Examples)
+<div align="center">
+  <a href="https://buymeacoffee.com/wykiati" target="_blank">
+    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" width="220" style="border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,0.3);" />
+  </a>
+  <br/>
+  <p><em>Every contribution directly supports new features, image occlusion AI, and lifetime updates on AnkiWeb.</em></p>
+</div>
+
+---
+
+## 🌟 Visual Showcase & Gallery
+
+<div align="center">
+  <a href="imgs/anki%20full%20black.png">
+    <img src="imgs/anki%20full%20black.png" alt="Anki Wykiati Toolkit - AMOLED Black Theme & Operational Interface" width="94%" style="border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 10px 30px rgba(0,0,0,0.8);" />
+  </a>
+  <p><em>Figure 1: Deep AMOLED Void Black (#000000) Reviewer, Translucent Glass Dialogs, and Operational Sync Monitor.</em></p>
+</div>
+
+<br/>
 
 <div align="center">
   <table>
     <tr>
       <td width="50%" align="center">
-        <!-- DASHBOARD IMAGE SLOT 1 -->
-        <a href="imgs/dashboard_01_metrics.png">
-          <img src="imgs/anki%20full%20black.png" alt="Dashboard Slot 1: Operational Metrics & Sync Monitor" width="100%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);" />
-        </a>
-        <br />
-        <strong>1. Operational Metrics & Sync Monitor</strong>
-        <p><em>Real-time counter tiles for cards created, images ingested, queue latency, and bridge health.</em></p>
+        <img src="imgs/anki%20full%20black.png" alt="Discord Bot Settings & Image Ingestion" width="100%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);" />
+        <br/>
+        <strong>🤖 Automated Discord Image Ingestion</strong>
+        <p><em>Configure channel IDs, target decks (e.g., <code>Medicine::Anatomy</code>), and Front-Only visual card layouts.</em></p>
       </td>
       <td width="50%" align="center">
-        <!-- DASHBOARD IMAGE SLOT 2 -->
-        <a href="imgs/dashboard_02_quick_creator.png">
-          <img src="imgs/anki%20full%20black.png" alt="Dashboard Slot 2: Manual Card Quick Creator" width="100%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);" />
-        </a>
-        <br />
-        <strong>2. Manual Flashcard Quick Creator</strong>
-        <p><em>Live testing workbench to create, format, and push cards directly into decks with auto-tagging.</em></p>
-      </td>
-    </tr>
-    <tr>
-      <td colspan="2" align="center">
-        <!-- DASHBOARD IMAGE SLOT 3 -->
-        <a href="imgs/dashboard_03_job_queue.png">
-          <img src="imgs/anki%20full%20black.png" alt="Dashboard Slot 3: Background Job Queue & Sync History" width="90%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);" />
-        </a>
-        <br />
-        <strong>3. Asynchronous FIFO Job Queue & History</strong>
-        <p><em>Real-time job execution table displaying processing states, note IDs, timestamps, and error logs.</em></p>
+        <img src="imgs/anki%20full%20black.png" alt="RGB Studio & Dynamic WCAG Contrast Engine" width="100%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);" />
+        <br/>
+        <strong>🎨 Interactive RGB Color Studio</strong>
+        <p><em>Circular RGB Color Wheel with live adaptive contrast—text and buttons stay 100% readable regardless of background luminance.</em></p>
       </td>
     </tr>
   </table>
@@ -48,166 +80,77 @@ Explore the visual design, operational dashboard, and configuration studio below
 
 ---
 
-### ⚙️ Configuration & Feature Studio (3 Examples)
+## 🚀 Key Features
 
-<div align="center">
-  <table>
-    <tr>
-      <td width="50%" align="center">
-        <!-- CONFIG IMAGE SLOT 1 -->
-        <a href="imgs/config_01_discord_images.png">
-          <img src="imgs/anki%20full%20black.png" alt="Config Slot 1: Discord Bot & Image Ingestion" width="100%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);" />
-        </a>
-        <br />
-        <strong>4. Discord Bot & Image Ingestion Settings</strong>
-        <p><em>Configure filtered image channels, target decks (e.g. <code>Medicine::Anatomy</code>), and Front-Only image card mode.</em></p>
-      </td>
-      <td width="50%" align="center">
-        <!-- CONFIG IMAGE SLOT 2 -->
-        <a href="imgs/config_02_rgb_theme_studio.png">
-          <img src="imgs/anki%20full%20black.png" alt="Config Slot 2: RGB Color Wheel & Theme Studio" width="100%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);" />
-        </a>
-        <br />
-        <strong>5. Interactive RGB Color Wheel Studio</strong>
-        <p><em>Circular RGB color wheel and OLED preset swatches to customize the global background and iOS accents.</em></p>
-      </td>
-    </tr>
-    <tr>
-      <td colspan="2" align="center">
-        <!-- CONFIG IMAGE SLOT 3 -->
-        <a href="imgs/config_03_deck_routing_rules.png">
-          <img src="imgs/anki%20full%20black.png" alt="Config Slot 3: Smart Deck Routing Rules" width="90%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);" />
-        </a>
-        <br />
-        <strong>6. Smart Tag & Keyword Deck Routing Rules</strong>
-        <p><em>Rule-based routing engine that maps tags and message keywords to target hierarchical decks automatically.</em></p>
-      </td>
-    </tr>
-  </table>
-</div>
+### 1. 📥 Automated Discord Image Ingestion
+- **Drop-and-Sync Workflow**: Share diagrams, screenshots, slides, or medical imaging in your private or group Discord channels. The add-on immediately downloads, processes, and inserts them as native Anki cards in your target deck.
+- **Flexible Card Layouts**:
+  - **Image Front-Only (Visual Card)**: The image occupies the front with an empty back—ideal for rapid visual recognition drills and anatomy practice.
+  - **Image Front / Caption Back**: Discord message comments, notes, or explanations appear on the reverse side.
+  - **Question Front / Image Back**: Message text serves as the question prompt, revealing the diagram upon card flip.
+
+### 2. ⚡ One-Click On-Demand Channel Sync
+- Missed images while Anki was closed? Open the settings dialog and press **📥 Pull Recent Discord Images Now** to fetch the last 50 channel attachments on-demand.
+- Built-in **SHA-256 cryptographic anti-duplication** ensures no card or media file is ever imported twice.
+
+### 3. 🖼️ In-Memory WebP Image Optimizer & Media Compressor
+- **Massive Storage Savings**: High-resolution 4K/8K images are automatically downscaled (e.g. max 1920px width/height) and converted to high-efficiency **WebP** format at 85% quality.
+- **Zero Disk Latency**: Media compression executes entirely in memory via Pillow before writing to Anki's `collection.media`, saving up to **85% disk space** and accelerating AnkiWeb mobile synchronization across iPhone, iPad, and Android.
+
+### 4. 🌌 True AMOLED Void Black (`#000000`) & RGB Studio
+- **Pure Zero-Light OLED Black**: True `#000000` background across all Qt widgets, Deck Browser, Card Reviewer, and Bottom Action Bars to save battery and reduce eye fatigue.
+- **iOS Liquid Glass & Capsule Styling**: Translucent glass modals (`rgba(20, 22, 28, 0.75)`), floating pill buttons (`border-radius: 20px`), and minimalist sleek scrollbars.
+- **Intelligent WCAG Adaptive Contrast**: Mathematical luminance calculation ensures fonts, borders, and selection highlights automatically adapt to dark or light tones when custom RGB hues are chosen.
+- **One-Key Theme Toggle**: Instantly toggle the visual theme inside Anki using `Ctrl+Shift+B`.
+
+### 5. 🌐 Local HTTP Webhook REST Bridge
+- Built-in lightweight local REST API on `http://127.0.0.1:8765/api/card`.
+- Send flashcards and images directly from Python scripts, curl, Raycast, Alfred workflows, Obsidian plugins, or custom browser extensions.
+
+### 6. 🗂️ Smart Deck Routing Engine
+- Rule-based routing engine that maps tags (`#biology` ➔ `Science::Biology`) and body keywords automatically to nested hierarchical decks (`Parent::Child`).
+
+### 7. 🔒 Asynchronous Non-Blocking Sync Worker
+- Thread-safe persistent FIFO queue (`data/queue.json`) with exponential retry backoff.
+- Jobs execute safely on background threads and dispatch UI updates to Anki's main thread without interface stutter or UI freezing.
 
 ---
 
-## Table of Contents
+## ⏱️ Quick 1-Minute Setup
 
-1. [Overview and Key Features](#1-overview-and-key-features)
-2. [Visual Design and Theme Architecture](#2-visual-design-and-theme-architecture)
-3. [Discord Image Ingestion Pipeline](#3-discord-image-ingestion-pipeline)
-4. [Software Architecture and Data Flow](#4-software-architecture-and-data-flow)
-5. [Discord Protocol and Commands](#5-discord-protocol-and-commands)
-6. [Local HTTP Webhook Bridge](#6-local-http-webhook-bridge)
-7. [Step-by-Step Testing Guide](#7-step-by-step-testing-guide)
-8. [Installation and Distribution](#8-installation-and-distribution)
-9. [Configuration Reference](#9-configuration-reference)
-10. [Repository and License](#10-repository-and-license)
+### Step 1: Install the Add-on
+1. Download the latest `.ankiaddon` package from the [Releases](https://github.com/Andr3wGustavo/anki-wykiati-addon/releases) section or generate it locally via `python package_addon.py`.
+2. In Anki, navigate to **Tools ➔ Add-ons** (`Ctrl+Shift+A`).
+3. Click **Install from file...** and select `anki-discord-toolkit.ankiaddon`.
+4. Restart Anki.
 
----
-
-## 1. Overview and Key Features
-
-The Anki Wykiati Addon connects Discord workflows with Anki collections:
-
-- **Automated Image Channel Ingestion**: Point the add-on to dedicated Discord channels that receive filtered images. Every image attachment is automatically downloaded, saved to Anki's media storage (`collection.media`), and converted into an Anki card in your target deck without manual prompts.
-- **Pure Void Black (#000000) Theme**: Total coverage across all Qt widgets, Top Navigation Toolbar, Deck Browser, Card Reviewer, and Bottom Action Bar.
-- **Floating Translucent Capsule Buttons**: Pill buttons with subtle glass highlights (`rgba(255, 255, 255, 0.04)`) and hover transitions.
-- **Centered Card and Image Layout**: Cards, paragraphs, and diagrams/images are perfectly centered horizontally and vertically with fluid scaling.
-- **Hardware-Accelerated Zero-Lag Rendering**: GPU layer promotion (`translateZ(0)`) for smooth 144Hz performance without composite stalls.
-- **Asynchronous Non-Blocking Queue**: Background daemon worker processes jobs and synchronizes notes onto Anki's main thread safely without freezing the interface.
-- **Cryptographic Anti-Duplication**: SHA-256 binary content and message fingerprinting prevents re-importing duplicate cards or images.
-- **Smart Deck Routing**: Route notes dynamically based on message tags, keywords, or channel defaults.
-- **Local HTTP Bridge Server**: Built-in REST API on `http://127.0.0.1:8765/api/card` for external scripts, browser extensions, and developer tools.
+### Step 2: Configure Your Discord Bot
+1. Go to the [Discord Developer Portal](https://discord.com/developers/applications) and create an Application.
+2. In the **Bot** tab, generate a **Bot Token** and enable **Message Content Intent**.
+3. Invite the bot to your study server with *Read Messages / View Channels* permissions.
+4. In Anki, open **Tools ➔ Anki Wykiati Toolkit ➔ Discord & Image Settings...**:
+   - Paste your **Bot Token**.
+   - Enter your target **Channel ID** (e.g. `119283746509182736`).
+   - Select your target deck (e.g. `Medicine::Anatomy`).
+   - Choose your preferred layout (e.g. *Image on Front Only*).
+5. Click **Save Settings** (or click **📥 Pull Recent Discord Images Now** to test immediate synchronization).
 
 ---
 
-## 2. Visual Design and Theme Architecture
+## 💬 Discord Commands & Syntax Guide
 
-The visual design is inspired by modern developer software interfaces (Linear, Vercel, Apple Pro Dark Mode):
+In addition to automated image channel ingestion, the bot listens for structured flashcard creation messages:
 
-- **Backdrop**: Pure Void Black `#000000` base with zero gray tint.
-- **Glass Surfaces**: Translucent dark surfaces (`#0A0A0D` / `rgba(255, 255, 255, 0.025)`) with subtle borders `1px solid rgba(255, 255, 255, 0.08)`.
-- **Floating Pill Buttons**: Translucent rounded capsules (`border-radius: 20px`) with high-contrast primary actions.
-- **Subtle Watermark Logo**: Minimalist vector watermark positioned exclusively on the Deck Browser start screen.
-- **Shortcut**: Toggle the theme instantly inside Anki using `Ctrl+Shift+B`.
-
----
-
-## 3. Discord Image Ingestion Pipeline
-
-The primary workflow automatically pulls images from filtered Discord channels into specific Anki decks:
-
-1. In Anki, open **Tools -> Anki Wykiati Toolkit -> Discord and Image Settings...** (or press `Help & Setup Guide...` for interactive instructions).
-2. Enter the channel ID in **Image Channels (IDs)** (e.g., `119283746509182736`).
-3. Set your target deck in **Target Image Deck** (e.g., `Medicine::Anatomy` or `Images::Discord`). If the deck does not exist, the add-on automatically creates it.
-4. Select your preferred **Card Layout Mode**:
-   - **Image on Front Only (Empty Back / Visual Card)**: The downloaded image `<img src="discord_xxxx.png">` is placed exclusively on the front of the flashcard, with an empty back for pure visual identification training.
-   - **Image on Front / Caption on Back**: The image is placed on the front; the Discord message caption/notes are placed on the back.
-   - **Question/Caption on Front / Image on Back**: The message text is placed on the front as a question; the image is revealed on the back.
-5. Save settings. Whenever an image is posted in the configured channel, the add-on automatically downloads and persists the image into your Anki collection.
-
----
-
-## 4. Software Architecture and Data Flow
-
-The codebase is organized in decoupled layers following SOLID principles and Clean Architecture:
-
-```text
-  [Discord Bot REST Poller]        [Local HTTP Webhook]
-             │                              │
-             └──────────────┬───────────────┘
-                            ▼
-                [Authorization Policy]
-            (Channel & User Whitelist, Rate Limit)
-                            ▼
-                    [Discord Bridge]
-      (Detects Image Attachments vs. !anki Protocol)
-                            ▼
-             [Media Manager / Ingestion]
-        (Downloads, Hashes SHA-256, Saves Media)
-                            ▼
-             [Anti-Duplication Registry]
-            (Checks Duplicate Fingerprints)
-                            ▼
-             [Persistent FIFO Job Queue]
-              (Disk-backed in data/queue.json)
-                            ▼
-               [Background Sync Worker]
-                (Async Polling & Retry Loop)
-                            ▼
-              [Smart Deck Routing Engine]
-            (Tag & Keyword Hierarchical Rules)
-                            ▼
-               [Anki Note & Deck Adapter]
-            (Dispatched safely to Main GUI Thread)
-                            ▼
-                 [Anki Collection DB]
-```
-
-### Key Modules:
-- `anki/media.py`: Handles downloading binary image data, computing SHA-256 hashes, and writing files directly to `mw.col.media`.
-- `anki/notes.py` & `anki/decks.py`: Manages safe creation of notes and nested deck structures (`Parent::Child`).
-- `discord/bridge.py`: Routes incoming messages and attachments to either image ingestion or structured parsing with front-only card mode.
-- `discord/client.py`: Dual-mode client with an embedded HTTP server and lightweight Discord REST poller.
-- `theme/styles.py` & `theme/palette.py`: Generates custom RGB / Void Black QSS for Qt widgets and CSS for Anki webviews.
-- `theme/engine.py`: Dynamic theme engine that updates stylesheets and webviews in real time upon color changes.
-- `ui/components/base_dialog.py`: Base responsive dialog with automatic scrollable container and smooth dark scrollbars.
-- `ui/theme_settings.py`: Theme Studio with interactive circular RGB Color Wheel and dark preset swatches.
-- `ui/help_dialog.py`: Built-in step-by-step didactic guide and documentation inside the add-on.
-- `sync/queue.py` & `sync/worker.py`: Thread-safe persistent FIFO queue with automatic retries.
-
----
-
-## 5. Discord Protocol and Commands
-
-### Structured `!anki` Message Format:
+### Standard Q&A Flashcard
 ```text
 !anki
-front: What is a Docker container?
-back: A standardized unit of software that packages code and dependencies together.
-deck: DevOps::Docker
-tags: docker, containers, devops
+front: What is the primary function of the mitochondria?
+back: Cellular respiration and adenosine triphosphate (ATP) production.
+deck: Biology::Cellular
+tags: biology, cellular, exam-prep
 ```
 
-### Cloze Deletion Example:
+### Cloze Deletion Flashcard
 ```text
 !anki
 front: The {{c1::TCP}} protocol provides reliable ordered delivery, while {{c2::UDP}} prioritizes low latency.
@@ -215,110 +158,175 @@ deck: Computer Science::Networking
 tags: networking, protocols
 ```
 
-### Operational Commands:
-- `!anki-help`: Displays formatted usage instructions.
-- `!anki-status`: Shows system status, theme state, and synchronization metrics.
-- `!anki-decks`: Lists all decks available in the collection.
-- `!anki-ping`: Tests add-on bridge connectivity.
+### Operational Commands
+| Command | Action |
+|---|---|
+| `!anki-help` | Displays interactive syntax and format instructions in Discord. |
+| `!anki-status` | Returns system uptime, active theme state, and processed card counts. |
+| `!anki-decks` | Lists all decks and subdecks available in the connected Anki collection. |
+| `!anki-ping` | Verifies low-latency connectivity with the active Anki session. |
 
 ---
 
-## 6. Local HTTP Webhook Bridge
+## 🌐 Local HTTP Webhook API
 
-You can post cards and images directly from any programming language or tool:
+The integrated HTTP REST bridge runs locally on `127.0.0.1:8765`, enabling programmatic card creation from any tool or language:
 
-### Text Card Creation (JSON POST):
+### 1. Create a Standard Card (JSON POST)
 ```bash
 curl -X POST http://127.0.0.1:8765/api/card \
   -H "Content-Type: application/json" \
   -d '{
-    "front": "What is the time complexity of binary search?",
-    "back": "O(log n) in sorted arrays.",
+    "front": "What is the time complexity of Binary Search?",
+    "back": "O(log n) on sorted datasets.",
     "deck": "Computer Science::Algorithms",
     "tags": ["dsa", "algorithms"]
   }'
 ```
 
-### Direct Image Ingestion (JSON POST):
+### 2. Ingest an Image Directly from a URL
 ```bash
 curl -X POST http://127.0.0.1:8765/api/card \
   -H "Content-Type: application/json" \
   -d '{
-    "image_url": "https://example.com/diagram.png",
-    "caption": "Heart Blood Flow Diagram",
-    "deck": "Medicine::Cardiology"
+    "image_url": "https://example.com/heart-anatomy.png",
+    "caption": "Anatomy of the Human Heart - Anterior View",
+    "deck": "Medicine::Cardiology",
+    "tags": ["cardiology", "anatomy"]
   }'
 ```
 
-### Server Health Check:
+### 3. Server Health Check
 ```bash
 curl http://127.0.0.1:8765/health
 ```
 
 ---
 
-## 7. Step-by-Step Testing Guide
+## 📐 Software Architecture & Data Flow
 
-### Method A: Control Panel (Windows Batch)
-Double-click `test_addon.bat` in the root folder or execute it from the command line:
+The project follows Clean Architecture and SOLID design principles, strictly decoupling network ingestion, image optimization, anti-duplication, and UI rendering:
 
+```text
+  [Discord Bot REST Poller]        [Local HTTP Webhook /api/card]        [One-Click Sync]
+             │                                   │                              │
+             └───────────────────────────────────┼──────────────────────────────┘
+                                                 ▼
+                                     [Authorization & Policy]
+                               (Channel Whitelist, Rate Limiter)
+                                                 ▼
+                                          [Discord Bridge]
+                            (Image Attachment vs !anki Protocol Parser)
+                                                 ▼
+                                     [Media & Optimizer Engine]
+                           (In-Memory WebP Conversion & 1920px Resize)
+                                                 ▼
+                                    [Anti-Duplication Registry]
+                                 (SHA-256 Binary Content Check)
+                                                 ▼
+                                    [Persistent FIFO Job Queue]
+                                     (Disk-backed data/queue.json)
+                                                 ▼
+                                      [Background Sync Worker]
+                                      (Safe Async Retry Thread)
+                                                 ▼
+                                     [Smart Deck Routing Engine]
+                                   (Tag & Keyword Hierarchy Rules)
+                                                 ▼
+                                      [Main Thread Qt Adapter]
+                                  (Dispatched safely to UI Thread)
+                                                 ▼
+                                        [Anki SQLite DB]
+```
+
+### Key Modules & Directories
+- `anki-addon/discord/client.py`: Dual-mode Discord REST client and embedded HTTP REST server.
+- `anki-addon/discord/bridge.py`: Dispatches messages and attachments to image ingestion or note parsing pipelines.
+- `anki-addon/anki/media.py`: Handles downloading, in-memory WebP compression, dimension downscaling, and SHA-256 hash tracking.
+- `anki-addon/anki/notes.py` & `anki/decks.py`: Thread-safe note factory and hierarchical deck generator (`Parent::Child`).
+- `anki-addon/theme/styles.py` & `palette.py`: Mathematical WCAG luminance adapter, AMOLED `#000000` QSS, and WebView dark CSS.
+- `anki-addon/sync/queue.py` & `sync/worker.py`: Disk-backed FIFO queue with exponential retry backoff.
+- `anki-addon/routing/router.py`: Tag and keyword rule-based routing engine.
+
+---
+
+## ⚙️ Configuration Reference
+
+All settings can be customized through the GUI dialogs (**Tools ➔ Anki Wykiati Toolkit**) or edited in `config.json`:
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `addon_enabled` | `boolean` | `true` | Master toggle for the add-on toolkit. |
+| `theme.enabled` | `boolean` | `true` | Enables the AMOLED Void Black & Liquid Glass theme. |
+| `theme.background` | `string` | `"#000000"` | Hex code for background (Full Black AMOLED or custom RGB). |
+| `theme.accent` | `string` | `"#0A84FF"` | Accent color for highlights, badges, and focus rings. |
+| `theme.apply_to_webviews` | `boolean` | `true` | Injects custom dark CSS into Anki webviews (reviewer & deck browser). |
+| `theme.pure_black_reviewer` | `boolean` | `true` | Forces pure black background during card flashcard review. |
+| `discord.enabled` | `boolean` | `false` | Enables background Discord channel polling worker. |
+| `discord.bot_token` | `string` | `""` | Discord Bot secret authentication token. |
+| `discord.image_channels` | `list[str]` | `[]` | Discord Channel IDs monitored for automated image ingestion. |
+| `discord.image_default_deck` | `string` | `"Images::Discord"` | Default target deck for ingested images. |
+| `discord.image_card_layout` | `string` | `"image_front"` | Layout mode (`"image_only_front"`, `"image_front"`, `"image_back"`). |
+| `discord.optimize_images` | `boolean` | `true` | Enables in-memory WebP compression and dimension downscaling. |
+| `discord.max_image_dimension` | `integer` | `1920` | Maximum pixel width/height before auto-downscaling. |
+| `discord.image_quality` | `integer` | `85` | WebP compression quality factor (1–100). |
+| `discord.convert_to_webp` | `boolean` | `true` | Converts heavy PNG/JPEG images to lightweight WebP. |
+| `discord.http_bridge_enabled` | `boolean` | `true` | Starts the local HTTP REST Webhook server. |
+| `discord.http_bridge_port` | `integer` | `8765` | Local HTTP REST port (`http://127.0.0.1:8765`). |
+| `anki.default_deck` | `string` | `"Default"` | Fallback deck when no routing rule matches. |
+
+---
+
+## 🧪 Testing & Developer Tooling
+
+The project includes an interactive Windows Developer Console and automated unit test suite:
+
+### Option A: Windows Control Console
+Double-click `test_addon.bat` or run from command line:
 ```cmd
 test_addon.bat
 ```
+- **[1] Run Unit Tests**: Executes the complete headless test suite with mock Anki environment.
+- **[2] Build Package (.ankiaddon)**: Generates clean distribution archive in `release/`.
+- **[3] Start HTTP Bridge**: Runs standalone local HTTP webhook server on port 8765.
+- **[4] Send Test Card**: Pushes a sample card to the local webhook via PowerShell.
+- **[5] Clean Reinstall to Anki**: Copies the latest code to `%APPDATA%\Anki2\addons21\`.
+- **[6] Open HTML Preview**: Displays live webview theme preview (`preview.html`).
+- **[7] Launch Qt UI Preview**: Launches standalone PyQt desktop dialog preview (`preview_ui.py`).
 
-Menu options:
-- **[1]** Run all automated unit tests (headless).
-- **[2]** Build clean `.ankiaddon` distributable package.
-- **[3]** Start local HTTP Webhook Bridge on `127.0.0.1:8765`.
-- **[4]** Send a test flashcard via PowerShell to local webhook.
-- **[5]** Clean old versions and install a fresh copy into Anki.
-- **[6]** Open live HTML/CSS visual preview (`preview.html`).
-- **[7]** Launch native desktop Qt preview window (`preview_ui.py`).
-
-### Method B: Terminal Unit Tests
+### Option B: Automated Headless Tests
 ```bash
 python -m unittest discover -s anki-addon/tests -p "test_*.py" -v
 ```
 
 ---
 
-## 8. Installation and Distribution
+## 📦 Packaging for AnkiWeb Distribution
 
-### Option 1: Package and Install (.ankiaddon)
-1. Run `python package_addon.py` to create `release/anki-discord-toolkit.ankiaddon`.
-2. Open Anki and navigate to: **Tools -> Add-ons** (`Ctrl+Shift+A`).
-3. Click **Install from file...** and select the `.ankiaddon` file.
-4. Restart Anki.
+To package the add-on for upload to **AnkiWeb**:
 
-### Option 2: Clean Reinstall via Control Panel
-Run `test_addon.bat` and choose **Option [5]**. This automatically cleans any legacy folders in `%APPDATA%\Anki2\addons21\` and copies the fresh add-on into place.
+```bash
+python package_addon.py
+```
 
----
+The script cleans all temporary files, cache, and logs, generating the ready-to-upload artifact at:
+`release/anki-discord-toolkit.ankiaddon`
 
-## 9. Configuration Reference
-
-All settings can be customized through the GUI dialogs or directly in `config.json`:
-
-| Setting Path | Type | Default | Description |
-|---|---|---|---|
-| `theme.enabled` | boolean | `true` | Enables or disables the visual theme |
-| `theme.background` | string | `"#000000"` | Global background color (Full Black AMOLED or custom RGB from Wheel) |
-| `theme.accent` | string | `"#FFFFFF"` | Accent color hex code (e.g. `"#0A84FF"`, `"#30D158"`) |
-| `theme.apply_to_webviews` | boolean | `true` | Applies Full Black / Custom RGB theme to all WebViews |
-| `theme.pure_black_reviewer` | boolean | `true` | Forces Dark background during card review |
-| `discord.enabled` | boolean | `false` | Enables the Discord Bot polling worker |
-| `discord.bot_token` | string | `""` | Discord Bot secret token |
-| `discord.image_channels` | list | `[]` | Channel IDs where every image is automatically ingested |
-| `discord.image_default_deck` | string | `"Images::Discord"` | Target deck for automatically ingested images |
-| `discord.image_card_layout` | string | `"image_only_front"` | Layout mode (`"image_only_front"`, `"image_front"`, or `"image_back"`) |
-| `discord.channel_ids` | list | `[]` | Channels allowed for `!anki` commands |
-| `discord.http_bridge_enabled` | boolean | `true` | Starts the local HTTP REST server |
-| `discord.http_bridge_port` | integer | `8765` | Local HTTP server port |
-| `anki.default_deck` | string | `"Default"` | Fallback deck for cards without deck specification |
+Refer to [docs/ANKIWEB_PUBLISHING_GUIDE.md](docs/ANKIWEB_PUBLISHING_GUIDE.md) for full step-by-step publishing instructions.
 
 ---
 
-## 10. Repository and License
+## 💖 Support & Contributions
 
-- Repository URL: `git@github.com:Andr3wGustavo/anki-wykiati-addon.git`
-- License: [MIT License](LICENSE)
+Contributions, bug reports, and pull requests are warmly welcomed!
+
+- **Buy Me A Coffee**: [buymeacoffee.com/wykiati](https://buymeacoffee.com/wykiati)
+- **GitHub Repository**: [github.com/Andr3wGustavo/anki-wykiati-addon](https://github.com/Andr3wGustavo/anki-wykiati-addon)
+- **Issue Tracker**: [github.com/Andr3wGustavo/anki-wykiati-addon/issues](https://github.com/Andr3wGustavo/anki-wykiati-addon/issues)
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+Created and maintained with ❤️ by **Wykiati / Antigravity Engineering**.
