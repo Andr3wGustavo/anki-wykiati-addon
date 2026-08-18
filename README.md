@@ -65,16 +65,64 @@ The process of creating flashcards is traditionally one of the highest friction 
   <table>
     <tr>
       <td width="50%" align="center">
-        <img src="imgs/anki%20full%20black.png" alt="Discord Bot Settings and Image Ingestion" width="100%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);" />
+        <a href="imgs/discord%20and%20image%20settings.png">
+          <img src="imgs/discord%20and%20image%20settings.png" alt="Discord Bot Settings and Image Ingestion" width="100%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);" />
+        </a>
         <br/>
         <strong>Automated Discord Ingestion Interface</strong>
         <p><em>Configure bot tokens, target channels, deck routing targets, and visual card layout templates.</em></p>
       </td>
       <td width="50%" align="center">
-        <img src="imgs/anki%20full%20black.png" alt="RGB Studio and Dynamic WCAG Contrast Engine" width="100%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);" />
+        <a href="imgs/rgb%20color%20background%20selector.png">
+          <img src="imgs/rgb%20color%20background%20selector.png" alt="RGB Studio and Dynamic WCAG Contrast Engine" width="100%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);" />
+        </a>
         <br/>
         <strong>Interactive RGB Color Studio</strong>
         <p><em>Live color picker with adaptive WCAG luminance computation ensuring high readability across all UI elements.</em></p>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<br/>
+
+<div align="center">
+  <h3>Theme Presets & Dynamic Palette Gallery</h3>
+  <table>
+    <tr>
+      <td width="50%" align="center">
+        <a href="imgs/anki%20full%20black.png">
+          <img src="imgs/anki%20full%20black.png" alt="AMOLED Void Black Theme" width="100%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);" />
+        </a>
+        <br/>
+        <strong>AMOLED Void Black (#000000)</strong>
+        <p><em>True OLED black background with crisp white typography for zero eye fatigue and maximum power efficiency.</em></p>
+      </td>
+      <td width="50%" align="center">
+        <a href="imgs/blue%20background.png">
+          <img src="imgs/blue%20background.png" alt="Sapphire Blue Theme" width="100%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);" />
+        </a>
+        <br/>
+        <strong>Sapphire Blue Theme</strong>
+        <p><em>Deep navy blue backdrop designed for high focus, coding sessions, and prolonged late-night study routines.</em></p>
+      </td>
+    </tr>
+    <tr>
+      <td width="50%" align="center">
+        <a href="imgs/purple%20backgroud.png">
+          <img src="imgs/purple%20backgroud.png" alt="Cosmic Purple Theme" width="100%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);" />
+        </a>
+        <br/>
+        <strong>Cosmic Purple Theme</strong>
+        <p><em>Rich violet aesthetic providing a modern, vibrant ambiance with automatic luminance compensation.</em></p>
+      </td>
+      <td width="50%" align="center">
+        <a href="imgs/white%20background.png">
+          <img src="imgs/white%20background.png" alt="Arctic White Light Theme" width="100%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);" />
+        </a>
+        <br/>
+        <strong>Arctic White Theme</strong>
+        <p><em>Clean high-luminance theme with automatic dark text and borders calculated via WCAG contrast standards.</em></p>
       </td>
     </tr>
   </table>
@@ -104,6 +152,13 @@ The process of creating flashcards is traditionally one of the highest friction 
 - **Pure Black Interface (#000000)**: Eliminates gray backdrops across Qt widgets, the Deck Browser, Card Reviewer, and Bottom Action Bars, minimizing OLED power consumption and reducing visual fatigue.
 - **Dynamic WCAG Contrast Engine**: Calculates the relative luminance ($L = 0.2126R + 0.7152G + 0.0722B$) of user-selected theme colors in real time. Text, borders, and selection indicators automatically adjust between light and dark tones to ensure maximum contrast and accessibility.
 - **Instant Hotkey Toggle**: Switch between custom styling and standard Anki presentation using `Ctrl+Shift+B`.
+
+<div align="center">
+  <a href="imgs/rgb%20color%20background%20selector.png">
+    <img src="imgs/rgb%20color%20background%20selector.png" alt="Dynamic RGB Studio and WCAG Contrast Engine" width="85%" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 8px 24px rgba(0,0,0,0.7);" />
+  </a>
+  <p><em>Figure 2: Dynamic RGB Color Studio - Real-time color wheel, hex input, and automated contrast adaptation.</em></p>
+</div>
 
 ### 5. Embedded HTTP REST Webhook Bridge
 - **Local Integration Endpoint**: Runs a lightweight, non-blocking HTTP server on `http://127.0.0.1:8765`.
@@ -187,6 +242,13 @@ The project adheres to Clean Architecture and SOLID design principles. Network c
    - Select your target deck (e.g., `Medicine::Anatomy`).
    - Select your preferred layout mode (e.g., *Image on Front Only*).
 6. Click **Save Settings**. Click **Pull Recent Discord Images Now** to verify connectivity and immediately backfill past attachments.
+
+<div align="center">
+  <a href="imgs/discord%20and%20image%20settings.png">
+    <img src="imgs/discord%20and%20image%20settings.png" alt="Discord and Image Settings Dialog" width="85%" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 8px 24px rgba(0,0,0,0.7);" />
+  </a>
+  <p><em>Figure 3: Discord & Image Settings - Seamless channel listening, target deck routing, and layout controls.</em></p>
+</div>
 
 ---
 
@@ -377,6 +439,9 @@ If the **Anki Wykiati Toolkit** accelerates your study workflow, improves your f
   <a href="https://buymeacoffee.com/wykiati" target="_blank">
     <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" width="220" style="border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,0.3);" />
   </a>
-  <br/>
+  <br/><br/>
+  <p>
+    <strong>Direct Link:</strong> <a href="https://buymeacoffee.com/wykiati" target="_blank">https://buymeacoffee.com/wykiati</a>
+  </p>
   <p><em>Direct contributions support the implementation of future features including Image Occlusion generation, offline OCR pipelines, and continuous maintenance on AnkiWeb.</em></p>
 </div>
