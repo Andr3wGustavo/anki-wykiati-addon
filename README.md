@@ -2,8 +2,7 @@
 
 <div align="center">
 
-  <img src="imgs/logo_nova.png" alt="Anki Wykiati Toolkit Logo" width="180" style="border-radius: 20px; margin-bottom: 12px;" />
-
+  
   # Anki Wykiati Toolkit
   ### Automated Discord Image Ingestion, In-Memory WebP Transcoding, and AMOLED Theme Engine
 
