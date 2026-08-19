@@ -1,8 +1,5 @@
-# Anki Wykiati Toolkit
-
 <div align="center">
 
-  
   # Anki Wykiati Toolkit
   ### Automated Discord Image Ingestion, In-Memory WebP Transcoding, and AMOLED Theme Engine
 
