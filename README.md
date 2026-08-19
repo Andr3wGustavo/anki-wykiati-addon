@@ -250,6 +250,15 @@ The project adheres to Clean Architecture and SOLID design principles. Network c
   <p><em>Figure 3: Discord & Image Settings - Seamless channel listening, target deck routing, and layout controls.</em></p>
 </div>
 
+### Step 3: Customize Theme & Background Colors
+1. In Anki, navigate to **Tools -> Anki Wykiati Toolkit -> Theme Settings...** or press `Ctrl+Shift+B`.
+2. Select any background color via the interactive RGB color wheel or input a custom hex code:
+   - **AMOLED Void Black**: `#000000` (Max OLED battery savings, zero distraction)
+   - **Sapphire Blue**: `#0A192F` (Deep focus mode for programming and long study hours)
+   - **Cosmic Purple**: `#1E1035` (Modern vibrant ambiance with adaptive contrast)
+   - **Arctic White**: `#FFFFFF` (High-luminance clean light theme with auto-inverted dark typography)
+3. The integrated WCAG luminance engine automatically calculates contrast and applies matching fonts, borders, and reviewer styles instantly.
+
 ---
 
 ## Discord Ingestion & Command Syntax
