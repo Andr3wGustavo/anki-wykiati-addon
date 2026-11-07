@@ -4,20 +4,48 @@ Intelligently adapts contrast (dark vs light) based on background luminance.
 Non-destructive: preserves 100% of native Anki layout, tables, icons, and positioning.
 """
 
-from typing import Optional
-from .palette import PALETTE, ThemePalette, get_adaptive_palette, is_light_color
+from typing import Optional, Tuple
+from .palette import (
+    PALETTE,
+    ThemePalette,
+    contrast_ratio,
+    is_light_color,
+    mix,
+    normalize_hex,
+    readable_text_on,
+    with_alpha,
+)
+
+
+def _resolve_colors(accent: Optional[str], bg_color: Optional[str]) -> Tuple[str, bool, str, str, str, str]:
+    """
+    Validate inputs and derive the accent tokens shared by QSS and webview CSS.
+    Returns (bg, is_light, accent, accent_on_bg, text_on_accent, accent_hover).
+    """
+    bg = normalize_hex(bg_color, PALETTE.BACKGROUND_PURE_BLACK)
+    is_light = is_light_color(bg)
+    default_accent = "#09090B" if is_light else PALETTE.ACCENT_PRIMARY
+    acc = normalize_hex(accent, default_accent)
+    # When the accent is used as text/border on the background it must stay legible
+    # (WCAG 3:1 for UI components); otherwise push it toward the readable side.
+    if contrast_ratio(acc, bg) >= 3.0:
+        acc_on_bg = acc
+    else:
+        acc_on_bg = mix(acc, "#000000" if is_light else "#FFFFFF", 0.55)
+    acc_text = readable_text_on(acc)
+    acc_hover = mix(acc, "#000000" if acc_text == "#000000" else "#FFFFFF", 0.15)
+    return bg, is_light, acc, acc_on_bg, acc_text, acc_hover
 
 
 def generate_qss(palette: Optional[ThemePalette] = None, accent: Optional[str] = None, bg_color: Optional[str] = None) -> str:
     """
     Generate Qt StyleSheet (QSS) for native Anki windows and dialogs.
     Dynamically adapts font colors, input borders, buttons, and selection highlights
-    based on the luminance of the chosen background.
+    based on the luminance of the chosen background. The accent color drives focus
+    borders, checked checkboxes, default/primary buttons, and selection highlights.
+    `palette` is accepted for backward compatibility; tokens are derived from bg/accent.
     """
-    bg = bg_color or PALETTE.BACKGROUND_PURE_BLACK
-    is_light = is_light_color(bg)
-    pal = palette or get_adaptive_palette(bg)
-    acc = accent or pal.ACCENT_PRIMARY
+    bg, is_light, acc, acc_on_bg, acc_text, acc_hover = _resolve_colors(accent, bg_color)
 
     # Adaptive tokens
     if is_light:
@@ -28,17 +56,13 @@ def generate_qss(palette: Optional[ThemePalette] = None, accent: Optional[str] =
         surface_card_title_bg = "rgba(0, 0, 0, 0.08)"
         border_subtle = "rgba(0, 0, 0, 0.10)"
         border_strong = "rgba(0, 0, 0, 0.22)"
-        border_focus = "rgba(0, 0, 0, 0.50)"
         input_bg = "#FFFFFF"
         btn_glass_bg = "rgba(0, 0, 0, 0.05)"
         btn_glass_hover = "rgba(0, 0, 0, 0.10)"
         btn_glass_pressed = "rgba(0, 0, 0, 0.16)"
-        btn_primary_bg = "#09090B"
-        btn_primary_text = "#FFFFFF"
-        btn_primary_hover = "#27272A"
         item_hover_bg = "rgba(0, 0, 0, 0.06)"
-        item_selected_bg = "rgba(0, 0, 0, 0.12)"
-        item_selected_text = "#000000"
+        item_selected_bg = with_alpha(acc, 0.20)
+        item_selected_text = text
         menu_bg = "#FFFFFF"
         scrollbar_handle = "rgba(0, 0, 0, 0.22)"
         scrollbar_hover = "rgba(0, 0, 0, 0.40)"
@@ -52,22 +76,24 @@ def generate_qss(palette: Optional[ThemePalette] = None, accent: Optional[str] =
         surface_card_title_bg = "rgba(255, 255, 255, 0.08)"
         border_subtle = "rgba(255, 255, 255, 0.08)"
         border_strong = "rgba(255, 255, 255, 0.18)"
-        border_focus = "rgba(255, 255, 255, 0.45)"
         input_bg = "#060608"
         btn_glass_bg = "rgba(255, 255, 255, 0.05)"
         btn_glass_hover = "rgba(255, 255, 255, 0.12)"
         btn_glass_pressed = "rgba(255, 255, 255, 0.02)"
-        btn_primary_bg = "#FFFFFF"
-        btn_primary_text = "#000000"
-        btn_primary_hover = "#E4E4E7"
         item_hover_bg = "rgba(255, 255, 255, 0.08)"
-        item_selected_bg = "rgba(255, 255, 255, 0.16)"
-        item_selected_text = "#FFFFFF"
+        item_selected_bg = with_alpha(acc, 0.28)
+        item_selected_text = text
         menu_bg = "#0C0C0E"
         scrollbar_handle = "rgba(255, 255, 255, 0.18)"
         scrollbar_hover = "rgba(255, 255, 255, 0.35)"
         chk_indicator_bg = "#060608"
         chk_indicator_border = "rgba(255, 255, 255, 0.25)"
+
+    # Accent-driven tokens (the user's chosen accent color)
+    border_focus = acc_on_bg
+    btn_primary_bg = acc
+    btn_primary_text = acc_text
+    btn_primary_hover = acc_hover
 
     return f"""
     /* =========================================================================
@@ -305,10 +331,7 @@ def generate_webview_css(palette: Optional[ThemePalette] = None, accent: Optiona
     Adaptive Custom Background CSS for Anki WebViews.
     Dynamically adjusts CSS variables and element colors for dark and light backgrounds.
     """
-    bg = bg_color or PALETTE.BACKGROUND_PURE_BLACK
-    is_light = is_light_color(bg)
-    pal = palette or get_adaptive_palette(bg)
-    acc = accent or pal.ACCENT_PRIMARY
+    bg, is_light, acc, acc_on_bg, acc_text, acc_hover = _resolve_colors(accent, bg_color)
 
     if is_light:
         text = "#09090B"
@@ -356,8 +379,9 @@ def generate_webview_css(palette: Optional[ThemePalette] = None, accent: Optiona
         --footer-bg: {bg} !important;
         --bs-body-bg: {bg} !important;
         --bs-body-color: {text} !important;
-        --link: {acc} !important;
+        --link: {acc_on_bg} !important;
         --accent: {acc} !important;
+        --border-focus: {acc_on_bg} !important;
     }}
 
     /* 2. BACKGROUNDS & BASE COLOR */
@@ -380,7 +404,13 @@ def generate_webview_css(palette: Optional[ThemePalette] = None, accent: Optiona
     tr.deck {{
         background-color: {bg} !important;
     }}
-    a, a.deckname, a.deck {{
+    tr.deck.current {{
+        background-color: {with_alpha(acc, 0.14)} !important;
+    }}
+    a {{
+        color: {acc_on_bg} !important;
+    }}
+    a.deckname, a.deck, .toolbar a {{
         color: {text} !important;
     }}
     a:hover, a.deckname:hover, a.deck:hover {{
@@ -398,6 +428,11 @@ def generate_webview_css(palette: Optional[ThemePalette] = None, accent: Optiona
         background-color: {btn_hover} !important;
         color: {text} !important;
         border-color: {border_subtle} !important;
+    }}
+
+    button:focus, button:focus-visible {{
+        border-color: {acc_on_bg} !important;
+        outline: none !important;
     }}
 
     /* 5. MINIMALIST COUNTER BADGES */

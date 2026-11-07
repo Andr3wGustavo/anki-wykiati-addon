@@ -3,8 +3,9 @@ Ultra-Minimalist Monochromatic Dark Palette for Anki Wykiati Toolkit.
 Linear/Vercel-inspired Deep Void Black (#000000), whisper-thin glass borders, and high-contrast typography.
 """
 
+import re
 from dataclasses import dataclass
-from typing import Dict
+from typing import Optional, Tuple
 
 
 @dataclass(frozen=True)
@@ -47,6 +48,64 @@ class ThemePalette:
 
     # Reviewer Card Cloze
     CLOZE_COLOR: str = "#38BDF8"
+
+_HEX_RE = re.compile(r"^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
+
+
+def is_valid_hex(value: Optional[str]) -> bool:
+    """True for '#RGB' / '#RRGGBB' strings (leading '#' required)."""
+    return isinstance(value, str) and value.strip().startswith("#") and bool(_HEX_RE.match(value.strip()))
+
+
+def normalize_hex(value: Optional[str], fallback: str = "#000000") -> str:
+    """Return value as uppercase '#RRGGBB', or the fallback when it is not a valid hex color."""
+    if not is_valid_hex(value):
+        return fallback
+    clean = value.strip().lstrip("#")  # type: ignore[union-attr]
+    if len(clean) == 3:
+        clean = "".join(c * 2 for c in clean)
+    return f"#{clean.upper()}"
+
+
+def _rgb(hex_code: str) -> Tuple[int, int, int]:
+    clean = normalize_hex(hex_code).lstrip("#")
+    return int(clean[0:2], 16), int(clean[2:4], 16), int(clean[4:6], 16)
+
+
+def with_alpha(hex_code: str, alpha: float) -> str:
+    """'#RRGGBB' + alpha -> 'rgba(r, g, b, a)' (usable in QSS and CSS)."""
+    r, g, b = _rgb(hex_code)
+    return f"rgba({r}, {g}, {b}, {max(0.0, min(1.0, alpha)):.2f})"
+
+
+def mix(hex_a: str, hex_b: str, t: float) -> str:
+    """Linear blend: t=0 -> hex_a, t=1 -> hex_b."""
+    t = max(0.0, min(1.0, t))
+    a, b = _rgb(hex_a), _rgb(hex_b)
+    return "#" + "".join(f"{round(x + (y - x) * t):02X}" for x, y in zip(a, b))
+
+
+def relative_luminance(hex_code: str) -> float:
+    """WCAG 2.x relative luminance (0 = black, 1 = white)."""
+    def channel(c: int) -> float:
+        s = c / 255.0
+        return s / 12.92 if s <= 0.03928 else ((s + 0.055) / 1.055) ** 2.4
+
+    r, g, b = _rgb(hex_code)
+    return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+
+
+def contrast_ratio(hex_a: str, hex_b: str) -> float:
+    """WCAG contrast ratio between two colors (1.0 .. 21.0)."""
+    la, lb = relative_luminance(hex_a), relative_luminance(hex_b)
+    hi, lo = max(la, lb), min(la, lb)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+def readable_text_on(hex_code: str) -> str:
+    """Black or white, whichever has better contrast on the given background."""
+    return "#000000" if contrast_ratio(hex_code, "#000000") >= contrast_ratio(hex_code, "#FFFFFF") else "#FFFFFF"
+
 
 def is_light_color(hex_code: str) -> bool:
     """

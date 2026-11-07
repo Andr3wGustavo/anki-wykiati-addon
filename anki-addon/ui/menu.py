@@ -54,6 +54,12 @@ class ToolkitMenuManager:
             logger.debug("[MenuManager] Anki mw not available. Skipping GUI menu creation.")
             return
 
+        # Idempotent: setup_menu() is called both at add-on load and from
+        # main_window_did_init. A second submenu would duplicate every entry and
+        # make the shortcuts ambiguous in Qt (so neither copy would fire).
+        if self._submenu is not None:
+            return
+
         try:
             self._submenu = QMenu(TOOLS_MENU_ENTRY, mw)
 
@@ -109,6 +115,7 @@ class ToolkitMenuManager:
 
         except Exception as e:
             logger.error(f"[MenuManager] Failed registering menu items: {e}", exc_info=True)
+            self._submenu = None
 
     def show_dashboard(self) -> None:
         if not ANKI_AVAILABLE or mw is None:
@@ -119,11 +126,9 @@ class ToolkitMenuManager:
     def toggle_pure_black_theme(self) -> None:
         current_state = config.get("theme.enabled", True)
         new_state = not current_state
+        # The theme engine is subscribed to "theme" changes and re-applies itself
+        # (debounced), so no explicit activate()/deactivate() call is needed here.
         config.set("theme.enabled", new_state, save=True)
-        if new_state:
-            theme_engine.activate()
-        else:
-            theme_engine.deactivate()
 
     def show_theme_settings(self) -> None:
         if not ANKI_AVAILABLE or mw is None:

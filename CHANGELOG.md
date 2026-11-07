@@ -7,6 +7,27 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [Não lançado]
+
+### Segurança
+- **Bridge HTTP desligado por padrão** e só inicia com `discord.secret_token` definido; todo `POST` exige `Authorization: Bearer <token>` (ou `X-AWT-Token`).
+- Removido o CORS `*` e bloqueados cabeçalhos `Host` que não sejam loopback (proteção contra DNS rebinding). O `/health` não expõe mais estatísticas sem autenticação.
+- Todo HTML vindo do Discord/HTTP é escapado antes da conversão de markdown (impede injeção de scripts no reviewer).
+- Download de imagens: bloqueio de IPs privados/loopback/link-local (inclusive após redirects), apenas `image/*`, limite de 10 MB.
+- Adicionado `DiscordClientManager.shutdown()`, que o fechamento do perfil já chamava (gerava `AttributeError` e deixava o servidor rodando).
+
+### Corrigido (Tema)
+- A **cor de destaque (accent) agora é aplicada**: botões primários, checkboxes marcados, bordas de foco, seleção, links e o baralho atual. Accents com pouco contraste são ajustados automaticamente.
+- **Círculo RGB** escolhia o matiz espelhado (amarelo virava magenta); agora mostra um marcador da cor selecionada, permite arrastar até a borda e é desenhado também fora da camada de compatibilidade do Anki.
+- `QPalette` adaptativo: fundos claros usam texto escuro nos widgets nativos (antes: branco sobre branco).
+- Uma única reaplicação e um único refresh por alteração (antes: até ~8 `mw.reset()` ao salvar as configurações).
+- O QSS do add-on é anexado ao do Anki em vez de substituí-lo; desligar o tema restaura exatamente o stylesheet e a paleta originais; integração com `theme_did_change` (troca claro/escuro do Anki).
+- Menu não é mais registrado em duplicidade (atalhos `Ctrl+Shift+B`/`Ctrl+Shift+D` ficavam ambíguos).
+- Desmarcar "Apply Theme to WebViews" agora realmente remove o tema das webviews.
+- Hex inválido (ex.: `#zzz`) não é mais aceito; mantém a cor anterior.
+
+---
+
 ## [1.1.0] - 2026-08-16
 
 ### Adicionado

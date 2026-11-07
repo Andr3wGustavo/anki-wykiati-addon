@@ -11,14 +11,14 @@ try:
     from ..core.config import config
     from ..core.logger import logger
     from ..theme.engine import theme_engine
-    from ..theme.palette import PALETTE, is_light_color
+    from ..theme.palette import PALETTE, is_light_color, is_valid_hex, normalize_hex
     from ..theme.styles import generate_qss
     from .components.base_dialog import BaseToolkitDialog, QT_AVAILABLE
 except (ImportError, ValueError):
     from core.config import config
     from core.logger import logger
     from theme.engine import theme_engine
-    from theme.palette import PALETTE, is_light_color
+    from theme.palette import PALETTE, is_light_color, is_valid_hex, normalize_hex
     from theme.styles import generate_qss
     from ui.components.base_dialog import BaseToolkitDialog, QT_AVAILABLE
 
@@ -124,18 +124,35 @@ class RGBWheelWidget(QWidget):
         self._current_hex = initial_hex
         self._selected_hue = 0.0
         self._selected_sat = 0.0
+        self._dragging = False
         self._on_color_changed: Optional[Callable[[str], None]] = None
+        self._sync_marker_from_hex(initial_hex)
 
     def set_on_color_changed(self, callback: Callable[[str], None]) -> None:
         self._on_color_changed = callback
 
     def set_color_hex(self, hex_code: str) -> None:
         self._current_hex = hex_code
+        self._sync_marker_from_hex(hex_code)
         if hasattr(self, "update"):
             self.update()
 
+    def _sync_marker_from_hex(self, hex_code: str) -> None:
+        """Place the selection marker at the hue/saturation of the given color."""
+        if not QT_AVAILABLE or not is_valid_hex(hex_code) or not hasattr(QColor, "hsvHueF"):
+            return
+        try:
+            color = QColor(hex_code)
+            hue = color.hsvHueF()
+            self._selected_hue = 0.0 if hue < 0 else hue * 360.0  # achromatic colors report -1
+            self._selected_sat = max(0.0, min(1.0, color.hsvSaturationF()))
+        except Exception:
+            pass
+
     def paintEvent(self, event: Any) -> None:
-        if not QT_AVAILABLE or not hasattr(QPainter, "Antialiasing"):
+        # PyQt6 only exposes scoped enums (QPainter.RenderHint.Antialiasing); checking the
+        # legacy unscoped name alone made the wheel invisible outside Anki's compat shim.
+        if not QT_AVAILABLE or not (hasattr(QPainter, "RenderHint") or hasattr(QPainter, "Antialiasing")):
             return
         try:
             painter = QPainter(self)
@@ -173,17 +190,27 @@ class RGBWheelWidget(QWidget):
             painter.setPen(QPen(QColor(255, 255, 255, 60), 1.5))
             painter.setBrush(QBrush(QColor(0, 0, 0, 0)))
             painter.drawEllipse(center, radius, radius)
+
+            # 4. Selection marker (same geometry as _handle_mouse: hue grows counter-clockwise)
+            angle_rad = math.radians(self._selected_hue)
+            dist = self._selected_sat * radius
+            marker = QPointF(center.x() + math.cos(angle_rad) * dist, center.y() - math.sin(angle_rad) * dist)
+            painter.setPen(QPen(QColor(0, 0, 0, 200), 3.0))
+            painter.setBrush(QBrush(QColor(0, 0, 0, 0)))
+            painter.drawEllipse(marker, 5.0, 5.0)
+            painter.setPen(QPen(QColor(255, 255, 255, 240), 1.5))
+            painter.drawEllipse(marker, 5.0, 5.0)
             painter.end()
         except Exception:
             pass
 
     def mousePressEvent(self, event: Any) -> None:
-        self._handle_mouse(event)
+        self._handle_mouse(event, is_press=True)
 
     def mouseMoveEvent(self, event: Any) -> None:
-        self._handle_mouse(event)
+        self._handle_mouse(event, is_press=False)
 
-    def _handle_mouse(self, event: Any) -> None:
+    def _handle_mouse(self, event: Any, is_press: bool = False) -> None:
         try:
             pos = event.position() if hasattr(event, "position") else event.pos()
             w = self.width()
@@ -195,9 +222,18 @@ class RGBWheelWidget(QWidget):
             dist = math.sqrt(dx * dx + dy * dy)
             radius = min(w, h) / 2.0 - 4.0
 
-            if dist <= radius:
-                # Angle in degrees [0, 360)
-                angle = (math.degrees(math.atan2(dy, dx)) + 360.0) % 360.0
+            # Pressing must start inside the wheel; dragging may leave it (clamped to the edge).
+            if is_press:
+                self._dragging = dist <= radius
+            if not self._dragging:
+                return
+            dist = min(dist, radius)
+
+            if radius > 0:
+                # Angle in degrees [0, 360). QConicalGradient runs counter-clockwise
+                # while screen Y grows downward, so dy must be negated; otherwise the
+                # picked hue is mirrored (clicking yellow returned magenta).
+                angle = (math.degrees(math.atan2(-dy, dx)) + 360.0) % 360.0
                 # Saturation [0, 1]
                 sat = min(1.0, dist / radius)
                 # Value/Brightness scaled for deep dark tones
@@ -214,6 +250,10 @@ class RGBWheelWidget(QWidget):
                 if color and getattr(color, "isValid", lambda: True)():
                     hex_code = color.name()
                     self._current_hex = hex_code
+                    self._selected_hue = angle
+                    self._selected_sat = sat
+                    if hasattr(self, "update"):
+                        self.update()
                     if self._on_color_changed:
                         self._on_color_changed(hex_code)
         except Exception:
@@ -389,15 +429,18 @@ class ThemeSettingsDialog(BaseToolkitDialog):
         self._update_all_previews(self.txt_bg.text().strip(), hex_code)
 
     def _on_bg_text_changed(self, text: str) -> None:
-        if text.startswith("#") and len(text) in (4, 7):
+        text = text.strip()
+        if is_valid_hex(text):
+            self.rgb_wheel.set_color_hex(text)
             self._update_all_previews(text, self.txt_accent.text().strip())
 
     def _on_accent_text_changed(self, text: str) -> None:
-        if text.startswith("#") and len(text) in (4, 7):
+        text = text.strip()
+        if is_valid_hex(text):
             self._update_all_previews(self.txt_bg.text().strip(), text)
 
     def _update_all_previews(self, bg_hex: str, accent_hex: str) -> None:
-        if bg_hex.startswith("#") and len(bg_hex) in (4, 7):
+        if is_valid_hex(bg_hex):
             self._current_bg = bg_hex
             is_light = is_light_color(bg_hex)
 
@@ -423,7 +466,7 @@ class ThemeSettingsDialog(BaseToolkitDialog):
             except Exception:
                 pass
 
-        if accent_hex.startswith("#") and len(accent_hex) in (4, 7):
+        if is_valid_hex(accent_hex):
             self._current_accent = accent_hex
             is_light_bg = is_light_color(self._current_bg)
             sample_txt_col = "#09090B" if is_light_bg else "#FFFFFF"
@@ -439,19 +482,20 @@ class ThemeSettingsDialog(BaseToolkitDialog):
     def accept(self) -> None:
         try:
             enabled = self.chk_theme_enabled.isChecked()
-            bg = self.txt_bg.text().strip() or PALETTE.BACKGROUND_PURE_BLACK
-            accent = self.txt_accent.text().strip() or PALETTE.ACCENT_PRIMARY
+            # Invalid hex input (e.g. "#zzz") keeps the previously saved color instead of
+            # silently turning into black.
+            prev_bg = normalize_hex(config.get("theme.background"), PALETTE.BACKGROUND_PURE_BLACK)
+            prev_accent = normalize_hex(config.get("theme.accent"), PALETTE.ACCENT_PRIMARY)
+            bg = normalize_hex(self.txt_bg.text(), prev_bg)
+            accent = normalize_hex(self.txt_accent.text(), prev_accent)
 
+            # The theme engine listens to "theme" changes and re-applies once
+            # (debounced) after this batch, so no explicit activate() is needed.
             config.set("theme.enabled", enabled, save=False)
             config.set("theme.background", bg, save=False)
             config.set("theme.accent", accent, save=False)
             config.set("theme.apply_to_webviews", self.chk_webviews.isChecked(), save=False)
             config.set("theme.pure_black_reviewer", self.chk_reviewer.isChecked(), save=True)
-
-            if enabled:
-                theme_engine.activate()
-            else:
-                theme_engine.deactivate()
 
             logger.info(f"[ThemeSettingsDialog] Theme preferences saved (bg={bg}, accent={accent}, enabled={enabled}).")
             super().accept()
