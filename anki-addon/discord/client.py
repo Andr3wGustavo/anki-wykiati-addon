@@ -101,6 +101,22 @@ class _BridgeHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         try:
+            try:
+                content_length = int(self.headers.get("Content-Length", 0))
+            except (TypeError, ValueError):
+                self.close_connection = True
+                self._send_json(400, {"success": False, "error": "Invalid Content-Length"})
+                return
+            if content_length < 0 or content_length > MAX_PAYLOAD_SIZE_BYTES:
+                self.close_connection = True
+                self._send_json(413, {"success": False, "error": "Payload too large"})
+                return
+
+            # Consume the (bounded) body before answering, even when rejecting:
+            # replying with unread data in the socket makes Windows reset the
+            # connection before the client can read the status code.
+            body_bytes = self.rfile.read(content_length)
+
             if not self._host_is_allowed():
                 self._send_json(403, {"success": False, "error": "Forbidden host"})
                 return
@@ -116,16 +132,6 @@ class _BridgeHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                 self._send_json(401, {"success": False, "error": "Unauthorized"})
                 return
 
-            try:
-                content_length = int(self.headers.get("Content-Length", 0))
-            except (TypeError, ValueError):
-                self._send_json(400, {"success": False, "error": "Invalid Content-Length"})
-                return
-            if content_length < 0 or content_length > MAX_PAYLOAD_SIZE_BYTES:
-                self._send_json(413, {"success": False, "error": "Payload too large"})
-                return
-
-            body_bytes = self.rfile.read(content_length)
             body_str = body_bytes.decode("utf-8", errors="replace")
 
             raw_text = ""
