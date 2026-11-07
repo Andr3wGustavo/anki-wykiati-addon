@@ -1,24 +1,24 @@
 """
-Theme Settings Dialog for Anki Wykiati Toolkit.
-Allows toggling Full Black AMOLED (#000000), customizing background RGB with an interactive Color Wheel,
-and selecting iOS liquid glass accent colors.
+Appearance (theme) settings panel for Anki Wykiati Toolkit.
+Preset swatches for background and accent, a full custom picker, hex input and a
+live miniature preview of Anki. RGBWheelWidget is kept for backward compatibility.
 """
 
 import math
 from typing import Any, Callable, Optional
 
 try:
-    from ..core.config import config
+    from ..core.config import DEFAULT_CONFIG, config
     from ..core.logger import logger
     from ..theme.engine import theme_engine
-    from ..theme.palette import PALETTE, is_light_color, is_valid_hex, normalize_hex
+    from ..theme.palette import PALETTE, contrast_ratio, is_light_color, is_valid_hex, mix, normalize_hex, readable_text_on, semantic_colors, with_alpha
     from ..theme.styles import generate_qss
     from .components.base_dialog import BaseToolkitDialog, QT_AVAILABLE
 except (ImportError, ValueError):
-    from core.config import config
+    from core.config import DEFAULT_CONFIG, config
     from core.logger import logger
     from theme.engine import theme_engine
-    from theme.palette import PALETTE, is_light_color, is_valid_hex, normalize_hex
+    from theme.palette import PALETTE, contrast_ratio, is_light_color, is_valid_hex, mix, normalize_hex, readable_text_on, semantic_colors, with_alpha
     from theme.styles import generate_qss
     from ui.components.base_dialog import BaseToolkitDialog, QT_AVAILABLE
 
@@ -260,245 +260,452 @@ class RGBWheelWidget(QWidget):
             pass
 
 
+BACKGROUND_PRESETS = [
+    ("Void Black", "#000000"),
+    ("Midnight", "#0B0E14"),
+    ("Graphite", "#18181B"),
+    ("Navy", "#0D1117"),
+    ("Forest", "#08120C"),
+    ("Violet", "#0E0B14"),
+    ("Paper", "#F5F5F4"),
+    ("White", "#FFFFFF"),
+]
+
+ACCENT_PRESETS = [
+    ("Mono", None),  # resolved to white on dark backgrounds, near-black on light ones
+    ("Blue", "#0A84FF"),
+    ("Purple", "#BF5AF2"),
+    ("Pink", "#FF375F"),
+    ("Orange", "#FF9F0A"),
+    ("Green", "#30D158"),
+    ("Teal", "#40C8E0"),
+]
+
+MONO_DARK = "#FFFFFF"
+MONO_LIGHT = "#09090B"
+
+
+def _mono_for(bg_hex: str) -> str:
+    return MONO_LIGHT if is_light_color(bg_hex) else MONO_DARK
+
+
+def _set_pointer_cursor(widget: Any) -> None:
+    try:
+        if hasattr(Qt, "CursorShape"):
+            widget.setCursor(Qt.CursorShape.PointingHandCursor)
+        else:
+            widget.setCursor(Qt.PointingHandCursor)
+    except Exception:
+        pass
+
+
+class ColorSwatch(QPushButton):
+    """
+    Round, clickable color chip, painted by hand (stylesheets cannot draw a ring
+    with a gap). Selected = outer ring + gap + color dot, which stays visible even
+    when the ring and the chip have the same color.
+    """
+
+    SIZE = 28
+
+    def __init__(self, hex_code: str, name: str, parent: Optional[Any] = None) -> None:
+        super().__init__(parent)
+        self.hex_code = hex_code
+        self._selected = False
+        self._ring = "#FFFFFF"
+        self.setFixedSize(self.SIZE, self.SIZE)
+        self.setToolTip(f"{name}  {hex_code}")
+        self.setAutoDefault(False)
+        self.setFlat(True)
+        _set_pointer_cursor(self)
+
+    def set_color(self, hex_code: str, name: Optional[str] = None) -> None:
+        self.hex_code = hex_code
+        if name:
+            self.setToolTip(f"{name}  {hex_code}")
+        self.update()
+
+    def set_state(self, selected: bool, ring_color: str) -> None:
+        self._selected = selected
+        self._ring = ring_color
+        self.update()
+
+    def paintEvent(self, event: Any) -> None:
+        try:
+            painter = QPainter(self)
+            hint = QPainter.RenderHint.Antialiasing if hasattr(QPainter, "RenderHint") else QPainter.Antialiasing
+            painter.setRenderHint(hint)
+            center = QPointF(self.width() / 2.0, self.height() / 2.0)
+            outer = self.SIZE / 2.0 - 1.5
+            no_brush = QBrush(QColor(0, 0, 0, 0))
+            hovered = self.underMouse()
+
+            if self._selected:
+                painter.setPen(QPen(QColor(self._ring), 2.0))
+                painter.setBrush(no_brush)
+                painter.drawEllipse(center, outer, outer)
+                dot = outer - 4.0
+            else:
+                dot = outer - 2.0
+                if hovered:
+                    ring = QColor(self._ring)
+                    ring.setAlpha(110)
+                    painter.setPen(QPen(ring, 2.0))
+                    painter.setBrush(no_brush)
+                    painter.drawEllipse(center, outer, outer)
+
+            edge = QColor(readable_text_on(self.hex_code))
+            edge.setAlpha(60)
+            painter.setPen(QPen(edge, 1.0))
+            painter.setBrush(QBrush(QColor(self.hex_code)))
+            painter.drawEllipse(center, dot, dot)
+            painter.end()
+        except Exception:
+            pass
+
+    def enterEvent(self, event: Any) -> None:
+        self.update()
+        super().enterEvent(event)
+
+    def leaveEvent(self, event: Any) -> None:
+        self.update()
+        super().leaveEvent(event)
+
+
+class ColorRow(QWidget):
+    """
+    One line of the picker: preset swatches, an extra chip for a custom color,
+    a hex field and a 'Custom…' button that opens the full Qt color dialog.
+    """
+
+    def __init__(self, presets: list, on_change: Callable[[str], None], dialog_title: str, parent: Optional[Any] = None) -> None:
+        super().__init__(parent)
+        self._on_change = on_change
+        self._dialog_title = dialog_title
+        self._current = "#000000"
+        self._ring = "#FFFFFF"
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+
+        self.swatches = []
+        for name, hex_code in presets:
+            sw = ColorSwatch(hex_code or MONO_DARK, name, self)
+            sw.preset_name = name
+            sw.clicked.connect(lambda _=False, s=sw: self._pick(s.hex_code))
+            layout.addWidget(sw)
+            self.swatches.append(sw)
+
+        # Shows the current value when it is not one of the presets
+        self.custom_swatch = ColorSwatch("#000000", "Custom", self)
+        self.custom_swatch.clicked.connect(lambda _=False: self._pick(self.custom_swatch.hex_code))
+        self.custom_swatch.setVisible(False)
+        layout.addWidget(self.custom_swatch)
+
+        layout.addStretch(1)
+
+        self.hex_input = QLineEdit(self)
+        self.hex_input.setFixedWidth(86)
+        self.hex_input.setMaxLength(7)
+        self.hex_input.setPlaceholderText("#RRGGBB")
+        self.hex_input.setToolTip("Type a hex color, e.g. #0B0E14")
+        self.hex_input.textEdited.connect(self._on_hex_edited)
+        self.hex_input.editingFinished.connect(self._on_hex_finished)
+        layout.addWidget(self.hex_input)
+
+        self.btn_custom = QPushButton("Custom…", self)
+        self.btn_custom.setToolTip("Open the full color picker")
+        self.btn_custom.setAutoDefault(False)
+        _set_pointer_cursor(self.btn_custom)
+        self.btn_custom.clicked.connect(self._open_picker)
+        layout.addWidget(self.btn_custom)
+
+    # -- public
+    def set_value(self, hex_code: str, ring_color: str) -> None:
+        self._current = normalize_hex(hex_code, self._current)
+        self._ring = ring_color
+        matched = False
+        for sw in self.swatches:
+            selected = sw.hex_code.upper() == self._current
+            matched = matched or selected
+            sw.set_state(selected, ring_color)
+        self.custom_swatch.setVisible(not matched)
+        if not matched:
+            self.custom_swatch.set_color(self._current, "Custom")
+            self.custom_swatch.set_state(True, ring_color)
+        if not self.hex_input.hasFocus():
+            self.hex_input.setText(self._current)
+
+    def set_preset_color(self, preset_name: str, hex_code: str) -> None:
+        for sw in self.swatches:
+            if sw.preset_name == preset_name:
+                sw.set_color(hex_code, preset_name)
+
+    def value(self) -> str:
+        return self._current
+
+    # -- internal
+    def _pick(self, hex_code: str) -> None:
+        self._on_change(normalize_hex(hex_code, self._current))
+
+    def _on_hex_edited(self, text: str) -> None:
+        text = text.strip()
+        if text and not text.startswith("#"):
+            text = "#" + text
+        if is_valid_hex(text) and len(text) == 7:
+            self._on_change(normalize_hex(text))
+
+    def _on_hex_finished(self) -> None:
+        text = self.hex_input.text().strip()
+        if text and not text.startswith("#"):
+            text = "#" + text
+        if is_valid_hex(text):
+            self._on_change(normalize_hex(text))
+        self.hex_input.setText(self._current)
+
+    def _open_picker(self) -> None:
+        if not hasattr(QColorDialog, "getColor"):
+            return
+        color = QColorDialog.getColor(QColor(self._current), self, self._dialog_title)
+        if color.isValid():
+            self._on_change(normalize_hex(color.name()))
+
+
+class ThemePreview(QFrame):
+    """Miniature of Anki's deck list + reviewer, rendered with the chosen colors."""
+
+    def __init__(self, parent: Optional[Any] = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("awtPreview")
+        root = QVBoxLayout(self)
+        root.setContentsMargins(14, 12, 14, 12)
+        root.setSpacing(10)
+
+        # Deck row
+        deck_row = QHBoxLayout()
+        deck_row.setSpacing(10)
+        self.lbl_deck = QLabel("Medicine::Cardiology", self)
+        self.lbl_counts = QLabel(self)
+        self.btn_study = QLabel("Study Now", self)
+        deck_row.addWidget(self.lbl_deck)
+        deck_row.addStretch(1)
+        deck_row.addWidget(self.lbl_counts)
+        deck_row.addWidget(self.btn_study)
+        root.addLayout(deck_row)
+
+        # Card
+        self.card = QFrame(self)
+        self.card.setObjectName("awtPreviewCard")
+        card_layout = QVBoxLayout(self.card)
+        card_layout.setContentsMargins(12, 12, 12, 12)
+        card_layout.setSpacing(6)
+        self.lbl_question = QLabel("Which node starts the cardiac impulse?", self.card)
+        self.lbl_answer = QLabel(self.card)
+        self.lbl_link = QLabel(self.card)
+        for lbl in (self.lbl_question, self.lbl_answer, self.lbl_link):
+            lbl.setWordWrap(True)
+            card_layout.addWidget(lbl)
+        root.addWidget(self.card)
+
+        # Answer buttons
+        ease_row = QHBoxLayout()
+        ease_row.setSpacing(6)
+        self.ease_labels = []
+        for text in ("Again", "Hard", "Good", "Easy"):
+            lbl = QLabel(text, self)
+            try:
+                lbl.setAlignment(Qt.AlignmentFlag.AlignCenter if hasattr(Qt, "AlignmentFlag") else Qt.AlignCenter)
+            except Exception:
+                pass
+            ease_row.addWidget(lbl, 1)
+            self.ease_labels.append(lbl)
+        root.addLayout(ease_row)
+
+    def render_colors(self, bg: str, accent: str, enabled: bool = True) -> None:
+        light = is_light_color(bg)
+        text = "#09090B" if light else "#FFFFFF"
+        muted = "#52525B" if light else "#A1A1AA"
+        border = "rgba(0, 0, 0, 0.12)" if light else "rgba(255, 255, 255, 0.10)"
+        sem = semantic_colors(light)
+        link = accent if contrast_ratio(accent, bg) >= 3.0 else mix(accent, "#000000" if light else "#FFFFFF", 0.55)
+
+        self.setStyleSheet(
+            f"QFrame#awtPreview {{ background-color: {bg}; border: 1px solid {border}; border-radius: 10px; }}"
+            f"QFrame#awtPreviewCard {{ background-color: {bg}; border: 1px solid {border}; border-radius: 8px; }}"
+            "QLabel { background: transparent; border: none; }"
+        )
+        self.lbl_deck.setStyleSheet(f"color: {text}; font-weight: 600;")
+        self.lbl_counts.setText(
+            f"<span style='color:{sem['new']}; font-weight:600'>12</span>&nbsp;&nbsp;"
+            f"<span style='color:{sem['learn']}; font-weight:600'>3</span>&nbsp;&nbsp;"
+            f"<span style='color:{sem['review']}; font-weight:600'>48</span>"
+        )
+        self.btn_study.setStyleSheet(
+            f"background-color: {accent}; color: {readable_text_on(accent)}; border-radius: 6px;"
+            f" padding: 4px 10px; font-weight: 600;"
+        )
+        self.lbl_question.setStyleSheet(f"color: {text}; font-size: 14px;")
+        self.lbl_answer.setText(
+            f"<span style='color:{muted}'>Answer:</span> "
+            f"<span style='color:{sem['cloze']}; font-weight:600'>Sinoatrial (SA) node</span>"
+        )
+        self.lbl_link.setText(f"<span style='color:{link}; text-decoration: underline'>Read more</span>")
+        for lbl, key in zip(self.ease_labels, ("again", "hard", "good", "easy")):
+            color = sem[key]
+            lbl.setStyleSheet(
+                f"color: {color}; border: 1px solid {with_alpha(color, 0.40)}; border-radius: 6px;"
+                f" padding: 5px 0px; font-weight: 600; background: transparent;"
+            )
+        self.setEnabled(enabled)
+
+
 class ThemeSettingsDialog(BaseToolkitDialog):
     """
-    Dialog for configuring theme options, custom RGB background colors, and accent colors.
+    Minimal appearance panel: pick a background and an accent from presets
+    (or any custom color), see a live miniature of Anki, save.
     """
     def __init__(self, parent: Optional[Any] = None) -> None:
         super().__init__(
             parent,
-            title="Theme & Appearance Studio",
-            subtitle="Minimalist Void Black (#000000) or custom RGB background with native Anki button styling.",
+            title="Appearance",
+            subtitle="Pick a background and an accent color. The preview updates as you choose.",
             width=580,
-            height=460,
+            height=640,
         )
         if not QT_AVAILABLE:
             return
 
-        self._current_bg = config.get("theme.background", PALETTE.BACKGROUND_PURE_BLACK)
-        self._current_accent = config.get("theme.accent", PALETTE.ACCENT_PRIMARY)
+        self._bg = normalize_hex(config.get("theme.background"), PALETTE.BACKGROUND_PURE_BLACK)
+        self._accent = normalize_hex(config.get("theme.accent"), _mono_for(self._bg))
         self._build_ui()
         self._load_values()
 
+    # ----------------------------------------------------------------- layout
+
+    def _section_label(self, text: str) -> Any:
+        lbl = QLabel(text.upper(), self)
+        lbl.setObjectName("awtSectionLabel")
+        return lbl
+
     def _build_ui(self) -> None:
         layout = QVBoxLayout()
-        layout.setSpacing(14)
+        layout.setSpacing(8)
 
-        # 1. General Theme Toggles
-        group_general = QGroupBox("Theme Configuration", self)
-        form_general = QFormLayout(group_general)
-        form_general.setSpacing(10)
+        self.chk_theme_enabled = QCheckBox("Use custom theme", self)
+        self.chk_theme_enabled.setToolTip("Turn off to go back to Anki's standard look")
+        self.chk_theme_enabled.toggled.connect(lambda _=False: self._refresh())
+        layout.addWidget(self.chk_theme_enabled)
+        layout.addSpacing(6)
 
-        self.chk_theme_enabled = QCheckBox("Enable Full Black / Custom RGB Theme", self)
-        self.chk_theme_enabled.setStyleSheet("font-weight: 600;")
-        form_general.addRow("Status:", self.chk_theme_enabled)
+        self.colors_box = QWidget(self)
+        colors_layout = QVBoxLayout(self.colors_box)
+        colors_layout.setContentsMargins(0, 0, 0, 0)
+        colors_layout.setSpacing(8)
 
-        self.chk_webviews = QCheckBox("Apply Theme to WebViews (Deck Browser & Reviewer)", self)
-        form_general.addRow("WebViews:", self.chk_webviews)
+        colors_layout.addWidget(self._section_label("Background"))
+        self.bg_row = ColorRow(BACKGROUND_PRESETS, self._set_bg, "Background color", self.colors_box)
+        colors_layout.addWidget(self.bg_row)
+        colors_layout.addSpacing(8)
 
-        self.chk_reviewer = QCheckBox("Force Dark Background during Card Reviews", self)
-        form_general.addRow("Reviewer:", self.chk_reviewer)
+        colors_layout.addWidget(self._section_label("Accent"))
+        self.accent_row = ColorRow(ACCENT_PRESETS, self._set_accent, "Accent color", self.colors_box)
+        colors_layout.addWidget(self.accent_row)
+        colors_layout.addSpacing(10)
 
-        layout.addWidget(group_general)
+        colors_layout.addWidget(self._section_label("Preview"))
+        self.preview = ThemePreview(self.colors_box)
+        colors_layout.addWidget(self.preview)
+        colors_layout.addSpacing(6)
 
-        # 2. RGB Background & Accent Color Studio
-        group_colors = QGroupBox("Color Customization (RGB Studio)", self)
-        colors_layout = QVBoxLayout(group_colors)
-        colors_layout.setSpacing(12)
+        self.chk_webviews = QCheckBox("Also theme the deck list, reviewer and toolbar", self.colors_box)
+        self.chk_webviews.setToolTip("When off, only Anki's native windows and dialogs are themed")
+        colors_layout.addWidget(self.chk_webviews)
 
-        wheel_row = QHBoxLayout()
-        wheel_row.setSpacing(16)
-
-        # RGB Color Wheel Widget
-        self.rgb_wheel = RGBWheelWidget(self, initial_hex=self._current_bg)
-        self.rgb_wheel.set_on_color_changed(self._set_bg_hex)
-        wheel_row.addWidget(self.rgb_wheel)
-
-        # Color Inputs Form
-        inputs_form = QFormLayout()
-        inputs_form.setSpacing(10)
-
-        # Background Hex Row
-        bg_input_row = QHBoxLayout()
-        bg_input_row.setSpacing(8)
-        self.txt_bg = QLineEdit(self)
-        self.txt_bg.setPlaceholderText("#000000")
-        self.txt_bg.textChanged.connect(self._on_bg_text_changed)
-        bg_input_row.addWidget(self.txt_bg, 1)
-
-        self.btn_pick_bg = QPushButton("Palette...", self)
-        self.btn_pick_bg.clicked.connect(self._pick_bg_dialog)
-        bg_input_row.addWidget(self.btn_pick_bg)
-
-        self.bg_preview_swatch = QLabel(self)
-        self.bg_preview_swatch.setFixedSize(32, 28)
-        self.bg_preview_swatch.setStyleSheet(f"background-color: {self._current_bg}; border-radius: 4px; border: 1px solid rgba(255,255,255,0.25);")
-        bg_input_row.addWidget(self.bg_preview_swatch)
-
-        inputs_form.addRow("Background (RGB):", bg_input_row)
-
-        # Accent Hex Row
-        accent_row = QHBoxLayout()
-        accent_row.setSpacing(8)
-        self.txt_accent = QLineEdit(self)
-        self.txt_accent.setPlaceholderText("#0A84FF")
-        self.txt_accent.textChanged.connect(self._on_accent_text_changed)
-        accent_row.addWidget(self.txt_accent, 1)
-
-        self.btn_pick_color = QPushButton("Palette...", self)
-        self.btn_pick_color.clicked.connect(self._pick_accent_dialog)
-        accent_row.addWidget(self.btn_pick_color)
-
-        self.color_preview = QLabel(self)
-        self.color_preview.setFixedSize(32, 28)
-        self.color_preview.setStyleSheet(f"background-color: {self._current_accent}; border-radius: 4px; border: 1px solid rgba(255,255,255,0.25);")
-        accent_row.addWidget(self.color_preview)
-
-        inputs_form.addRow("Accent Color:", accent_row)
-
-        wheel_row.addLayout(inputs_form, 1)
-        colors_layout.addLayout(wheel_row)
-        layout.addWidget(group_colors)
-
-        # 3. Live Visual Preview Card
-        group_preview = QGroupBox("Live Preview", self)
-        preview_layout = QVBoxLayout(group_preview)
-        
-        self.preview_card = QFrame(self)
-        self.preview_card.setStyleSheet(
-            f"background-color: {self._current_bg}; border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; padding: 12px;"
-        )
-        p_card_layout = QVBoxLayout(self.preview_card)
-        p_card_layout.setSpacing(6)
-
-        self.lbl_p_title = QLabel("Medicine::Cardiology (Sample Card)", self.preview_card)
-        self.lbl_p_title.setStyleSheet("font-size: 13px; font-weight: 700; color: #FFFFFF;")
-        p_card_layout.addWidget(self.lbl_p_title)
-
-        self.lbl_p_text = QLabel("Flashcard front with dynamic background and active accent highlight.", self.preview_card)
-        self.lbl_p_text.setStyleSheet("font-size: 12px; color: #A1A1AA;")
-        p_card_layout.addWidget(self.lbl_p_text)
-
-        preview_btn_row = QHBoxLayout()
-        self.btn_p_sample = QPushButton("Show Answer", self.preview_card)
-        self.btn_p_sample.setStyleSheet(f"background-color: rgba(255,255,255,0.08); color: #FFFFFF; border: 1px solid {self._current_accent}; border-radius: 4px; padding: 5px 14px;")
-        preview_btn_row.addWidget(self.btn_p_sample)
-        preview_btn_row.addStretch()
-        p_card_layout.addLayout(preview_btn_row)
-
-        preview_layout.addWidget(self.preview_card)
-        layout.addWidget(group_preview)
-
+        layout.addWidget(self.colors_box)
+        layout.addStretch(1)
         self.body_layout.addLayout(layout)
 
+        self.btn_reset = QPushButton("Reset to default", self)
+        self.btn_reset.setToolTip("Void Black background with the default accent (applied when you save)")
+        self.btn_reset.setAutoDefault(False)
+        self.btn_reset.clicked.connect(self._reset_defaults)
+        self.footer_layout.insertWidget(0, self.btn_reset)
+
+    # ------------------------------------------------------------------ state
+
     def _load_values(self) -> None:
-        self.chk_theme_enabled.setChecked(config.get("theme.enabled", True))
-        self.chk_webviews.setChecked(config.get("theme.apply_to_webviews", True))
-        self.chk_reviewer.setChecked(config.get("theme.pure_black_reviewer", True))
-        
-        bg = config.get("theme.background", PALETTE.BACKGROUND_PURE_BLACK)
-        accent = config.get("theme.accent", PALETTE.ACCENT_PRIMARY)
-        
-        self.txt_bg.setText(bg)
-        self.txt_accent.setText(accent)
-        self._update_all_previews(bg, accent)
+        self.chk_theme_enabled.setChecked(bool(config.get("theme.enabled", True)))
+        self.chk_webviews.setChecked(bool(config.get("theme.apply_to_webviews", True)))
+        self._refresh()
 
-    def _pick_bg_dialog(self) -> None:
-        if not hasattr(QColorDialog, "getColor"):
-            return
-        initial = QColor(self.txt_bg.text().strip() or PALETTE.BACKGROUND_PURE_BLACK)
-        color = QColorDialog.getColor(initial, self, "Select App Background Color (RGB)")
-        if color.isValid():
-            self._set_bg_hex(color.name())
+    def _set_bg(self, hex_code: str) -> None:
+        old_mono = _mono_for(self._bg)
+        self._bg = hex_code
+        # Keep "Mono" accent meaningful when switching between light and dark backgrounds
+        if self._accent in (MONO_DARK, MONO_LIGHT) and self._accent == old_mono:
+            self._accent = _mono_for(hex_code)
+        self._refresh()
 
-    def _pick_accent_dialog(self) -> None:
-        if not hasattr(QColorDialog, "getColor"):
-            return
-        initial = QColor(self.txt_accent.text().strip() or PALETTE.ACCENT_PRIMARY)
-        color = QColorDialog.getColor(initial, self, "Select Interface Accent Color")
-        if color.isValid():
-            self._set_accent_hex(color.name())
+    def _set_accent(self, hex_code: str) -> None:
+        self._accent = hex_code
+        self._refresh()
 
-    def _set_bg_hex(self, hex_code: str) -> None:
-        self.txt_bg.setText(hex_code)
-        self.rgb_wheel.set_color_hex(hex_code)
-        self._update_all_previews(hex_code, self.txt_accent.text().strip())
+    def _reset_defaults(self) -> None:
+        defaults = DEFAULT_CONFIG["theme"]
+        self.chk_theme_enabled.setChecked(True)
+        self.chk_webviews.setChecked(bool(defaults.get("apply_to_webviews", True)))
+        self._bg = normalize_hex(defaults.get("background"), PALETTE.BACKGROUND_PURE_BLACK)
+        self._accent = normalize_hex(defaults.get("accent"), _mono_for(self._bg))
+        self._refresh()
 
-    def _set_accent_hex(self, hex_code: str) -> None:
-        self.txt_accent.setText(hex_code)
-        self._update_all_previews(self.txt_bg.text().strip(), hex_code)
+    def _refresh(self) -> None:
+        enabled = self.chk_theme_enabled.isChecked()
+        ring = "#09090B" if is_light_color(self._bg) else "#FFFFFF"
 
-    def _on_bg_text_changed(self, text: str) -> None:
-        text = text.strip()
-        if is_valid_hex(text):
-            self.rgb_wheel.set_color_hex(text)
-            self._update_all_previews(text, self.txt_accent.text().strip())
+        self.accent_row.set_preset_color("Mono", _mono_for(self._bg))
+        self.bg_row.set_value(self._bg, ring)
+        self.accent_row.set_value(self._accent, ring)
+        self.preview.render_colors(self._bg, self._accent, enabled)
+        self.colors_box.setEnabled(enabled)
 
-    def _on_accent_text_changed(self, text: str) -> None:
-        text = text.strip()
-        if is_valid_hex(text):
-            self._update_all_previews(self.txt_bg.text().strip(), text)
-
-    def _update_all_previews(self, bg_hex: str, accent_hex: str) -> None:
-        if is_valid_hex(bg_hex):
-            self._current_bg = bg_hex
-            is_light = is_light_color(bg_hex)
-
-            # Adaptive tokens for live preview
-            title_col = "#09090B" if is_light else "#FFFFFF"
-            body_col = "#3F3F46" if is_light else "#A1A1AA"
-            border_col = "rgba(0, 0, 0, 0.15)" if is_light else "rgba(255, 255, 255, 0.15)"
-            swatch_border = "rgba(0, 0, 0, 0.35)" if is_light else "rgba(255, 255, 255, 0.40)"
-            btn_bg_sample = "rgba(0, 0, 0, 0.08)" if is_light else "rgba(255, 255, 255, 0.12)"
-
-            self.bg_preview_swatch.setStyleSheet(
-                f"background-color: {bg_hex}; border-radius: 4px; border: 1px solid {swatch_border};"
+        # The dialog itself previews the theme (QSS) while you pick
+        muted = "#71717A" if is_light_color(self._bg) else "#A1A1AA"
+        try:
+            self.setStyleSheet(
+                generate_qss(accent=self._accent, bg_color=self._bg)
+                + f"\nQLabel#awtSectionLabel {{ color: {muted}; font-size: 11px; font-weight: 600; letter-spacing: 1px; }}"
             )
-            self.preview_card.setStyleSheet(
-                f"background-color: {bg_hex}; border: 1px solid {border_col}; border-radius: 6px; padding: 12px;"
-            )
-            self.lbl_p_title.setStyleSheet(f"font-size: 13px; font-weight: 700; color: {title_col};")
-            self.lbl_p_text.setStyleSheet(f"font-size: 12px; color: {body_col};")
+        except Exception:
+            pass
 
-            # Dynamically update dialog's live stylesheet
-            try:
-                self.setStyleSheet(generate_qss(accent=accent_hex, bg_color=bg_hex))
-            except Exception:
-                pass
-
-        if is_valid_hex(accent_hex):
-            self._current_accent = accent_hex
-            is_light_bg = is_light_color(self._current_bg)
-            sample_txt_col = "#09090B" if is_light_bg else "#FFFFFF"
-            btn_bg_sample = "rgba(0, 0, 0, 0.08)" if is_light_bg else "rgba(255, 255, 255, 0.12)"
-
-            self.color_preview.setStyleSheet(
-                f"background-color: {accent_hex}; border-radius: 4px; border: 1px solid {accent_hex};"
-            )
-            self.btn_p_sample.setStyleSheet(
-                f"background-color: {btn_bg_sample}; color: {sample_txt_col}; border: 1px solid {accent_hex}; border-radius: 4px; padding: 5px 14px;"
-            )
+    def keyPressEvent(self, event: Any) -> None:
+        # Enter inside a hex field should apply the color, not save & close the dialog.
+        try:
+            key = event.key()
+            enter_keys = (Qt.Key.Key_Return, Qt.Key.Key_Enter) if hasattr(Qt, "Key") else (Qt.Key_Return, Qt.Key_Enter)
+            focused = self.focusWidget()
+            if key in enter_keys and focused in (self.bg_row.hex_input, self.accent_row.hex_input):
+                focused.clearFocus()
+                return
+        except Exception:
+            pass
+        super().keyPressEvent(event)
 
     def accept(self) -> None:
         try:
             enabled = self.chk_theme_enabled.isChecked()
-            # Invalid hex input (e.g. "#zzz") keeps the previously saved color instead of
-            # silently turning into black.
-            prev_bg = normalize_hex(config.get("theme.background"), PALETTE.BACKGROUND_PURE_BLACK)
-            prev_accent = normalize_hex(config.get("theme.accent"), PALETTE.ACCENT_PRIMARY)
-            bg = normalize_hex(self.txt_bg.text(), prev_bg)
-            accent = normalize_hex(self.txt_accent.text(), prev_accent)
+            bg = normalize_hex(self._bg, PALETTE.BACKGROUND_PURE_BLACK)
+            accent = normalize_hex(self._accent, _mono_for(bg))
 
             # The theme engine listens to "theme" changes and re-applies once
             # (debounced) after this batch, so no explicit activate() is needed.
             config.set("theme.enabled", enabled, save=False)
             config.set("theme.background", bg, save=False)
             config.set("theme.accent", accent, save=False)
-            config.set("theme.apply_to_webviews", self.chk_webviews.isChecked(), save=False)
-            config.set("theme.pure_black_reviewer", self.chk_reviewer.isChecked(), save=True)
+            config.set("theme.apply_to_webviews", self.chk_webviews.isChecked(), save=True)
 
             logger.info(f"[ThemeSettingsDialog] Theme preferences saved (bg={bg}, accent={accent}, enabled={enabled}).")
             super().accept()
         except Exception as e:
             logger.error(f"[ThemeSettingsDialog] Failed saving theme settings: {e}")
-

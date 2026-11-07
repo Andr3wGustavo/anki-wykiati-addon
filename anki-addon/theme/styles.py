@@ -13,6 +13,7 @@ from .palette import (
     mix,
     normalize_hex,
     readable_text_on,
+    semantic_colors,
     with_alpha,
 )
 
@@ -332,6 +333,7 @@ def generate_webview_css(palette: Optional[ThemePalette] = None, accent: Optiona
     Dynamically adjusts CSS variables and element colors for dark and light backgrounds.
     """
     bg, is_light, acc, acc_on_bg, acc_text, acc_hover = _resolve_colors(accent, bg_color)
+    sem = semantic_colors(is_light)
 
     if is_light:
         text = "#09090B"
@@ -355,6 +357,16 @@ def generate_webview_css(palette: Optional[ThemePalette] = None, accent: Optiona
         code_color = "#E4E4E7"
         scrollbar_thumb = "rgba(255, 255, 255, 0.15)"
         scrollbar_hover = "rgba(255, 255, 255, 0.28)"
+
+    ease_rules = []
+    for idx, key in enumerate(("again", "hard", "good", "easy"), start=1):
+        color = sem[key]
+        ease_rules.append(
+            f"    button#ease{idx}, .ease{idx} {{ border-color: {with_alpha(color, 0.40)} !important; color: {color} !important; }}\n"
+            f"    button#ease{idx}:hover, .ease{idx}:hover {{ background-color: {with_alpha(color, 0.15)} !important; "
+            f"border-color: {color} !important; color: {text} !important; }}"
+        )
+    ease_css = "\n\n".join(ease_rules)
 
     return f"""
     /* =========================================================================
@@ -437,21 +449,21 @@ def generate_webview_css(palette: Optional[ThemePalette] = None, accent: Optiona
 
     /* 5. MINIMALIST COUNTER BADGES */
     .new-count, .count-new, .new-count-badge {{
-        color: #38BDF8 !important;
+        color: {sem["new"]} !important;
         font-weight: 600 !important;
     }}
     .learn-count, .count-learn, .learn-count-badge {{
-        color: #FBBF24 !important;
+        color: {sem["learn"]} !important;
         font-weight: 600 !important;
     }}
     .review-count, .count-review, .review-count-badge {{
-        color: #4ADE80 !important;
+        color: {sem["review"]} !important;
         font-weight: 600 !important;
     }}
 
     /* 6. CLOZE & CODE BLOCKS */
     .cloze {{
-        color: #38BDF8 !important;
+        color: {sem["cloze"]} !important;
         font-weight: 600 !important;
     }}
     code, pre {{
@@ -461,17 +473,7 @@ def generate_webview_css(palette: Optional[ThemePalette] = None, accent: Optiona
     }}
 
     /* 7. EASE RATING BUTTON ACCENTS */
-    button#ease1, .ease1 {{ border-color: rgba(248, 113, 113, 0.40) !important; color: #FCA5A5 !important; }}
-    button#ease1:hover, .ease1:hover {{ background-color: rgba(248, 113, 113, 0.15) !important; border-color: #F87171 !important; color: {text} !important; }}
-
-    button#ease2, .ease2 {{ border-color: rgba(251, 191, 36, 0.40) !important; color: #FDE047 !important; }}
-    button#ease2:hover, .ease2:hover {{ background-color: rgba(251, 191, 36, 0.15) !important; border-color: #FBBF24 !important; color: {text} !important; }}
-
-    button#ease3, .ease3 {{ border-color: rgba(56, 189, 248, 0.40) !important; color: #7DD3FC !important; }}
-    button#ease3:hover, .ease3:hover {{ background-color: rgba(56, 189, 248, 0.15) !important; border-color: #38BDF8 !important; color: {text} !important; }}
-
-    button#ease4, .ease4 {{ border-color: rgba(74, 222, 128, 0.40) !important; color: #86EFAC !important; }}
-    button#ease4:hover, .ease4:hover {{ background-color: rgba(74, 222, 128, 0.15) !important; border-color: #4ADE80 !important; color: {text} !important; }}
+{ease_css}
 
     /* 8. CLEAN SCROLLBARS */
     ::-webkit-scrollbar {{

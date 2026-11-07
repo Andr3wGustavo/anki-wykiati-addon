@@ -9,6 +9,11 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Não lançado]
 
+### Alterado
+- **Painel "Appearance" redesenhado** (antes "Theme & Appearance Studio"): presets de fundo e de accent em swatches clicáveis, um botão "Custom…" com o seletor completo, um campo hex (aceita sem `#`, Enter aplica sem fechar, valor inválido é revertido), prévia ao vivo em miniatura (baralho, card, cloze, link e botões Again/Hard/Good/Easy) e "Reset to default". O accent "Mono" se adapta ao fundo claro/escuro. Removida a opção "Force Dark Background during Card Reviews", que não tinha efeito.
+- Cores de status (contadores, cloze, botões de resposta) centralizadas em `semantic_colors()`, com variantes legíveis em fundo claro.
+- Diálogos: Cancel não aparece mais pintado como botão primário; corrigida a linha duplicada no cabeçalho; barra de rolagem adaptada ao fundo claro.
+
 ### Segurança
 - **Bridge HTTP desligado por padrão** e só inicia com `discord.secret_token` definido; todo `POST` exige `Authorization: Bearer <token>` (ou `X-AWT-Token`).
 - Removido o CORS `*` e bloqueados cabeçalhos `Host` que não sejam loopback (proteção contra DNS rebinding). O `/health` não expõe mais estatísticas sem autenticação.

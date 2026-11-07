@@ -107,6 +107,22 @@ def readable_text_on(hex_code: str) -> str:
     return "#000000" if contrast_ratio(hex_code, "#000000") >= contrast_ratio(hex_code, "#FFFFFF") else "#FFFFFF"
 
 
+def semantic_colors(light_background: bool) -> dict:
+    """
+    Status colors for counters, cloze and answer buttons, tuned per background so they
+    stay legible (the pastel tones used on dark backgrounds vanish on white).
+    """
+    if light_background:
+        return {
+            "new": "#0369A1", "learn": "#B45309", "review": "#15803D", "cloze": "#0369A1",
+            "again": "#B91C1C", "hard": "#A16207", "good": "#0369A1", "easy": "#15803D",
+        }
+    return {
+        "new": "#38BDF8", "learn": "#FBBF24", "review": "#4ADE80", "cloze": "#38BDF8",
+        "again": "#FCA5A5", "hard": "#FDE047", "good": "#7DD3FC", "easy": "#86EFAC",
+    }
+
+
 def is_light_color(hex_code: str) -> bool:
     """
     Computes WCAG relative luminance / perceived brightness of a hex color.

@@ -116,10 +116,12 @@ class BaseToolkitDialog(QDialog):
 
         # Header Frame (Fixed Top - Minimalist Linear style)
         header_frame = QFrame(self)
+        header_frame.setObjectName("awtHeader")
+        # Scoped selector: an unscoped rule would also draw the border under every child label.
         header_frame.setStyleSheet(
-            f"background: transparent; "
-            f"border-bottom: 1px solid {border_color}; "
-            f"padding-bottom: 8px; margin-bottom: 2px;"
+            f"QFrame#awtHeader {{ background: transparent; "
+            f"border: none; border-bottom: 1px solid {border_color}; "
+            f"padding-bottom: 8px; margin-bottom: 2px; }}"
         )
         header_layout = QVBoxLayout(header_frame)
         header_layout.setContentsMargins(0, 0, 0, 0)
@@ -158,11 +160,12 @@ class BaseToolkitDialog(QDialog):
         except Exception:
             pass
 
+        ink = "0, 0, 0" if is_light else "255, 255, 255"
         self.scroll_area.setStyleSheet(
             "QScrollArea { background: transparent; border: none; }"
             "QScrollBar:vertical { background: transparent; width: 6px; margin: 0; }"
-            "QScrollBar::handle:vertical { background: rgba(255, 255, 255, 0.18); border-radius: 3px; min-height: 24px; }"
-            "QScrollBar::handle:vertical:hover { background: rgba(255, 255, 255, 0.35); }"
+            f"QScrollBar::handle:vertical {{ background: rgba({ink}, 0.18); border-radius: 3px; min-height: 24px; }}"
+            f"QScrollBar::handle:vertical:hover {{ background: rgba({ink}, 0.35); }}"
         )
 
         self.scroll_content = QWidget()
@@ -177,16 +180,21 @@ class BaseToolkitDialog(QDialog):
 
         # Footer Actions (Fixed Bottom)
         footer_layout = QHBoxLayout()
+        self.footer_layout = footer_layout  # subclasses may insert extra actions at index 0
         footer_layout.setContentsMargins(0, 8, 0, 0)
         footer_layout.setSpacing(10)
         footer_layout.addStretch()
 
         self.btn_cancel = QPushButton("Cancel", self)
+        # Only Save is the default button; otherwise Qt marks Cancel as :default
+        # and the stylesheet paints it as a primary (accent) button too.
+        self.btn_cancel.setAutoDefault(False)
         self.btn_cancel.clicked.connect(self.reject)
         footer_layout.addWidget(self.btn_cancel)
 
         self.btn_save = QPushButton("Save Changes", self)
         self.btn_save.setProperty("primary", "true")
+        self.btn_save.setDefault(True)
         self.btn_save.clicked.connect(self.accept)
         footer_layout.addWidget(self.btn_save)
 
