@@ -9,6 +9,19 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Não lançado]
 
+### Discord → Anki (imagens)
+- **Webhooks e embeds suportados**: mensagens de automações (ex.: Pinterest → Discord) eram descartadas por virem de "bot" e a imagem vir em embed; agora são importadas (anexos, `embed.image`, `embed.thumbnail` e links).
+- **Nada se perde com o Anki fechado**: o último ID processado de cada canal fica salvo e, ao abrir, tudo que chegou depois é importado (paginado). A primeira ativação começa "a partir de agora"; o histórico pode ser importado pelo painel.
+- Pinterest: baixa a versão **original** (`/originals/`) em vez da miniatura do embed, com fallback.
+- Formato padrão **imagem na frente, verso vazio**; canais de imagem não recebem respostas do bot.
+- Mídia e notas são gravadas **só na thread principal** (download/otimização ficam em segundo plano, em `user_files/staging`).
+- Anti-duplicação por ID da mensagem **e** pelo hash da imagem (o mesmo pin salvo duas vezes vira um card só), sem corrida entre threads.
+- Falhas temporárias de download são tentadas de novo (até 3 vezes) antes de avançar.
+- Rate limit do Discord (HTTP 429) respeitado; canais de imagem configurados não sofrem o limite por autor.
+- Estado do poller, fila e registro de duplicatas em `user_files/` (sobrevivem a atualizações; migração automática de `data/`).
+- **Painel "Discord → Anki" redesenhado**: token, canal, "Test connection" (verifica bot, acesso ao canal, imagens/webhooks e o Message Content Intent), deck, tags, formato do card, "Import now" do histórico em segundo plano, status ao vivo e guia de criação do bot; opções raras em "Advanced".
+- O logo da tela de baralhos não é mais injetado em todas as webviews.
+
 ### Alterado
 - **Painel "Appearance" redesenhado** (antes "Theme & Appearance Studio"): presets de fundo e de accent em swatches clicáveis, um botão "Custom…" com o seletor completo, um campo hex (aceita sem `#`, Enter aplica sem fechar, valor inválido é revertido), prévia ao vivo em miniatura (baralho, card, cloze, link e botões Again/Hard/Good/Easy) e "Reset to default". O accent "Mono" se adapta ao fundo claro/escuro. Removida a opção "Force Dark Background during Card Reviews", que não tinha efeito.
 - Cores de status (contadores, cloze, botões de resposta) centralizadas em `semantic_colors()`, com variantes legíveis em fundo claro.

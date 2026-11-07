@@ -3,7 +3,7 @@ Discord integration module exports for Anki Discord Toolkit.
 """
 
 from .bridge import DiscordBridge, discord_bridge
-from .client import DiscordClientManager, DiscordPollingWorker, HttpBridgeServer, discord_client_manager
+from .client import DiscordClientManager, DiscordPollingWorker, HttpBridgeServer, discord_client_manager, test_discord_connection
 from .commands import CommandRouter, command_router
 from .models import CardPayload, DiscordChannel, DiscordMessageEvent, DiscordUser, JobStatus
 from .parser import DiscordParser, discord_parser

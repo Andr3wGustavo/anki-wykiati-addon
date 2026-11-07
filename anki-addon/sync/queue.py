@@ -12,11 +12,13 @@ from typing import Any, Dict, List, Optional
 try:
     from ..core.constants import QUEUE_DATA_FILENAME
     from ..core.logger import logger
+    from ..core.paths import user_file
     from ..discord.models import CardPayload, JobStatus
     from .jobs import SyncJob
 except (ImportError, ValueError):
     from core.constants import QUEUE_DATA_FILENAME
     from core.logger import logger
+    from core.paths import user_file
     from discord.models import CardPayload, JobStatus
     from sync.jobs import SyncJob
 
@@ -33,10 +35,8 @@ class JobQueue:
         self._load()
 
     def _get_storage_path(self) -> str:
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        data_dir = os.path.join(base_dir, "data")
-        os.makedirs(data_dir, exist_ok=True)
-        return os.path.join(data_dir, QUEUE_DATA_FILENAME)
+        # user_files/ survives add-on updates (data/ was wiped on every update)
+        return user_file(QUEUE_DATA_FILENAME)
 
     def _load(self) -> None:
         path = self._get_storage_path()
@@ -63,8 +63,10 @@ class JobQueue:
                 all_jobs = list(self._pending) + self._history[-self._max_history:]
                 serialized = [j.to_dict() for j in all_jobs]
 
-            with open(path, "w", encoding="utf-8") as f:
+            tmp = path + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
                 json.dump(serialized, f, indent=2)
+            os.replace(tmp, path)
         except Exception as e:
             logger.error(f"[JobQueue] Failed saving queue to disk: {e}")
 
@@ -123,6 +125,8 @@ class JobQueue:
             job.status = JobStatus.DUPLICATE
             job.error = "Duplicate card ignored."
             self._history.append(job)
+            if len(self._history) > self._max_history:
+                self._history.pop(0)
             self._save()
 
     def get_pending_count(self) -> int:

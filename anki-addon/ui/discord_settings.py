@@ -1,342 +1,411 @@
 """
-Discord Settings Dialog for Anki Wykiati Toolkit.
-Configures Discord Bot Token, Image Channel Auto-Ingestion, User Permissions, and Local HTTP Bridge.
+Discord → Anki settings panel.
+
+Minimal flow for the common case (an automation posting images to one channel):
+token + channel → Test connection → deck & card format → Save. Network actions run
+in the background so Anki never freezes. Less common options live under "Advanced".
 """
 
-from typing import Any, Optional
+import time
+from typing import Any, Callable, Dict, List, Optional
 
 try:
+    from ..anki.operations import run_in_background
     from ..core.config import config
     from ..core.logger import logger
-    from ..discord.client import pull_recent_discord_images
-    from ..theme.palette import PALETTE, is_light_color
+    from ..discord.client import discord_client_manager, test_discord_connection
+    from ..theme.palette import PALETTE, is_light_color, normalize_hex, semantic_colors
     from .components.base_dialog import BaseToolkitDialog, QT_AVAILABLE
 except (ImportError, ValueError):
+    from anki.operations import run_in_background
     from core.config import config
     from core.logger import logger
-    from discord.client import pull_recent_discord_images
-    from theme.palette import PALETTE, is_light_color
+    from discord.client import discord_client_manager, test_discord_connection
+    from theme.palette import PALETTE, is_light_color, normalize_hex, semantic_colors
     from ui.components.base_dialog import BaseToolkitDialog, QT_AVAILABLE
 
 if QT_AVAILABLE:
     try:
         from aqt.qt import (
-            QCheckBox,
-            QComboBox,
-            QFormLayout,
-            QFrame,
-            QGroupBox,
-            QHBoxLayout,
-            QLabel,
-            QLineEdit,
-            QMessageBox,
-            QPushButton,
-            QSpinBox,
-            QVBoxLayout,
+            QCheckBox, QComboBox, QFormLayout, QHBoxLayout, QLabel, QLineEdit,
+            QPushButton, QSpinBox, QTimer, QVBoxLayout, QWidget,
         )
     except ImportError:
         try:
+            from PyQt6.QtCore import QTimer
             from PyQt6.QtWidgets import (
-                QCheckBox,
-                QComboBox,
-                QFormLayout,
-                QFrame,
-                QGroupBox,
-                QHBoxLayout,
-                QLabel,
-                QLineEdit,
-                QMessageBox,
-                QPushButton,
-                QSpinBox,
-                QVBoxLayout,
+                QCheckBox, QComboBox, QFormLayout, QHBoxLayout, QLabel, QLineEdit,
+                QPushButton, QSpinBox, QVBoxLayout, QWidget,
             )
         except ImportError:
+            from PyQt5.QtCore import QTimer
             from PyQt5.QtWidgets import (
-                QCheckBox,
-                QComboBox,
-                QFormLayout,
-                QFrame,
-                QGroupBox,
-                QHBoxLayout,
-                QLabel,
-                QLineEdit,
-                QMessageBox,
-                QPushButton,
-                QSpinBox,
-                QVBoxLayout,
+                QCheckBox, QComboBox, QFormLayout, QHBoxLayout, QLabel, QLineEdit,
+                QPushButton, QSpinBox, QVBoxLayout, QWidget,
             )
 else:
-    QCheckBox = QComboBox = QFormLayout = QFrame = QGroupBox = QHBoxLayout = QLabel = QLineEdit = QMessageBox = QPushButton = QSpinBox = QVBoxLayout = object
+    QCheckBox = QComboBox = QFormLayout = QHBoxLayout = QLabel = QLineEdit = object
+    QPushButton = QSpinBox = QTimer = QVBoxLayout = QWidget = object
+
+
+CARD_FORMATS = [
+    ("Image only (empty back)", "image_only_front"),
+    ("Image on front, message text on back", "image_front"),
+    ("Message text on front, image on back", "image_back"),
+]
+
+SETUP_STEPS = (
+    "<b>1.</b> Open <i>discord.com/developers/applications</i> → <b>New Application</b> → "
+    "<b>Bot</b> → <b>Reset Token</b> and paste it above.<br>"
+    "<b>2.</b> Same page → <b>Privileged Gateway Intents</b> → enable <b>Message Content Intent</b>.<br>"
+    "<b>3.</b> <b>OAuth2 → URL Generator</b>: scope <b>bot</b>, permissions <b>View Channels</b> + "
+    "<b>Read Message History</b>. Open the URL and add the bot to your server.<br>"
+    "<b>4.</b> Discord → Settings → Advanced → <b>Developer Mode</b>. Right-click the channel → "
+    "<b>Copy Channel ID</b>."
+)
+
+
+def _split_ids(text: str) -> List[str]:
+    out: List[str] = []
+    for part in text.replace(";", ",").replace(" ", ",").split(","):
+        part = part.strip()
+        if part and part not in out:
+            out.append(part)
+    return out
+
+
+def _password_mode(line_edit: Any) -> None:
+    if hasattr(QLineEdit, "EchoMode") and hasattr(QLineEdit.EchoMode, "Password"):
+        line_edit.setEchoMode(QLineEdit.EchoMode.Password)
+    elif hasattr(QLineEdit, "Password"):
+        line_edit.setEchoMode(QLineEdit.Password)
 
 
 class DiscordSettingsDialog(BaseToolkitDialog):
-    """
-    Interface for setting up Discord Bot, Image Ingestion Channels, and Local Webhook Bridge.
-    """
+    """Discord image import settings."""
+
     def __init__(self, parent: Optional[Any] = None) -> None:
         super().__init__(
             parent,
-            title="Discord and Image Ingestion Settings",
-            subtitle="Configure automatic image channels, target decks, front-only cards, and local HTTP bridge.",
-            width=580,
-            height=480,
+            title="Discord → Anki",
+            subtitle="Images posted in your Discord channel become Anki cards automatically.",
+            width=600,
+            height=680,
         )
         if not QT_AVAILABLE:
             return
 
-        self.setMinimumSize(460, 340)
+        bg = normalize_hex(config.get("theme.background"), PALETTE.BACKGROUND_PURE_BLACK)
+        self._light = is_light_color(bg)
+        self._sem = semantic_colors(self._light)
+        self._muted = "#71717A" if self._light else "#A1A1AA"
+        self._busy = False
+
         self._build_ui()
         self._load_values()
 
+        self._status_timer = QTimer(self)
+        self._status_timer.timeout.connect(self._refresh_live_status)
+        self._status_timer.start(2000)
+        self._refresh_live_status()
+
+    # ------------------------------------------------------------------ ui
+
+    def _section(self, text: str) -> Any:
+        lbl = QLabel(text.upper(), self)
+        lbl.setStyleSheet(f"color: {self._muted}; font-size: 11px; font-weight: 600; letter-spacing: 1px;")
+        return lbl
+
+    def _note(self, text: str = "") -> Any:
+        lbl = QLabel(text, self)
+        lbl.setWordWrap(True)
+        lbl.setStyleSheet(f"color: {self._muted}; font-size: 11px;")
+        return lbl
+
+    def _toggle_button(self, text: str, target: Any) -> Any:
+        btn = QPushButton(f"▸ {text}", self)
+        btn.setFlat(True)
+        btn.setAutoDefault(False)
+        btn.setStyleSheet(
+            f"QPushButton {{ border: none; background: transparent; color: {self._muted};"
+            f" padding: 2px 0px; text-align: left; font-weight: 600; }}"
+        )
+
+        def toggle() -> None:
+            visible = not target.isVisible()
+            target.setVisible(visible)
+            btn.setText(("▾ " if visible else "▸ ") + text)
+
+        btn.clicked.connect(toggle)
+        target.setVisible(False)
+        return btn
+
     def _build_ui(self) -> None:
-        main_layout = QVBoxLayout()
-        main_layout.setSpacing(16)
+        layout = QVBoxLayout()
+        layout.setSpacing(8)
 
-        # 0. Modern Minimalist Setup Guide (English)
-        guide_frame = QFrame(self)
-        guide_frame.setStyleSheet(
-            "background-color: rgba(255, 255, 255, 0.03); "
-            "border: 1px solid rgba(56, 189, 248, 0.25); "
-            "border-radius: 8px; padding: 14px;"
-        )
-        guide_layout = QVBoxLayout(guide_frame)
-        guide_layout.setSpacing(8)
+        self.chk_enabled = QCheckBox("Import images automatically", self)
+        self.chk_enabled.setToolTip("Checks the channel every few seconds while Anki is open, "
+                                    "and catches up on anything posted while it was closed.")
+        layout.addWidget(self.chk_enabled)
+        self.lbl_live = self._note()
+        layout.addWidget(self.lbl_live)
+        layout.addSpacing(6)
 
-        lbl_guide_title = QLabel("⚡ Quick Setup Guide", guide_frame)
-        lbl_guide_title.setStyleSheet("font-size: 13px; font-weight: 700; color: #38BDF8; letter-spacing: -0.01em;")
-        guide_layout.addWidget(lbl_guide_title)
-
-        lbl_guide_body = QLabel(
-            "• <b>1. Channel ID:</b> In Discord, enable <i>User Settings &gt; Advanced &gt; Developer Mode</i>. "
-            "Right-click your image channel and select <b>Copy Channel ID</b>.<br>"
-            "• <b>2. Target Deck:</b> Enter your desired Anki deck (e.g. <code>Medicine::Anatomy</code>). It will be auto-created if it doesn't exist.<br>"
-            "• <b>3. Visual Cards:</b> Select <b>Image on Front Only (Empty Back)</b> to display images on the front with no back text required.<br>"
-            "• <b>4. Integration:</b> Use <b>Bot Poller</b> for automatic cloud polling or <b>Local HTTP Bridge</b> (port 8765) for local script automation.",
-            guide_frame,
-        )
-        lbl_guide_body.setWordWrap(True)
-        lbl_guide_body.setStyleSheet("font-size: 11px; color: #D4D4D8; line-height: 1.5;")
-        guide_layout.addWidget(lbl_guide_body)
-
-        main_layout.addWidget(guide_frame)
-
-        # 1. Dedicated Image Ingestion Channels
-        group_images = QGroupBox("Image Channels & Ingestion Rules", self)
-        img_layout = QFormLayout(group_images)
-        img_layout.setSpacing(12)
-
-        self.txt_image_channels = QLineEdit(self)
-        self.txt_image_channels.setPlaceholderText("e.g. 119283746509182736, 987654321098765432")
-        img_layout.addRow("Image Channels (IDs):", self.txt_image_channels)
-
-        self.txt_image_deck = QLineEdit(self)
-        self.txt_image_deck.setPlaceholderText("e.g. Medicine::Anatomy or Images::Discord")
-        img_layout.addRow("Target Deck:", self.txt_image_deck)
-
-        self.combo_img_layout = QComboBox(self)
-        self.combo_img_layout.addItem("Image on Front Only (Empty Back / Visual Card)", "image_only_front")
-        self.combo_img_layout.addItem("Image on Front / Caption on Back", "image_front")
-        self.combo_img_layout.addItem("Question on Front / Image on Back", "image_back")
-        img_layout.addRow("Card Layout Mode:", self.combo_img_layout)
-
-        self.txt_image_tags = QLineEdit(self)
-        self.txt_image_tags.setPlaceholderText("e.g. discord, anatomy, visual")
-        img_layout.addRow("Automatic Tags:", self.txt_image_tags)
-
-        # Image Compression & WebP Optimizer Row
-        self.chk_optimize_images = QCheckBox("⚡ Auto-Optimize & Convert to WebP (Saves up to 85% Disk Space)", self)
-        self.chk_optimize_images.setStyleSheet("font-weight: 600;")
-        img_layout.addRow("Image Optimizer:", self.chk_optimize_images)
-
-        self.lbl_savings_stats = QLabel("", self)
-        self.lbl_savings_stats.setStyleSheet("font-size: 11px; color: #4ADE80; font-weight: 500;")
-        img_layout.addRow("Storage Saved:", self.lbl_savings_stats)
-
-        # On-Demand Sync Row
-        sync_row = QHBoxLayout()
-        sync_row.setSpacing(8)
-        self.btn_pull_images = QPushButton("📥 Pull Recent Discord Images Now", self)
-        self.btn_pull_images.setStyleSheet("font-weight: 600; padding: 7px 14px;")
-        self.btn_pull_images.clicked.connect(self._pull_images_now)
-        sync_row.addWidget(self.btn_pull_images)
-        sync_row.addStretch()
-        img_layout.addRow("On-Demand Sync:", sync_row)
-
-        # Feedback Banner
-        self.lbl_sync_feedback = QLabel("", self)
-        self.lbl_sync_feedback.setWordWrap(True)
-        self.lbl_sync_feedback.setVisible(False)
-        img_layout.addRow("", self.lbl_sync_feedback)
-
-        main_layout.addWidget(group_images)
-
-        # 2. General Discord Bot Poller
-        group_bot = QGroupBox("Discord Bot Credentials (Cloud Poller)", self)
-        bot_layout = QFormLayout(group_bot)
-        bot_layout.setSpacing(12)
-
-        self.chk_bot_enabled = QCheckBox("Enable Discord Bot Background Poller", self)
-        self.chk_bot_enabled.setStyleSheet("font-weight: 600;")
-        bot_layout.addRow("Poller Status:", self.chk_bot_enabled)
-
+        # --- Connection
+        layout.addWidget(self._section("Connection"))
+        form = QFormLayout()
+        form.setSpacing(8)
         self.txt_token = QLineEdit(self)
-        if hasattr(QLineEdit, "EchoMode") and hasattr(QLineEdit.EchoMode, "Password"):
-            self.txt_token.setEchoMode(QLineEdit.EchoMode.Password)
-        elif hasattr(QLineEdit, "Password"):
-            self.txt_token.setEchoMode(QLineEdit.Password)
-        self.txt_token.setPlaceholderText("Bot Secret Token from Discord Developer Portal")
-        bot_layout.addRow("Bot Token:", self.txt_token)
+        _password_mode(self.txt_token)
+        self.txt_token.setPlaceholderText("Bot token from the Discord Developer Portal")
+        form.addRow("Bot token", self.txt_token)
+        self.txt_channel = QLineEdit(self)
+        self.txt_channel.setPlaceholderText("e.g. 1234567890123456789")
+        self.txt_channel.setToolTip("Right-click the channel in Discord → Copy Channel ID. Separate several with commas.")
+        form.addRow("Channel ID", self.txt_channel)
+        layout.addLayout(form)
 
-        self.txt_channels = QLineEdit(self)
-        self.txt_channels.setPlaceholderText("Text channels allowed for !anki commands (comma-separated)")
-        bot_layout.addRow("Allowed Channels:", self.txt_channels)
+        test_row = QHBoxLayout()
+        self.btn_test = QPushButton("Test connection", self)
+        self.btn_test.setAutoDefault(False)
+        self.btn_test.clicked.connect(self._test_connection)
+        test_row.addWidget(self.btn_test)
+        test_row.addStretch(1)
+        layout.addLayout(test_row)
+        self.lbl_test = self._note()
+        self.lbl_test.setVisible(False)
+        layout.addWidget(self.lbl_test)
 
-        self.txt_users = QLineEdit(self)
-        self.txt_users.setPlaceholderText("Authorized Discord User IDs (leave empty to allow all)")
-        bot_layout.addRow("Authorized Users:", self.txt_users)
+        self.help_box = QLabel(SETUP_STEPS, self)
+        self.help_box.setWordWrap(True)
+        self.help_box.setStyleSheet(f"color: {self._muted}; font-size: 11px; line-height: 1.5;")
+        layout.addWidget(self._toggle_button("How to create the bot", self.help_box))
+        layout.addWidget(self.help_box)
+        layout.addSpacing(8)
 
-        self.spin_interval = QSpinBox(self)
-        self.spin_interval.setRange(2, 60)
-        self.spin_interval.setSuffix(" seconds")
-        bot_layout.addRow("Polling Interval:", self.spin_interval)
+        # --- Cards
+        layout.addWidget(self._section("Cards"))
+        cards = QFormLayout()
+        cards.setSpacing(8)
+        self.txt_deck = QLineEdit(self)
+        self.txt_deck.setPlaceholderText("e.g. Pinterest::Mental")
+        self.txt_deck.setToolTip("Created automatically if it does not exist. Use :: for sub-decks.")
+        cards.addRow("Deck", self.txt_deck)
+        self.txt_tags = QLineEdit(self)
+        self.txt_tags.setPlaceholderText("e.g. pinterest, visual")
+        cards.addRow("Tags", self.txt_tags)
+        self.combo_format = QComboBox(self)
+        for label, value in CARD_FORMATS:
+            self.combo_format.addItem(label, value)
+        cards.addRow("Card format", self.combo_format)
+        layout.addLayout(cards)
+        self.chk_optimize = QCheckBox("Compress images (WebP, max 1920 px) to keep the collection small", self)
+        layout.addWidget(self.chk_optimize)
+        layout.addSpacing(8)
 
-        main_layout.addWidget(group_bot)
+        # --- Import existing
+        layout.addWidget(self._section("Existing images"))
+        import_row = QHBoxLayout()
+        import_row.setSpacing(8)
+        import_row.addWidget(QLabel("Import from the last", self))
+        self.spin_import = QSpinBox(self)
+        self.spin_import.setRange(10, 1000)
+        self.spin_import.setSingleStep(50)
+        self.spin_import.setValue(100)
+        import_row.addWidget(self.spin_import)
+        import_row.addWidget(QLabel("messages", self))
+        import_row.addStretch(1)
+        self.btn_import = QPushButton("Import now", self)
+        self.btn_import.setAutoDefault(False)
+        self.btn_import.setToolTip("Saves these settings, then imports. Already imported images are skipped.")
+        self.btn_import.clicked.connect(self._import_history)
+        import_row.addWidget(self.btn_import)
+        layout.addLayout(import_row)
+        self.lbl_import = self._note()
+        self.lbl_import.setVisible(False)
+        layout.addWidget(self.lbl_import)
+        layout.addSpacing(8)
 
-        # 3. Local HTTP Bridge
-        group_http = QGroupBox("Local HTTP REST Bridge Server", self)
-        http_layout = QFormLayout(group_http)
-        http_layout.setSpacing(12)
+        # --- Advanced
+        self.advanced = QWidget(self)
+        adv = QFormLayout(self.advanced)
+        adv.setContentsMargins(0, 0, 0, 0)
+        adv.setSpacing(8)
+        self.spin_interval = QSpinBox(self.advanced)
+        self.spin_interval.setRange(3, 300)
+        self.spin_interval.setSuffix(" s")
+        adv.addRow("Check every", self.spin_interval)
+        self.txt_cmd_channels = QLineEdit(self.advanced)
+        self.txt_cmd_channels.setPlaceholderText("Channels for !anki text commands (optional)")
+        adv.addRow("Command channels", self.txt_cmd_channels)
+        self.txt_users = QLineEdit(self.advanced)
+        self.txt_users.setPlaceholderText("User IDs allowed to use !anki (empty = everyone)")
+        adv.addRow("Allowed users", self.txt_users)
+        self.chk_reply = QCheckBox("Reply in command channels", self.advanced)
+        adv.addRow("", self.chk_reply)
+        self.chk_http = QCheckBox("Local HTTP bridge (127.0.0.1)", self.advanced)
+        adv.addRow("HTTP bridge", self.chk_http)
+        self.spin_port = QSpinBox(self.advanced)
+        self.spin_port.setRange(1024, 65535)
+        adv.addRow("Bridge port", self.spin_port)
+        self.txt_secret = QLineEdit(self.advanced)
+        _password_mode(self.txt_secret)
+        self.txt_secret.setPlaceholderText("Required for the bridge to start")
+        adv.addRow("Bridge token", self.txt_secret)
+        layout.addWidget(self._toggle_button("Advanced", self.advanced))
+        layout.addWidget(self.advanced)
 
-        self.chk_http_enabled = QCheckBox("Enable Local HTTP Webhook Server (127.0.0.1)", self)
-        http_layout.addRow("Bridge Status:", self.chk_http_enabled)
+        layout.addStretch(1)
+        self.body_layout.addLayout(layout)
 
-        self.spin_http_port = QSpinBox(self)
-        self.spin_http_port.setRange(1024, 65535)
-        http_layout.addRow("Bridge Port:", self.spin_http_port)
-
-        main_layout.addWidget(group_http)
-
-        self.body_layout.addLayout(main_layout)
+    # --------------------------------------------------------------- values
 
     def _load_values(self) -> None:
-        img_channels = config.get("discord.image_channels", [])
-        self.txt_image_channels.setText(", ".join(str(c) for c in img_channels))
-        self.txt_image_deck.setText(config.get("discord.image_default_deck", "Images::Discord"))
-        self.txt_image_tags.setText(", ".join(config.get("discord.image_default_tags", ["discord", "image"])))
+        self.chk_enabled.setChecked(bool(config.get("discord.enabled", False)))
+        self.txt_token.setText(str(config.get("discord.bot_token", "") or ""))
+        self.txt_channel.setText(", ".join(str(c) for c in config.get("discord.image_channels", [])))
+        self.txt_deck.setText(config.get("discord.image_default_deck", "Images::Discord"))
+        self.txt_tags.setText(", ".join(config.get("discord.image_default_tags", [])))
+        current = config.get("discord.image_card_layout", "image_only_front")
+        for i in range(self.combo_format.count()):
+            if self.combo_format.itemData(i) == current:
+                self.combo_format.setCurrentIndex(i)
+        self.chk_optimize.setChecked(bool(config.get("discord.optimize_images", True)))
+        self.spin_interval.setValue(int(config.get("discord.polling_interval_seconds", 5) or 5))
+        self.txt_cmd_channels.setText(", ".join(str(c) for c in config.get("discord.channel_ids", [])))
+        self.txt_users.setText(", ".join(str(u) for u in config.get("discord.authorized_users", [])))
+        self.chk_reply.setChecked(bool(config.get("discord.reply_in_channel", True)))
+        self.chk_http.setChecked(bool(config.get("discord.http_bridge_enabled", False)))
+        self.spin_port.setValue(int(config.get("discord.http_bridge_port", 8765)))
+        self.txt_secret.setText(str(config.get("discord.secret_token", "") or ""))
 
-        layout = config.get("discord.image_card_layout", "image_front")
-        for i in range(self.combo_img_layout.count()):
-            if self.combo_img_layout.itemData(i) == layout:
-                self.combo_img_layout.setCurrentIndex(i)
-                break
+    def _apply_settings(self) -> None:
+        tags = [t.strip() for t in self.txt_tags.text().split(",") if t.strip()]
+        values: Dict[str, Any] = {
+            "discord.bot_token": self.txt_token.text().strip(),
+            "discord.image_channels": _split_ids(self.txt_channel.text()),
+            "discord.image_default_deck": self.txt_deck.text().strip() or "Images::Discord",
+            "discord.image_default_tags": tags,
+            "discord.image_card_layout": self.combo_format.currentData() or "image_only_front",
+            "discord.optimize_images": self.chk_optimize.isChecked(),
+            "discord.polling_interval_seconds": self.spin_interval.value(),
+            "discord.channel_ids": _split_ids(self.txt_cmd_channels.text()),
+            "discord.authorized_users": _split_ids(self.txt_users.text()),
+            "discord.reply_in_channel": self.chk_reply.isChecked(),
+            "discord.http_bridge_enabled": self.chk_http.isChecked(),
+            "discord.http_bridge_port": self.spin_port.value(),
+            "discord.secret_token": self.txt_secret.text().strip(),
+        }
+        for key, value in values.items():
+            config.set(key, value, save=False)
+        # Last: toggling "enabled" (re)starts the poller with all values above in place
+        config.set("discord.enabled", self.chk_enabled.isChecked(), save=True)
 
-        self.chk_optimize_images.setChecked(config.get("discord.optimize_images", True))
-        
-        saved_bytes = config.get("stats.bytes_saved", 0)
-        ingested_count = config.get("stats.images_ingested", 0)
-        if saved_bytes > 1024 * 1024:
-            savings_str = f"⚡ {saved_bytes / (1024*1024):.2f} MB saved ({ingested_count} images compressed)"
-        elif saved_bytes > 0:
-            savings_str = f"⚡ {saved_bytes / 1024:.1f} KB saved ({ingested_count} images compressed)"
-        else:
-            savings_str = "⚡ 0 KB saved (Ready to compress incoming images)"
-        self.lbl_savings_stats.setText(savings_str)
+    # ------------------------------------------------------------- feedback
 
-        self.chk_bot_enabled.setChecked(config.get("discord.enabled", False))
-        self.txt_token.setText(config.get("discord.bot_token", ""))
+    def _show(self, label: Any, text: str, kind: str = "info") -> None:
+        color = {"ok": self._sem["review"], "error": self._sem["again"], "info": self._muted}[kind]
+        label.setStyleSheet(f"color: {color}; font-size: 11px;")
+        label.setText(text)
+        label.setVisible(True)
 
-        channels = config.get("discord.channel_ids", [])
-        self.txt_channels.setText(", ".join(str(c) for c in channels))
+    def _refresh_live_status(self) -> None:
+        try:
+            poller = discord_client_manager.poller
+            status = poller.status
+            if not config.get("discord.enabled", False):
+                self.lbl_live.setText("Off — turn on and save to start importing.")
+                return
+            if not poller.is_running():
+                self.lbl_live.setText("Waiting for a bot token and channel ID.")
+                return
+            parts = []
+            if status.get("last_poll"):
+                parts.append(f"Last check {int(time.time() - status['last_poll'])}s ago")
+            parts.append(f"{status.get('imported', 0)} image(s) imported this session")
+            text = " · ".join(parts)
+            if status.get("last_error"):
+                text += f"\n⚠ {status['last_error']}"
+            self.lbl_live.setText(text)
+        except RuntimeError:
+            pass  # dialog closing
 
-        users = config.get("discord.authorized_users", [])
-        self.txt_users.setText(", ".join(str(u) for u in users))
+    def _run_async(self, task: Callable[[], Any], done: Callable[[Any], None], buttons: List[Any]) -> None:
+        for b in buttons:
+            b.setEnabled(False)
 
-        self.spin_interval.setValue(config.get("discord.polling_interval_seconds", 5))
-        self.chk_http_enabled.setChecked(config.get("discord.http_bridge_enabled", True))
-        self.spin_http_port.setValue(config.get("discord.http_bridge_port", 8765))
+        def finish(result: Any) -> None:
+            try:
+                for b in buttons:
+                    b.setEnabled(True)
+                done(result)
+            except RuntimeError:
+                pass  # dialog was closed meanwhile
 
-    def _pull_images_now(self) -> None:
-        """Trigger instant on-demand image pull from Discord channel."""
+        def fail(error: Exception) -> None:
+            finish({"success": False, "ok": False, "error": str(error), "lines": [f"✗ {error}"]})
+
+        run_in_background(task, on_success=finish, on_failure=fail)
+
+    # -------------------------------------------------------------- actions
+
+    def _test_connection(self) -> None:
         token = self.txt_token.text().strip()
-        raw_channels = self.txt_image_channels.text().strip()
-        ch_ids = [c.strip() for c in raw_channels.split(",") if c.strip()]
-        ch_id = ch_ids[0] if ch_ids else ""
-        deck = self.txt_image_deck.text().strip() or "Images::Discord"
-        layout_mode = self.combo_img_layout.currentData() or "image_only_front"
+        channels = _split_ids(self.txt_channel.text())
+        self._show(self.lbl_test, "Connecting to Discord…")
+        channel = channels[0] if channels else ""
 
-        if not token:
-            self.lbl_sync_feedback.setText("❌ Please enter your Discord Bot Token before synchronizing.")
-            self.lbl_sync_feedback.setStyleSheet("color: #F87171; font-size: 11px; font-weight: 600;")
-            self.lbl_sync_feedback.setVisible(True)
+        def done(result: Dict[str, Any]) -> None:
+            self._show(self.lbl_test, "\n".join(result.get("lines", [])), "ok" if result.get("ok") else "error")
+
+        self._run_async(lambda: test_discord_connection(token, channel), done, [self.btn_test])
+
+    def _import_history(self) -> None:
+        channels = _split_ids(self.txt_channel.text())
+        if not self.txt_token.text().strip() or not channels:
+            self._show(self.lbl_import, "Enter the bot token and channel ID first.", "error")
             return
+        self._apply_settings()
+        limit = self.spin_import.value()
+        deck = self.txt_deck.text().strip() or "Images::Discord"
+        self._show(self.lbl_import, f"Importing from the last {limit} messages… (Anki stays usable)")
 
-        if not ch_id:
-            self.lbl_sync_feedback.setText("❌ Please enter a Channel ID in 'Image Channels (IDs)' above.")
-            self.lbl_sync_feedback.setStyleSheet("color: #F87171; font-size: 11px; font-weight: 600;")
-            self.lbl_sync_feedback.setVisible(True)
-            return
+        def task() -> Dict[str, Any]:
+            totals = {"success": True, "scanned": 0, "with_images": 0, "imported": 0, "skipped": 0}
+            for ch in channels:
+                res = discord_client_manager.import_history(ch, limit)
+                if not res.get("success"):
+                    return res
+                for k in ("scanned", "with_images", "imported", "skipped"):
+                    totals[k] += res.get(k, 0)
+            return totals
 
-        self.lbl_sync_feedback.setText(f"⏳ Connecting to Discord channel {ch_id} and downloading recent images...")
-        self.lbl_sync_feedback.setStyleSheet("color: #38BDF8; font-size: 11px;")
-        self.lbl_sync_feedback.setVisible(True)
-        if hasattr(self.lbl_sync_feedback, "repaint"):
-            self.lbl_sync_feedback.repaint()
+        def done(res: Dict[str, Any]) -> None:
+            if not res.get("success"):
+                self._show(self.lbl_import, f"✗ {res.get('error', 'Import failed')}", "error")
+                return
+            self._show(
+                self.lbl_import,
+                f"✓ {res['imported']} new image(s) queued for '{deck}' · "
+                f"{res['skipped']} already imported or failed · {res['scanned']} messages checked.\n"
+                "Cards appear in a few seconds.",
+                "ok",
+            )
 
-        # Temporarily apply layout mode in config
-        config.set("discord.image_card_layout", layout_mode, save=False)
-
-        res = pull_recent_discord_images(
-            channel_id=ch_id,
-            target_deck=deck,
-            limit=50,
-            bot_token=token,
-        )
-
-        if res.get("success"):
-            ingested = res.get("ingested", 0)
-            skipped = res.get("skipped", 0)
-            msg = f"✓ Synchronized successfully! Ingested {ingested} image card(s) into deck '{deck}' ({skipped} skipped duplicates)."
-            self.lbl_sync_feedback.setText(msg)
-            self.lbl_sync_feedback.setStyleSheet("color: #4ADE80; font-size: 11px; font-weight: 600;")
-        else:
-            err = res.get("error", "Unknown synchronization error")
-            self.lbl_sync_feedback.setText(f"❌ Synchronization failed: {err}")
-            self.lbl_sync_feedback.setStyleSheet("color: #F87171; font-size: 11px; font-weight: 600;")
+        self._run_async(task, done, [self.btn_import, self.btn_test])
 
     def accept(self) -> None:
         try:
-            # Parse image channels
-            raw_img_channels = self.txt_image_channels.text().strip()
-            image_channels = [c.strip() for c in raw_img_channels.split(",") if c.strip()]
-
-            # Parse image tags
-            raw_tags = self.txt_image_tags.text().strip()
-            image_tags = [t.strip() for t in raw_tags.split(",") if t.strip()]
-
-            # Parse standard channels
-            raw_channels = self.txt_channels.text().strip()
-            channel_ids = [c.strip() for c in raw_channels.split(",") if c.strip()]
-
-            # Parse users
-            raw_users = self.txt_users.text().strip()
-            user_ids = [u.strip() for u in raw_users.split(",") if u.strip()]
-
-            config.set("discord.image_channels", image_channels, save=False)
-            config.set("discord.image_default_deck", self.txt_image_deck.text().strip() or "Images::Discord", save=False)
-            config.set("discord.image_default_tags", image_tags, save=False)
-            config.set("discord.image_card_layout", self.combo_img_layout.currentData(), save=False)
-            config.set("discord.optimize_images", self.chk_optimize_images.isChecked(), save=False)
-
-            config.set("discord.enabled", self.chk_bot_enabled.isChecked(), save=False)
-            config.set("discord.bot_token", self.txt_token.text().strip(), save=False)
-            config.set("discord.channel_ids", channel_ids, save=False)
-            config.set("discord.authorized_users", user_ids, save=False)
-            config.set("discord.polling_interval_seconds", self.spin_interval.value(), save=False)
-            config.set("discord.http_bridge_enabled", self.chk_http_enabled.isChecked(), save=False)
-            config.set("discord.http_bridge_port", self.spin_http_port.value(), save=True)
-
-            logger.info("[DiscordSettingsDialog] Discord image and bot settings saved successfully.")
+            self._apply_settings()
+            logger.info("[DiscordSettingsDialog] Discord settings saved.")
             super().accept()
         except Exception as e:
-            logger.error(f"[DiscordSettingsDialog] Error saving Discord settings: {e}")
+            logger.error(f"[DiscordSettingsDialog] Error saving Discord settings: {e}", exc_info=True)
 
+    def done(self, result: int) -> None:  # stop the status timer on accept/reject
+        try:
+            self._status_timer.stop()
+        except Exception:
+            pass
+        super().done(result)

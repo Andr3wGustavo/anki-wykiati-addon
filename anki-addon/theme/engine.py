@@ -275,9 +275,11 @@ class ThemeEngine:
             logo_b64 = LOGO_PNG_BASE64
             style_tag = f"<style id='awt-fullblack-theme'>{css}</style>"
 
-            # Lightweight logo banner injection only when logo data exists
+            # The logo (~45 KB base64) only belongs on the deck list; injecting it into every
+            # webview (editor, reviewer, toolbars) wasted work on each page load.
+            is_deck_browser = context is not None and type(context).__name__ == "DeckBrowser"
             js_tag = ""
-            if logo_b64:
+            if logo_b64 and is_deck_browser:
                 js_tag = f"""
                 <script id='awt-fullblack-enforce'>
                 (function() {{

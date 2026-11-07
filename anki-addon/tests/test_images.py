@@ -8,10 +8,11 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from anki.media import MediaManager, media_manager
+from anki.media import MediaManager, StagedImage, media_manager
 from core.config import config
 from discord.bridge import DiscordBridge
 from discord.models import DiscordAttachment, DiscordChannel, DiscordMessageEvent, DiscordUser
+from sync.dedup import dedup_registry
 from sync.queue import job_queue
 
 
@@ -19,6 +20,7 @@ class TestImageIngestion(unittest.TestCase):
     def setUp(self):
         self.bridge = DiscordBridge()
         job_queue.clear()
+        dedup_registry.clear()
         config.reset_to_defaults()
         config.set("discord.image_channels", ["channel_img_123"], save=False)
         config.set("discord.image_default_deck", "Biology::Anatomy", save=False)
@@ -46,9 +48,9 @@ class TestImageIngestion(unittest.TestCase):
             ],
         )
 
-        # Mock download_and_save_image so tests don't require internet connectivity
-        original_download = media_manager.download_and_save_image
-        media_manager.download_and_save_image = lambda url, fn=None: (True, "discord_mock12345.png", "mockhash123")
+        # Mock stage_image so tests don't require internet connectivity
+        original_download = media_manager.stage_image
+        media_manager.stage_image = lambda url: StagedImage(True, filename="discord_mock12345.png", image_hash="mockhash123")
 
         try:
             success, reply = self.bridge.handle_incoming_message("", event)
@@ -64,7 +66,7 @@ class TestImageIngestion(unittest.TestCase):
             self.assertEqual(job.payload.tags, ["anatomy", "discord"])
 
         finally:
-            media_manager.download_and_save_image = original_download
+            media_manager.stage_image = original_download
 
     def test_image_back_layout(self):
         config.set("discord.image_card_layout", "image_back", save=False)
@@ -82,8 +84,8 @@ class TestImageIngestion(unittest.TestCase):
             ],
         )
 
-        original_download = media_manager.download_and_save_image
-        media_manager.download_and_save_image = lambda url, fn=None: (True, "discord_muscle.png", "mockhash456")
+        original_download = media_manager.stage_image
+        media_manager.stage_image = lambda url: StagedImage(True, filename="discord_muscle.png", image_hash="mockhash456")
 
         try:
             success, reply = self.bridge.handle_incoming_message("Identify this muscle", event)
@@ -95,7 +97,7 @@ class TestImageIngestion(unittest.TestCase):
             self.assertIn('<img src="discord_muscle.png">', job.payload.back)
 
         finally:
-            media_manager.download_and_save_image = original_download
+            media_manager.stage_image = original_download
 
     def test_image_only_front_layout(self):
         config.set("discord.image_card_layout", "image_only_front", save=False)
@@ -113,8 +115,8 @@ class TestImageIngestion(unittest.TestCase):
             ],
         )
 
-        original_download = media_manager.download_and_save_image
-        media_manager.download_and_save_image = lambda url, fn=None: (True, "discord_radiology.png", "mockhash789")
+        original_download = media_manager.stage_image
+        media_manager.stage_image = lambda url: StagedImage(True, filename="discord_radiology.png", image_hash="mockhash789")
 
         try:
             success, reply = self.bridge.handle_incoming_message("", event)
@@ -126,7 +128,7 @@ class TestImageIngestion(unittest.TestCase):
             self.assertEqual(job.payload.back, "")
 
         finally:
-            media_manager.download_and_save_image = original_download
+            media_manager.stage_image = original_download
 
     def test_image_optimization_toggle(self):
         m = MediaManager()

@@ -42,7 +42,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "channel_ids": [],
         "image_channels": [],
         "auto_ingest_images": True,
-        "image_card_layout": "image_front",
+        "image_card_layout": "image_only_front",
         "image_default_deck": "Images::Discord",
         "image_default_tags": ["discord", "image"],
         "optimize_images": True,
@@ -58,6 +58,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "secret_token": "",
         "rate_limit_per_minute": 60,
         "max_message_length": 4000,
+        "reply_in_channel": True,
     },
     "anki": {
         "default_deck": "Default",

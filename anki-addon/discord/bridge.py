@@ -9,22 +9,26 @@ import re
 from typing import Dict, List, Optional, Tuple
 
 try:
+    from ..core.image_urls import IMAGE_URL_REGEX as _IMAGE_URL_REGEX
     from ..anki.media import media_manager
     from ..core.config import config
     from ..core.event_bus import event_bus
     from ..core.exceptions import DiscordToolkitError, ParserError, SecurityError
     from ..core.logger import logger
+    from ..sync.dedup import dedup_registry
     from ..sync.queue import job_queue
     from .commands import command_router
     from .models import CardPayload, DiscordMessageEvent
     from .parser import discord_parser
     from .security import auth_policy
 except (ImportError, ValueError):
+    from core.image_urls import IMAGE_URL_REGEX as _IMAGE_URL_REGEX
     from anki.media import media_manager
     from core.config import config
     from core.event_bus import event_bus
     from core.exceptions import DiscordToolkitError, ParserError, SecurityError
     from core.logger import logger
+    from sync.dedup import dedup_registry
     from sync.queue import job_queue
     from discord.commands import command_router
     from discord.models import CardPayload, DiscordMessageEvent
@@ -32,10 +36,8 @@ except (ImportError, ValueError):
     from discord.security import auth_policy
 
 
-IMAGE_URL_REGEX = re.compile(
-    r"https?://\S+?\.(?:png|jpg|jpeg|webp|gif)(?:\?\S*)?",
-    re.IGNORECASE,
-)
+# Shared with the poller's embed/attachment extraction
+IMAGE_URL_REGEX = _IMAGE_URL_REGEX
 
 
 class DiscordBridge:
@@ -60,9 +62,11 @@ class DiscordBridge:
             stats["messages_processed"] = stats.get("messages_processed", 0) + 1
             config.set("stats", stats, save=False)
 
+            is_image_channel = self._is_designated_image_channel(event)
+
             # 2. Security validation
             if event:
-                auth_policy.validate_event(event)
+                auth_policy.validate_event(event, trusted_image_channel=is_image_channel)
 
             # 3. Check for operational commands (!anki-help, !anki-status, !anki-decks, !anki-ping)
             if raw_text:
@@ -72,9 +76,8 @@ class DiscordBridge:
 
             # 4. Check for Dedicated Image Channel or Image Attachments
             image_urls = self._extract_image_urls(raw_text, event)
-            is_image_channel = self._is_designated_image_channel(event)
 
-            if image_urls or (is_image_channel and event and event.attachments):
+            if image_urls:
                 return self._process_image_ingestion(raw_text, event, image_urls)
 
             # 5. Check if message is a standard !anki card creation prompt
@@ -119,23 +122,24 @@ class DiscordBridge:
         if not event or not event.channel or not event.channel.id:
             return False
         image_channels = config.get("discord.image_channels", [])
-        return str(event.channel.id) in [str(c) for c in image_channels]
+        return str(event.channel.id) in [str(c).strip() for c in image_channels]
 
     def _extract_image_urls(self, raw_text: str, event: Optional[DiscordMessageEvent]) -> List[str]:
         urls: List[str] = []
 
-        # From attachments
-        if event and event.attachments:
-            for att in event.attachments:
-                if att.url:
-                    urls.append(att.url)
+        def add(url: str) -> None:
+            if url and url not in urls:
+                urls.append(url)
 
-        # From text URL patterns
+        if event:
+            for url in event.image_urls:  # embeds + attachments, pre-extracted by the poller
+                add(url)
+            for att in event.attachments:
+                add(att.url)
+
         if raw_text:
-            matches = IMAGE_URL_REGEX.findall(raw_text)
-            for m in matches:
-                if m not in urls:
-                    urls.append(m)
+            for match in IMAGE_URL_REGEX.findall(raw_text):
+                add(match)
 
         return urls
 
@@ -146,39 +150,48 @@ class DiscordBridge:
         image_urls: List[str],
     ) -> Tuple[bool, str]:
         """
-        Process images by downloading them, saving into Anki media storage, and generating cards.
+        Download + optimize each image into the staging area (safe on background threads)
+        and enqueue one card job per image. The media file is written into the
+        collection and the note is created later on Anki's main thread by SyncWorker.
         """
         if not image_urls:
             return False, "No valid image attachments or URLs detected."
 
+        message_id = event.id if event else ""
+        if message_id and dedup_registry.is_message_processed(message_id):
+            logger.info(f"[DiscordBridge] Message {message_id} already imported; skipping.")
+            return False, "Message already imported."
+
         default_image_deck = config.get("discord.image_default_deck", "Images::Discord")
         default_tags = list(config.get("discord.image_default_tags", ["discord", "image"]))
-        layout = config.get("discord.image_card_layout", "image_front")
+        layout = config.get("discord.image_card_layout", "image_only_front")
+
+        caption = raw_text.strip() if raw_text else ""
+        # Untrusted text inserted as HTML: strip image links, escape, keep line breaks
+        clean_caption = html.escape(IMAGE_URL_REGEX.sub("", caption).strip(), quote=False)
+        clean_caption = clean_caption.replace("\n", "<br>")
 
         enqueued_jobs = []
+        failures: List[str] = []
 
-        for url in image_urls:
-            success, filename, img_hash = media_manager.download_and_save_image(url)
-            if not success:
-                logger.error(f"[DiscordBridge] Could not download image '{url}': {img_hash}")
+        for index, url in enumerate(image_urls):
+            staged = media_manager.stage_image(url)
+            if not staged.ok:
+                failures.append(staged.error)
+                logger.error(f"[DiscordBridge] Could not download image '{url}': {staged.error}")
                 continue
 
-            img_tag = f'<img src="{html.escape(filename, quote=True)}">'
-            caption = raw_text.strip() if raw_text else ""
-            # Strip image URL from caption text, then escape it: it is untrusted user input
-            # and is inserted into the card as HTML.
-            clean_caption = html.escape(IMAGE_URL_REGEX.sub("", caption).strip(), quote=False)
-            clean_caption = clean_caption.replace("\n", "<br>")
+            img_tag = f'<img src="{html.escape(staged.filename, quote=True)}">'
 
-            if layout in ("image_only_front", "image_front_empty_back", "front_only"):
-                front = img_tag
-                back = ""
-            elif layout == "image_back":
+            if layout == "image_back":
                 front = clean_caption or "Identify this image"
                 back = img_tag
-            else:  # "image_front"
+            elif layout == "image_front":
                 front = img_tag
                 back = clean_caption or "Visual Reference"
+            else:  # "image_only_front" (default): image on the front, empty back
+                front = img_tag
+                back = ""
 
             payload = CardPayload(
                 front=front,
@@ -186,33 +199,32 @@ class DiscordBridge:
                 deck=default_image_deck,
                 tags=default_tags,
                 note_type="Basic",
-                image_url=url,
-                image_filename=filename,
+                image_url=staged.source_url or url,
+                image_filename=staged.filename,
                 source="discord_image",
-                message_id=event.id if event else "",
+                # Several images in one message: one card each, distinct message keys
+                message_id=(f"{message_id}#{index}" if message_id and len(image_urls) > 1 else message_id),
                 author_id=event.author.id if event else "",
                 author_name=str(event.author) if event else "Anonymous",
                 channel_id=event.channel.id if event else "",
                 guild_id=event.channel.guild_id if event else "",
                 timestamp=event.timestamp if event else 0.0,
                 raw_content=raw_text,
+                staging_path=staged.staging_path,
+                image_hash=staged.image_hash,
+                bytes_saved=staged.bytes_saved,
             )
 
             job = job_queue.enqueue(payload)
             enqueued_jobs.append(job)
-
-            # Update stats
-            stats = config.get("stats", {})
-            stats["images_ingested"] = stats.get("images_ingested", 0) + 1
-            config.set("stats", stats, save=False)
-
             event_bus.publish("discord:image_enqueued", payload, job)
 
         if enqueued_jobs:
-            logger.info(f"[DiscordBridge] Ingested {len(enqueued_jobs)} image card(s).")
+            logger.info(f"[DiscordBridge] Enqueued {len(enqueued_jobs)} image card(s) for deck '{default_image_deck}'.")
             return True, f"Successfully enqueued {len(enqueued_jobs)} image flashcard(s) to deck '{default_image_deck}'."
 
-        return False, "Failed to download or persist image attachments."
+        reason = failures[0] if failures else "unknown error"
+        return False, f"Failed to download image(s): {reason}"
 
 
 # Global bridge singleton

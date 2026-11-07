@@ -1,33 +1,40 @@
 """
 Discord Client and Local HTTP Webhook Bridge Server.
-Allows cards to be pushed via Discord Bot Poller (including automated image channels) or Local HTTP REST Webhook.
+Cards arrive via the Discord poller (image channels fed by webhooks, or !anki text
+commands) or via the local HTTP bridge.
 """
 
 import hmac
 import http.server
 import json
+import os
 import socketserver
 import threading
 import time
-import urllib.error
-import urllib.request
 from typing import Any, Dict, List, Optional
 
 try:
     from ..core.config import config
     from ..core.constants import ADDON_NAME, ADDON_VERSION, MAX_PAYLOAD_SIZE_BYTES
+    from ..core.image_urls import extract_image_urls
     from ..core.logger import logger
+    from ..core.paths import user_file
+    from . import api
     from .bridge import discord_bridge
     from .models import DiscordAttachment, DiscordChannel, DiscordMessageEvent, DiscordUser
 except (ImportError, ValueError):
     from core.config import config
     from core.constants import ADDON_NAME, ADDON_VERSION, MAX_PAYLOAD_SIZE_BYTES
+    from core.image_urls import extract_image_urls
     from core.logger import logger
+    from core.paths import user_file
+    from discord import api
     from discord.bridge import discord_bridge
     from discord.models import DiscordAttachment, DiscordChannel, DiscordMessageEvent, DiscordUser
 
 
 _ALLOWED_HOSTNAMES = {"127.0.0.1", "localhost", "::1", "[::1]"}
+DISCORD_STATE_FILENAME = "discord_state.json"
 
 
 def _get_secret_token() -> str:
@@ -235,175 +242,392 @@ class HttpBridgeServer:
 
 class DiscordPollingWorker:
     """
-    Lightweight background worker that polls Discord channels (including image channels)
-    using Bot Token and REST API without heavy external dependencies.
+    Background poller for Discord channels (REST, no external dependencies).
+
+    Image channels (e.g. a Pinterest → Discord webhook):
+    - accepts webhook/bot authors (except this bot itself);
+    - reads images from attachments AND embeds;
+    - remembers the last processed message per channel in user_files, and on each
+      cycle fetches everything *after* it (paginated), so posts made while Anki was
+      closed are imported on the next start;
+    - stays silent (no replies in the channel).
+
+    Command channels (`discord.channel_ids`) keep the `!anki` text workflow and
+    still ignore other bots.
     """
+
+    MAX_PAGES_PER_CYCLE = 10       # up to 1000 messages per channel per cycle
+    MAX_DOWNLOAD_RETRIES = 3       # transient download failures before giving up on a message
+    MESSAGE_TYPES = (0, 19)        # DEFAULT, REPLY
+
     def __init__(self) -> None:
         self._running = False
         self._thread: Optional[threading.Thread] = None
         self._stop_event = threading.Event()
-        self._last_seen_message_id: Dict[str, str] = {}
+        self._state_lock = threading.RLock()
+        self._state: Dict[str, str] = {}
+        self._state_loaded = False
+        self._bot_user_id: Optional[str] = None
+        self._retry_counts: Dict[str, int] = {}
+        self._empty_streak: Dict[str, int] = {}
+        self._intent_warned: set = set()
+        self._last_error: str = ""
+        self.status: Dict[str, Any] = {"last_poll": 0.0, "last_error": "", "imported": 0}
+
+    # --------------------------------------------------------------- state
+
+    def _state_path(self) -> str:
+        return user_file(DISCORD_STATE_FILENAME)
+
+    def _load_state(self) -> None:
+        with self._state_lock:
+            if self._state_loaded:
+                return
+            path = self._state_path()
+            if os.path.exists(path):
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    self._state = {str(k): str(v) for k, v in data.get("last_message_ids", {}).items()}
+                except Exception as e:
+                    logger.error(f"[DiscordPoller] Could not read sync state: {e}")
+            self._state_loaded = True
+
+    def _save_state(self) -> None:
+        with self._state_lock:
+            path = self._state_path()
+            try:
+                tmp = path + ".tmp"
+                with open(tmp, "w", encoding="utf-8") as f:
+                    json.dump({"last_message_ids": self._state}, f)
+                os.replace(tmp, path)
+            except Exception as e:
+                logger.error(f"[DiscordPoller] Could not save sync state: {e}")
+
+    def get_last_id(self, channel_id: str) -> Optional[str]:
+        self._load_state()
+        with self._state_lock:
+            return self._state.get(channel_id)
+
+    def _set_last_id(self, channel_id: str, message_id: str) -> None:
+        with self._state_lock:
+            if api.snowflake(message_id) >= api.snowflake(self._state.get(channel_id, "0")):
+                self._state[channel_id] = str(message_id)
+        self._save_state()
+
+    # ------------------------------------------------------------ channels
+
+    @staticmethod
+    def _clean_ids(values: Any) -> List[str]:
+        out: List[str] = []
+        for v in values or []:
+            clean = str(v).strip()
+            if clean and clean not in out:
+                out.append(clean)
+        return out
+
+    def _image_channels(self) -> List[str]:
+        return self._clean_ids(config.get("discord.image_channels", []))
 
     def _get_target_channels(self) -> List[str]:
-        standard_channels = config.get("discord.channel_ids", [])
-        image_channels = config.get("discord.image_channels", [])
-        combined = []
-        for c in standard_channels + image_channels:
-            clean = str(c).strip()
-            if clean and clean not in combined:
-                combined.append(clean)
+        combined = self._image_channels()
+        for c in self._clean_ids(config.get("discord.channel_ids", [])):
+            if c not in combined:
+                combined.append(c)
         return combined
 
-    def start(self) -> None:
-        if self._running:
-            return
+    # ----------------------------------------------------------- lifecycle
 
-        bot_token = config.get("discord.bot_token", "").strip()
+    def start(self) -> None:
+        bot_token = str(config.get("discord.bot_token", "") or "").strip()
         channels = self._get_target_channels()
         if not bot_token or not channels:
-            logger.debug("[DiscordPollingWorker] Bot token or channel IDs missing. Poller idle.")
+            logger.info("[DiscordPoller] Bot token or channel IDs missing. Poller idle.")
             return
 
+        if self._thread is not None and self._thread.is_alive():
+            # Re-arm a thread that is still finishing its last request instead of starting a second one
+            self._running = True
+            self._stop_event.clear()
+            return
+
+        self._load_state()
         self._running = True
         self._stop_event.clear()
-        self._thread = threading.Thread(target=self._poll_loop, name="ADT-DiscordPoller", daemon=True)
+        self._thread = threading.Thread(target=self._poll_loop, name="AWT-DiscordPoller", daemon=True)
         self._thread.start()
-        logger.info(f"[DiscordPollingWorker] Polling started for {len(channels)} channel(s).")
+        logger.info(f"[DiscordPoller] Polling started for {len(channels)} channel(s).")
 
     def stop(self) -> None:
         if not self._running:
             return
-
         self._running = False
         self._stop_event.set()
         if self._thread and self._thread.is_alive():
             self._thread.join(timeout=2.0)
-        logger.info("[DiscordPollingWorker] Polling stopped.")
+        logger.info("[DiscordPoller] Polling stopped.")
+
+    def is_running(self) -> bool:
+        return self._running and self._thread is not None and self._thread.is_alive()
+
+    def _report_error(self, message: str) -> None:
+        self.status["last_error"] = message
+        if message != self._last_error:  # avoid flooding the log every cycle
+            logger.warning(f"[DiscordPoller] {message}")
+            self._last_error = message
 
     def _poll_loop(self) -> None:
         while not self._stop_event.is_set():
-            interval = max(3, int(config.get("discord.polling_interval_seconds", 5)))
+            interval = max(3, int(config.get("discord.polling_interval_seconds", 5) or 5))
+            token = str(config.get("discord.bot_token", "") or "").strip()
             channels = self._get_target_channels()
-            bot_token = config.get("discord.bot_token", "").strip()
 
-            if not bot_token or not channels:
+            if not token or not channels:
                 self._stop_event.wait(timeout=interval)
                 continue
 
-            for channel_id in channels:
-                if self._stop_event.is_set():
-                    break
-                try:
-                    self._poll_channel(str(channel_id).strip(), bot_token)
-                except Exception as e:
-                    logger.debug(f"[DiscordPollingWorker] Polling error on channel {channel_id}: {e}")
+            try:
+                if self._bot_user_id is None:
+                    me = api.get_me(token)
+                    self._bot_user_id = str(me.get("id", ""))
+                    logger.info(f"[DiscordPoller] Connected as bot '{me.get('username', '?')}'.")
+
+                cycle_ok = True
+                for channel_id in channels:
+                    if self._stop_event.is_set():
+                        break
+                    try:
+                        self.poll_channel(channel_id, token)
+                    except api.DiscordApiError as e:
+                        cycle_ok = False
+                        self._report_error(f"Channel {channel_id}: {e.message}")
+
+                self.status["last_poll"] = time.time()
+                if cycle_ok and not self._intent_warned:
+                    if self._last_error:
+                        logger.info("[DiscordPoller] Connection healthy again.")
+                    self.status["last_error"] = ""
+                    self._last_error = ""
+            except api.DiscordApiError as e:
+                self._report_error(e.message)
+                if e.status == 401:
+                    self._bot_user_id = None
+                    self._stop_event.wait(timeout=60)
+                    continue
+            except Exception as e:
+                logger.error(f"[DiscordPoller] Unexpected polling error: {e}", exc_info=True)
 
             self._stop_event.wait(timeout=interval)
 
-    def _poll_channel(self, channel_id: str, bot_token: str) -> None:
-        url = f"https://discord.com/api/v10/channels/{channel_id}/messages?limit=5"
-        req = urllib.request.Request(
-            url,
-            headers={
-                "Authorization": f"Bot {bot_token}",
-                "User-Agent": f"AnkiDiscordToolkit/{ADDON_VERSION}",
-            },
-        )
-
-        try:
-            with urllib.request.urlopen(req, timeout=8) as response:
-                if response.status == 200:
-                    data = json.loads(response.read().decode("utf-8"))
-                    self._process_channel_messages(channel_id, data, bot_token)
-        except urllib.error.HTTPError as e:
-            if e.code == 401:
-                logger.error("[DiscordPollingWorker] Invalid Discord Bot Token (401 Unauthorized).")
-            elif e.code == 403:
-                logger.warning(f"[DiscordPollingWorker] Bot lacks permission to read channel {channel_id}.")
-        except Exception as e:
-            logger.debug(f"[DiscordPollingWorker] Network error: {e}")
-
-    def _process_channel_messages(self, channel_id: str, messages: List[Dict[str, Any]], bot_token: str) -> None:
-        if not messages:
-            return
-
-        last_id = self._last_seen_message_id.get(channel_id)
-        newest_id = str(messages[0].get("id"))
+    def poll_channel(self, channel_id: str, token: str) -> int:
+        """Process every message after the last one seen. Returns how many were handled."""
+        last_id = self.get_last_id(channel_id)
 
         if last_id is None:
-            self._last_seen_message_id[channel_id] = newest_id
+            # First run for this channel: start from "now". Older images can be pulled
+            # explicitly with "Import existing images" in the settings panel.
+            latest = api.get_messages(token, channel_id, limit=1)
+            baseline = str(latest[0]["id"]) if latest else "0"
+            self._set_last_id(channel_id, baseline)
+            logger.info(f"[DiscordPoller] Channel {channel_id}: tracking new messages from now on.")
+            return 0
+
+        handled = 0
+        for _ in range(self.MAX_PAGES_PER_CYCLE):
+            messages = api.get_messages(token, channel_id, after=last_id, limit=100)
+            if not messages:
+                break
+            messages.sort(key=lambda m: api.snowflake(m.get("id")))
+            for msg in messages:
+                if self._stop_event.is_set():
+                    return handled
+                result = self.handle_message(channel_id, msg, token)
+                if result == "retry":
+                    return handled  # keep last_id: this message is retried next cycle
+                last_id = str(msg.get("id"))
+                self._set_last_id(channel_id, last_id)
+                handled += 1
+            if len(messages) < 100:
+                break
+        return handled
+
+    # ------------------------------------------------------------- messages
+
+    def handle_message(self, channel_id: str, msg: Dict[str, Any], token: str, backfill: bool = False) -> str:
+        """
+        Turn one raw Discord message into card jobs.
+        Returns "ok" (handled/ignored, advance) or "retry" (transient failure, do not advance).
+        """
+        msg_id = str(msg.get("id", ""))
+        author = msg.get("author") or {}
+        author_id = str(author.get("id", ""))
+        is_webhook = bool(msg.get("webhook_id"))
+        is_image_channel = channel_id in self._image_channels()
+
+        if msg.get("type", 0) not in self.MESSAGE_TYPES:
+            return "ok"
+        if self._bot_user_id and author_id == self._bot_user_id:
+            return "ok"  # our own replies
+        if author.get("bot") and not is_webhook and not is_image_channel:
+            return "ok"
+
+        content = msg.get("content") or ""
+        image_urls = extract_image_urls(msg)
+
+        if is_image_channel:
+            if not image_urls:
+                self._track_possibly_hidden_content(channel_id, msg)
+                return "ok"
+            self._empty_streak[channel_id] = 0
+        elif not content.strip() and not image_urls:
+            return "ok"
+
+        attachments = [
+            DiscordAttachment(
+                id=str(a.get("id")),
+                url=str(a.get("url")),
+                filename=str(a.get("filename", "image.png")),
+                content_type=str(a.get("content_type", "")),
+                size=int(a.get("size", 0) or 0),
+            )
+            for a in (msg.get("attachments") or [])
+        ]
+        event = DiscordMessageEvent(
+            id=msg_id,
+            content=content,
+            author=DiscordUser(id=author_id, name=author.get("username", "Unknown"),
+                               discriminator=author.get("discriminator", "") if author.get("discriminator") != "0" else ""),
+            channel=DiscordChannel(id=channel_id, guild_id=str(msg.get("guild_id", "") or "")),
+            attachments=attachments,
+            timestamp=time.time(),
+            image_urls=image_urls,
+            is_webhook=is_webhook,
+        )
+
+        success, reply = discord_bridge.handle_incoming_message(content, event)
+
+        if is_image_channel:
+            if success:
+                self.status["imported"] = self.status.get("imported", 0) + 1
+                self._retry_counts.pop(msg_id, None)
+                return "ok"
+            if reply.startswith("Failed to download") and not backfill:
+                attempts = self._retry_counts.get(msg_id, 0) + 1
+                self._retry_counts[msg_id] = attempts
+                if attempts < self.MAX_DOWNLOAD_RETRIES:
+                    logger.warning(f"[DiscordPoller] {reply} (message {msg_id}, attempt {attempts}); will retry.")
+                    return "retry"
+                logger.error(f"[DiscordPoller] Giving up on message {msg_id} after {attempts} attempts: {reply}")
+                self._retry_counts.pop(msg_id, None)
+            return "ok"
+
+        if success and reply and config.get("discord.reply_in_channel", True):
+            self._send_discord_reply(channel_id, msg_id, reply, token)
+        return "ok"
+
+    def _track_possibly_hidden_content(self, channel_id: str, msg: Dict[str, Any]) -> None:
+        """Without the Message Content intent, Discord sends messages with no content/embeds/attachments."""
+        if msg.get("content") or msg.get("embeds") or msg.get("attachments"):
+            self._empty_streak[channel_id] = 0
             return
-
-        new_msgs = []
-        for msg in messages:
-            msg_id = str(msg.get("id"))
-            if int(msg_id) > int(last_id):
-                new_msgs.append(msg)
-
-        self._last_seen_message_id[channel_id] = newest_id
-
-        for msg in reversed(new_msgs):
-            author_info = msg.get("author", {})
-            if author_info.get("bot", False):
-                continue
-
-            content = msg.get("content", "")
-            raw_attachments = msg.get("attachments", [])
-
-            # Extract attachment metadata
-            parsed_attachments: List[DiscordAttachment] = []
-            for a in raw_attachments:
-                parsed_attachments.append(DiscordAttachment(
-                    id=str(a.get("id")),
-                    url=str(a.get("url")),
-                    filename=str(a.get("filename", "image.png")),
-                    content_type=str(a.get("content_type", "")),
-                    size=int(a.get("size", 0)),
-                ))
-
-            # Must have either text or attachments
-            if not content.strip() and not parsed_attachments:
-                continue
-
-            event = DiscordMessageEvent(
-                id=str(msg.get("id")),
-                content=content,
-                author=DiscordUser(
-                    id=str(author_info.get("id")),
-                    name=author_info.get("username", "Unknown"),
-                    discriminator=author_info.get("discriminator", ""),
-                ),
-                channel=DiscordChannel(id=channel_id),
-                attachments=parsed_attachments,
-                timestamp=time.time(),
+        streak = self._empty_streak.get(channel_id, 0) + 1
+        self._empty_streak[channel_id] = streak
+        if streak >= 3 and channel_id not in self._intent_warned:
+            self._intent_warned.add(channel_id)
+            self._report_error(
+                "Messages arrive empty. Enable 'Message Content Intent' in the Discord Developer "
+                "Portal → your app → Bot → Privileged Gateway Intents."
             )
 
-            success, reply_text = discord_bridge.handle_incoming_message(content, event)
-            if success and reply_text:
-                self._send_discord_reply(channel_id, str(msg.get("id")), reply_text, bot_token)
-
     def _send_discord_reply(self, channel_id: str, message_id: str, text: str, bot_token: str) -> None:
-        url = f"https://discord.com/api/v10/channels/{channel_id}/messages"
-        payload_data = json.dumps({
-            "content": text,
-            "message_reference": {"message_id": message_id},
-        }).encode("utf-8")
-
-        req = urllib.request.Request(
-            url,
-            data=payload_data,
-            headers={
-                "Authorization": f"Bot {bot_token}",
-                "Content-Type": "application/json",
-                "User-Agent": f"AnkiDiscordToolkit/{ADDON_VERSION}",
-            },
-            method="POST",
-        )
         try:
-            with urllib.request.urlopen(req, timeout=5):
-                pass
-        except Exception as e:
-            logger.debug(f"[DiscordPollingWorker] Failed sending Discord reply: {e}")
+            api.request("POST", f"/channels/{channel_id}/messages", bot_token,
+                        body={"content": text[:1900], "message_reference": {"message_id": message_id}},
+                        timeout=8, max_retries=1)
+        except api.DiscordApiError as e:
+            logger.debug(f"[DiscordPoller] Failed sending Discord reply: {e.message}")
+
+    # -------------------------------------------------------- user actions
+
+    def import_history(self, channel_id: str, token: str, limit: int = 100) -> Dict[str, Any]:
+        """
+        Backfill: import images from the most recent `limit` messages of a channel
+        (oldest first). Already imported messages/images are skipped by dedup.
+        Runs on a background thread; never touches the collection directly.
+        """
+        channel_id = str(channel_id).strip()
+        limit = max(1, min(1000, int(limit)))
+        if self._bot_user_id is None:
+            self._bot_user_id = str(api.get_me(token).get("id", ""))
+
+        collected: List[Dict[str, Any]] = []
+        before: Optional[str] = None
+        while len(collected) < limit:
+            page = api.get_messages(token, channel_id, before=before, limit=min(100, limit - len(collected)))
+            if not page:
+                break
+            collected.extend(page)
+            before = str(min(api.snowflake(m.get("id")) for m in page))
+            if len(page) < 100:
+                break
+
+        collected.sort(key=lambda m: api.snowflake(m.get("id")))
+        before_count = self.status.get("imported", 0)
+        with_images = 0
+        for msg in collected:
+            if extract_image_urls(msg):
+                with_images += 1
+            self.handle_message(channel_id, msg, token, backfill=True)
+        imported = self.status.get("imported", 0) - before_count
+
+        # Make sure the live poller continues after the newest message we just saw
+        if collected and channel_id in self._image_channels():
+            newest = str(collected[-1]["id"])
+            if self.get_last_id(channel_id) is None or api.snowflake(newest) > api.snowflake(self.get_last_id(channel_id)):
+                self._set_last_id(channel_id, newest)
+
+        return {
+            "scanned": len(collected),
+            "with_images": with_images,
+            "imported": imported,
+            "skipped": max(0, with_images - imported),
+        }
+
+
+def test_discord_connection(token: str, channel_id: str) -> Dict[str, Any]:
+    """
+    Check token, channel access and whether message content is visible.
+    Returns {"ok": bool, "lines": [str, ...]} — safe to call from a background thread.
+    """
+    lines: List[str] = []
+    token = (token or "").strip()
+    channel_id = (channel_id or "").strip()
+    if not token:
+        return {"ok": False, "lines": ["Bot token is empty."]}
+    if not channel_id:
+        return {"ok": False, "lines": ["Channel ID is empty."]}
+    try:
+        me = api.get_me(token)
+        lines.append(f"✓ Bot: {me.get('username', '?')}")
+        channel = api.get_channel(token, channel_id)
+        lines.append(f"✓ Channel: #{channel.get('name', channel_id)}")
+        messages = api.get_messages(token, channel_id, limit=20)
+    except api.DiscordApiError as e:
+        return {"ok": False, "lines": lines + [f"✗ {e.message}"]}
+
+    if not messages:
+        lines.append("• The channel has no messages yet — post an image to test.")
+        return {"ok": True, "lines": lines}
+
+    images = sum(1 for m in messages if extract_image_urls(m))
+    webhook_msgs = sum(1 for m in messages if m.get("webhook_id"))
+    blank = sum(1 for m in messages if not (m.get("content") or m.get("embeds") or m.get("attachments")))
+    lines.append(f"✓ Last {len(messages)} messages: {images} with images ({webhook_msgs} from webhooks)")
+    if blank == len(messages):
+        lines.append("✗ All messages arrive empty: enable 'Message Content Intent' "
+                     "(Developer Portal → Bot → Privileged Gateway Intents).")
+        return {"ok": False, "lines": lines}
+    return {"ok": True, "lines": lines}
 
 
 class DiscordClientManager:
@@ -421,15 +645,12 @@ class DiscordClientManager:
                     "[DiscordClientManager] HTTP bridge is enabled but 'discord.secret_token' is empty. "
                     "Refusing to start an unauthenticated server."
                 )
-                return self._start_poller_and_subscribe()
-            host = config.get("discord.http_bridge_host", "127.0.0.1")
-            port = int(config.get("discord.http_bridge_port", 8765))
-            self.http_server = HttpBridgeServer(host=host, port=port)
-            self.http_server.start()
+            else:
+                host = config.get("discord.http_bridge_host", "127.0.0.1")
+                port = int(config.get("discord.http_bridge_port", 8765))
+                self.http_server = HttpBridgeServer(host=host, port=port)
+                self.http_server.start()
 
-        self._start_poller_and_subscribe()
-
-    def _start_poller_and_subscribe(self) -> None:
         if config.get("discord.enabled", False):
             self.poller.start()
 
@@ -452,143 +673,15 @@ class DiscordClientManager:
         else:
             self.poller.stop()
 
-    def pull_recent_images(
-        self,
-        channel_id: Optional[str] = None,
-        target_deck: Optional[str] = None,
-        limit: int = 50,
-        bot_token: Optional[str] = None,
-    ) -> Dict[str, Any]:
-        """
-        On-demand synchronization: Fetch up to `limit` recent messages from a Discord channel,
-        extract all image attachments and embeds, deduplicate them cryptographically,
-        and enqueue / create cards into target_deck without creating duplicates.
-        """
-        token = bot_token or config.get("discord.bot_token", "").strip()
-        
-        # Get channel ID from argument or config
-        if channel_id:
-            ch_id = str(channel_id).strip()
-        else:
-            img_channels = config.get("discord.image_channels", [])
-            ch_id = str(img_channels[0]).strip() if img_channels else ""
-
-        deck = target_deck or config.get("discord.image_default_deck", "Images::Discord")
-
-        if not token:
-            return {"success": False, "error": "Discord Bot Token is missing. Please configure your Bot Token.", "ingested": 0, "skipped": 0}
-        if not ch_id:
-            return {"success": False, "error": "Channel ID is missing. Please enter a Discord channel ID.", "ingested": 0, "skipped": 0}
-
-        url = f"https://discord.com/api/v10/channels/{ch_id}/messages?limit={min(100, max(1, limit))}"
-        req = urllib.request.Request(
-            url,
-            headers={
-                "Authorization": f"Bot {token}",
-                "User-Agent": f"AnkiDiscordToolkit/{ADDON_VERSION}",
-            },
-        )
-
+    def import_history(self, channel_id: str, limit: int = 100, token: Optional[str] = None) -> Dict[str, Any]:
+        token = (token or str(config.get("discord.bot_token", "") or "")).strip()
         try:
-            with urllib.request.urlopen(req, timeout=12) as response:
-                if response.status != 200:
-                    return {"success": False, "error": f"Discord API returned status {response.status}", "ingested": 0, "skipped": 0}
-                messages = json.loads(response.read().decode("utf-8"))
-        except urllib.error.HTTPError as e:
-            if e.code == 401:
-                return {"success": False, "error": "Invalid Discord Bot Token (401 Unauthorized).", "ingested": 0, "skipped": 0}
-            elif e.code == 403:
-                return {"success": False, "error": f"Bot lacks permission to read channel {ch_id} (403 Forbidden).", "ingested": 0, "skipped": 0}
-            elif e.code == 404:
-                return {"success": False, "error": f"Channel ID '{ch_id}' was not found (404 Not Found).", "ingested": 0, "skipped": 0}
-            return {"success": False, "error": f"HTTP Error {e.code}: {e.reason}", "ingested": 0, "skipped": 0}
-        except Exception as e:
-            return {"success": False, "error": f"Network connection error: {e}", "ingested": 0, "skipped": 0}
-
-        ingested_count = 0
-        skipped_count = 0
-
-        orig_deck = config.get("discord.image_default_deck", "Images::Discord")
-        if target_deck:
-            config.set("discord.image_default_deck", target_deck, save=False)
-
-        try:
-            # Process in chronological order (oldest to newest)
-            for msg in reversed(messages):
-                raw_attachments = msg.get("attachments", [])
-                content = msg.get("content", "")
-                author_info = msg.get("author", {})
-
-                parsed_attachments = []
-                for a in raw_attachments:
-                    parsed_attachments.append(DiscordAttachment(
-                        id=str(a.get("id")),
-                        url=str(a.get("url")),
-                        filename=str(a.get("filename", "image.png")),
-                        content_type=str(a.get("content_type", "")),
-                        size=int(a.get("size", 0)),
-                    ))
-
-                # Check if message has attachments or image URLs
-                has_image_url = any(ext in content.lower() for ext in (".png", ".jpg", ".jpeg", ".webp", ".gif"))
-                if not parsed_attachments and not has_image_url:
-                    continue
-
-                event = DiscordMessageEvent(
-                    id=str(msg.get("id")),
-                    content=content,
-                    author=DiscordUser(
-                        id=str(author_info.get("id", "discord_user")),
-                        name=author_info.get("username", "Discord User"),
-                    ),
-                    channel=DiscordChannel(id=ch_id, name="sync_channel"),
-                    attachments=parsed_attachments,
-                    timestamp=time.time(),
-                )
-
-                success, _ = discord_bridge.handle_incoming_message(content, event)
-                if success:
-                    ingested_count += 1
-                else:
-                    skipped_count += 1
-        finally:
-            config.set("discord.image_default_deck", orig_deck, save=False)
-
-        # Trigger queue processing safely
-        try:
-            from ..sync.worker import sync_worker
-            sync_worker.process_queue()
-        except Exception:
-            try:
-                from sync.worker import sync_worker
-                sync_worker.process_queue()
-            except Exception:
-                pass
-
-        return {
-            "success": True,
-            "ingested": ingested_count,
-            "skipped": skipped_count,
-            "deck": deck,
-            "message": f"Channel synchronization complete. Ingested {ingested_count} new image card(s) into deck '{deck}' ({skipped_count} skipped / duplicates).",
-        }
+            result = self.poller.import_history(channel_id, token, limit)
+        except api.DiscordApiError as e:
+            return {"success": False, "error": e.message}
+        result["success"] = True
+        return result
 
 
 # Global client manager singleton
 discord_client_manager = DiscordClientManager()
-
-
-def pull_recent_discord_images(
-    channel_id: Optional[str] = None,
-    target_deck: Optional[str] = None,
-    limit: int = 50,
-    bot_token: Optional[str] = None,
-) -> Dict[str, Any]:
-    """Module-level convenience wrapper for on-demand Discord image synchronization."""
-    return discord_client_manager.pull_recent_images(
-        channel_id=channel_id,
-        target_deck=target_deck,
-        limit=limit,
-        bot_token=bot_token,
-    )
-

@@ -26,6 +26,7 @@ EXCLUDED_NAMES = {
     ".pytest_cache",
     "tests",
     "data",
+    "user_files",
     ".git",
     ".gitignore",
     ".gitkeep",

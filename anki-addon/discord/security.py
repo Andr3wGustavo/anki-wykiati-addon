@@ -68,10 +68,15 @@ class AuthorizationPolicy:
 
         self._user_request_timestamps[user_id].append(now)
 
-    def validate_event(self, event: DiscordMessageEvent) -> None:
+    def validate_event(self, event: DiscordMessageEvent, trusted_image_channel: bool = False) -> None:
         """
         Comprehensive security verification of an incoming Discord event.
         Raises SecurityError if authorization checks fail.
+
+        `trusted_image_channel`: the event comes from one of the owner's configured image
+        channels. The channel/user whitelists and the per-author rate limit target command
+        channels; a webhook automation posts every image as the same author, so backfilling
+        a channel would otherwise stop after `rate_limit_per_minute` images.
         """
         # 1. Payload size check
         if len(event.content) > MAX_MESSAGE_CHARACTERS:
@@ -81,6 +86,9 @@ class AuthorizationPolicy:
         if event.channel.guild_id and not self.is_guild_authorized(event.channel.guild_id):
             logger.warning(f"[Security] Rejected event from unauthorized Guild: {event.channel.guild_id}")
             raise SecurityError("Unauthorized Discord server/guild.")
+
+        if trusted_image_channel:
+            return
 
         # 3. Channel authorization
         if event.channel.id and not self.is_channel_authorized(event.channel.id):

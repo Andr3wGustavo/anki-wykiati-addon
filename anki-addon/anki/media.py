@@ -4,6 +4,7 @@ Handles image downloading, hashing, duplication check, and saving to Anki media 
 """
 
 import hashlib
+from dataclasses import dataclass
 import ipaddress
 import mimetypes
 import os
@@ -17,9 +18,13 @@ from typing import Optional, Tuple
 try:
     from ..core.config import config
     from ..core.logger import logger
+    from ..core.paths import user_files_dir
+    from ..core.image_urls import download_candidates
 except (ImportError, ValueError):
     from core.config import config
     from core.logger import logger
+    from core.paths import user_files_dir
+    from core.image_urls import download_candidates
 
 try:
     from aqt import mw
@@ -47,6 +52,18 @@ except ImportError:
 
 
 MAX_IMAGE_DOWNLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+
+
+@dataclass
+class StagedImage:
+    """Result of downloading + optimizing an image into the staging area."""
+    ok: bool
+    filename: str = ""
+    image_hash: str = ""
+    staging_path: str = ""
+    bytes_saved: int = 0
+    source_url: str = ""
+    error: str = ""
 
 
 class UnsafeURLError(ValueError):
@@ -177,9 +194,6 @@ class MediaManager:
                         f"[MediaManager] Optimized image ({len(raw_data)/1024:.1f} KB -> {len(optimized_data)/1024:.1f} KB, "
                         f"saved {saved_kb:.1f} KB, format: {target_ext})"
                     )
-                    # Update metrics
-                    config.set("stats.bytes_saved", config.get("stats.bytes_saved", 0) + bytes_saved, save=False)
-                    config.set("stats.images_ingested", config.get("stats.images_ingested", 0) + 1, save=False)
                     return optimized_data, target_ext, bytes_saved
 
             buffer.close()
@@ -188,79 +202,83 @@ class MediaManager:
 
         return raw_data, clean_ext, 0
 
-    def download_and_save_image(
-        self,
-        image_url: str,
-        custom_filename: Optional[str] = None,
-    ) -> Tuple[bool, str, str]:
-        """
-        Download an image from a URL, optimize it in memory, compute its hash, save it to Anki media storage.
-        Returns: (success: bool, media_filename: str, image_hash: str)
-        """
+    def _download(self, image_url: str) -> Tuple[bytes, str]:
+        """Fetch one URL with SSRF/size/content-type guards. Raises ValueError with a readable reason."""
         if not image_url or not image_url.startswith(("http://", "https://")):
-            return False, "", "Invalid image URL"
+            raise ValueError("Invalid image URL")
+        _assert_public_url(image_url)
+        req = urllib.request.Request(
+            image_url,
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AnkiWykiatiToolkit"},
+        )
+        with _SAFE_OPENER.open(req, timeout=15) as response:
+            content_type = response.headers.get("Content-Type", "")
+            main_type = content_type.split(";")[0].strip().lower()
+            if not main_type.startswith("image/"):
+                raise ValueError(f"Refused non-image content type '{main_type or 'unknown'}'")
+            declared = response.headers.get("Content-Length")
+            if declared and declared.isdigit() and int(declared) > MAX_IMAGE_DOWNLOAD_BYTES:
+                raise ValueError("Image exceeds maximum download size")
+            raw_data = response.read(MAX_IMAGE_DOWNLOAD_BYTES + 1)
+        if len(raw_data) > MAX_IMAGE_DOWNLOAD_BYTES:
+            raise ValueError("Image exceeds maximum download size")
+        if not raw_data:
+            raise ValueError("Empty image data received")
+        return raw_data, content_type
 
+    def stage_image(self, image_url: str) -> "StagedImage":
+        """
+        Background-thread safe: download (trying higher-quality candidates first),
+        optimize, and write the result to `user_files/staging`. Nothing touches the
+        Anki collection here; `commit_staged_image` does that on the main thread.
+        """
+        last_error = "No download candidates"
+        for candidate in download_candidates(image_url):
+            try:
+                raw_data, content_type = self._download(candidate)
+            except UnsafeURLError as e:
+                return StagedImage(False, error=str(e))
+            except Exception as e:
+                last_error = str(e)
+                logger.debug(f"[MediaManager] Candidate failed ({candidate}): {e}")
+                continue
+
+            # Hash of the source bytes: identical images dedup regardless of URL or settings
+            img_hash = hashlib.sha256(raw_data).hexdigest()
+            orig_ext = self._extract_extension(candidate, content_type)
+            data, final_ext, bytes_saved = self.optimize_image_data(raw_data, orig_ext)
+            filename = f"discord_{img_hash[:16]}.{final_ext}"
+            staging_path = os.path.join(user_files_dir("staging"), filename)
+            with open(staging_path, "wb") as f:
+                f.write(data)
+            logger.info(f"[MediaManager] Staged '{filename}' ({len(data) / 1024:.1f} KB) from {candidate}")
+            return StagedImage(True, filename=filename, image_hash=img_hash,
+                               staging_path=staging_path, bytes_saved=bytes_saved, source_url=candidate)
+
+        logger.error(f"[MediaManager] Failed to download image {image_url}: {last_error}")
+        return StagedImage(False, error=last_error)
+
+    def commit_staged_image(self, filename: str, staging_path: str) -> str:
+        """
+        MAIN THREAD ONLY. Move a staged file into the collection's media folder and
+        return the final media filename (Anki may rename on conflicts).
+        """
+        if not staging_path or not os.path.exists(staging_path):
+            raise FileNotFoundError(f"Staged image missing: {staging_path}")
+        with open(staging_path, "rb") as f:
+            data = f.read()
+
+        final_name = filename
+        if ANKI_AVAILABLE and mw is not None and getattr(mw, "col", None) is not None:
+            final_name = mw.col.media.write_data(filename, data) or filename
+        else:
+            with open(os.path.join(self._get_fallback_media_dir(), filename), "wb") as f:
+                f.write(data)
         try:
-            _assert_public_url(image_url)
-            req = urllib.request.Request(
-                image_url,
-                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AnkiDiscordToolkit/1.0"},
-            )
-            with _SAFE_OPENER.open(req, timeout=12) as response:
-                content_type = response.headers.get("Content-Type", "")
-                main_type = content_type.split(";")[0].strip().lower()
-                if not main_type.startswith("image/"):
-                    return False, "", f"Refused non-image content type '{main_type or 'unknown'}'"
-
-                declared = response.headers.get("Content-Length")
-                if declared and declared.isdigit() and int(declared) > MAX_IMAGE_DOWNLOAD_BYTES:
-                    return False, "", "Image exceeds maximum download size"
-
-                raw_data = response.read(MAX_IMAGE_DOWNLOAD_BYTES + 1)
-                if len(raw_data) > MAX_IMAGE_DOWNLOAD_BYTES:
-                    return False, "", "Image exceeds maximum download size"
-
-            if not raw_data:
-                return False, "", "Empty image data received"
-
-            # Determine initial extension
-            orig_ext = self._extract_extension(image_url, content_type)
-
-            # In-memory image optimization & downscaling
-            data, final_ext, _ = self.optimize_image_data(raw_data, orig_ext)
-
-            # Compute SHA-256 hash of the optimized binary image
-            img_hash = hashlib.sha256(data).hexdigest()
-            clean_name = f"discord_{img_hash[:12]}.{final_ext}"
-
-            # Save to Anki Collection media
-            if ANKI_AVAILABLE and mw is not None and mw.col is not None and hasattr(mw.col, "media"):
-                try:
-                    # Anki's official media write_data API
-                    mw.col.media.write_data(clean_name, data)
-                    logger.info(f"[MediaManager] Saved optimized image '{clean_name}' directly into Anki Media collection.")
-                except Exception as media_err:
-                    logger.warning(f"[MediaManager] write_data failed, trying add_file: {media_err}")
-                    temp_path = os.path.join(self._get_fallback_media_dir(), clean_name)
-                    with open(temp_path, "wb") as f:
-                        f.write(data)
-                    if hasattr(mw.col.media, "add_file"):
-                        mw.col.media.add_file(temp_path)
-            else:
-                # Standalone fallback storage for headless test runs
-                temp_path = os.path.join(self._get_fallback_media_dir(), clean_name)
-                with open(temp_path, "wb") as f:
-                    f.write(data)
-                logger.info(f"[MediaManager] Headless mode: Saved image to '{temp_path}'")
-
-            return True, clean_name, img_hash
-
-        except urllib.error.URLError as url_err:
-            logger.error(f"[MediaManager] Failed to download image from {image_url}: {url_err}")
-            return False, "", str(url_err)
-        except Exception as e:
-            logger.error(f"[MediaManager] Unexpected error processing image: {e}", exc_info=True)
-            return False, "", str(e)
+            os.remove(staging_path)
+        except OSError:
+            pass
+        return final_name
 
     def _extract_extension(self, url: str, content_type: str) -> str:
         """Extract clean file extension from Content-Type header or URL."""

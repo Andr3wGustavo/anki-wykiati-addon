@@ -58,6 +58,9 @@ class DiscordMessageEvent:
     channel: DiscordChannel
     attachments: List[DiscordAttachment] = field(default_factory=list)
     timestamp: float = field(default_factory=time.time)
+    # Image URLs found in embeds/attachments by the poller (webhooks post images as embeds)
+    image_urls: List[str] = field(default_factory=list)
+    is_webhook: bool = False
 
 
 @dataclass
@@ -82,9 +85,18 @@ class CardPayload:
     guild_id: str = ""
     timestamp: float = field(default_factory=time.time)
     raw_content: str = ""
+    # Image pipeline: file waiting in user_files/staging, hash of the source bytes
+    staging_path: str = ""
+    image_hash: str = ""
+    bytes_saved: int = 0
 
     def compute_hash(self) -> str:
         """Compute unique content fingerprint to detect identical cards."""
+        if self.image_hash:
+            # Image cards: same picture into the same deck is a duplicate, whatever
+            # (signed, expiring) URL it came from.
+            raw = f"image|{self.deck.strip().lower()}|{self.image_hash}"
+            return hashlib.sha256(raw.encode("utf-8")).hexdigest()
         norm_front = " ".join(self.front.strip().split()).lower()
         norm_back = " ".join(self.back.strip().split()).lower()
         norm_deck = self.deck.strip().lower()
@@ -114,4 +126,7 @@ class CardPayload:
             guild_id=data.get("guild_id", ""),
             timestamp=data.get("timestamp", time.time()),
             raw_content=data.get("raw_content", ""),
+            staging_path=data.get("staging_path", ""),
+            image_hash=data.get("image_hash", ""),
+            bytes_saved=int(data.get("bytes_saved", 0) or 0),
         )
