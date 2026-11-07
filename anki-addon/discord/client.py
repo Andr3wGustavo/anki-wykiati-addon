@@ -3,6 +3,7 @@ Discord Client and Local HTTP Webhook Bridge Server.
 Allows cards to be pushed via Discord Bot Poller (including automated image channels) or Local HTTP REST Webhook.
 """
 
+import hmac
 import http.server
 import json
 import socketserver
@@ -14,20 +15,34 @@ from typing import Any, Dict, List, Optional
 
 try:
     from ..core.config import config
-    from ..core.constants import ADDON_NAME, ADDON_VERSION
+    from ..core.constants import ADDON_NAME, ADDON_VERSION, MAX_PAYLOAD_SIZE_BYTES
     from ..core.logger import logger
     from .bridge import discord_bridge
     from .models import DiscordAttachment, DiscordChannel, DiscordMessageEvent, DiscordUser
 except (ImportError, ValueError):
     from core.config import config
-    from core.constants import ADDON_NAME, ADDON_VERSION
+    from core.constants import ADDON_NAME, ADDON_VERSION, MAX_PAYLOAD_SIZE_BYTES
     from core.logger import logger
     from discord.bridge import discord_bridge
     from discord.models import DiscordAttachment, DiscordChannel, DiscordMessageEvent, DiscordUser
 
 
+_ALLOWED_HOSTNAMES = {"127.0.0.1", "localhost", "::1", "[::1]"}
+
+
+def _get_secret_token() -> str:
+    return str(config.get("discord.secret_token", "") or "").strip()
+
+
 class _BridgeHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
-    """Handles incoming HTTP POST / GET webhook requests."""
+    """Handles incoming HTTP POST / GET webhook requests.
+
+    Security model:
+    - Every POST must carry the configured secret token
+      (``Authorization: Bearer <token>`` or ``X-AWT-Token: <token>``).
+    - No CORS headers are sent, so browser pages cannot read responses.
+    - The Host header must point at the loopback interface (DNS-rebinding guard).
+    """
 
     def log_message(self, format: str, *args: Any) -> None:
         logger.debug(f"[HttpBridge] {self.client_address[0]} - {format % args}")
@@ -37,36 +52,81 @@ class _BridgeHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         self.send_response(status_code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("X-Content-Type-Options", "nosniff")
         self.end_headers()
         self.wfile.write(body)
 
+    def _host_is_allowed(self) -> bool:
+        host_header = (self.headers.get("Host") or "").strip().lower()
+        if not host_header:
+            return False
+        if host_header.startswith("["):
+            hostname = host_header.split("]")[0] + "]"
+        else:
+            hostname = host_header.rsplit(":", 1)[0] if ":" in host_header else host_header
+        configured = str(config.get("discord.http_bridge_host", "127.0.0.1")).strip().lower()
+        return hostname in _ALLOWED_HOSTNAMES or hostname == configured
+
+    def _is_authorized(self) -> bool:
+        expected = _get_secret_token()
+        if not expected:
+            return False
+        provided = ""
+        auth_header = (self.headers.get("Authorization") or "").strip()
+        if auth_header.lower().startswith("bearer "):
+            provided = auth_header[7:].strip()
+        if not provided:
+            provided = (self.headers.get("X-AWT-Token") or "").strip()
+        return bool(provided) and hmac.compare_digest(provided.encode("utf-8"), expected.encode("utf-8"))
+
     def do_OPTIONS(self) -> None:
-        self._send_json(200, {"status": "ok"})
+        # Cross-origin requests are intentionally not supported.
+        self._send_json(405, {"error": "Method Not Allowed"})
 
     def do_GET(self) -> None:
+        if not self._host_is_allowed():
+            self._send_json(403, {"error": "Forbidden host"})
+            return
         if self.path in ("/", "/health", "/api/health"):
-            stats = config.get("stats", {})
-            self._send_json(200, {
-                "status": "healthy",
-                "addon": ADDON_NAME,
-                "version": ADDON_VERSION,
-                "stats": stats,
-            })
+            data: Dict[str, Any] = {"status": "healthy"}
+            if self._is_authorized():
+                data.update({
+                    "addon": ADDON_NAME,
+                    "version": ADDON_VERSION,
+                    "stats": config.get("stats", {}),
+                })
+            self._send_json(200, data)
         else:
             self._send_json(404, {"error": "Not Found"})
 
     def do_POST(self) -> None:
         try:
-            content_length = int(self.headers.get("Content-Length", 0))
-            if content_length > 100 * 1024:  # 100 KB limit
-                self._send_json(413, {"error": "Payload too large"})
+            if not self._host_is_allowed():
+                self._send_json(403, {"success": False, "error": "Forbidden host"})
+                return
+
+            if not _get_secret_token():
+                self._send_json(503, {
+                    "success": False,
+                    "error": "HTTP bridge is locked: set 'discord.secret_token' in the add-on config.",
+                })
+                return
+
+            if not self._is_authorized():
+                self._send_json(401, {"success": False, "error": "Unauthorized"})
+                return
+
+            try:
+                content_length = int(self.headers.get("Content-Length", 0))
+            except (TypeError, ValueError):
+                self._send_json(400, {"success": False, "error": "Invalid Content-Length"})
+                return
+            if content_length < 0 or content_length > MAX_PAYLOAD_SIZE_BYTES:
+                self._send_json(413, {"success": False, "error": "Payload too large"})
                 return
 
             body_bytes = self.rfile.read(content_length)
-            body_str = body_bytes.decode("utf-8")
+            body_str = body_bytes.decode("utf-8", errors="replace")
 
             raw_text = ""
             event = None
@@ -127,7 +187,7 @@ class _BridgeHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 
         except Exception as e:
             logger.error(f"[HttpBridge] Error handling POST request: {e}", exc_info=True)
-            self._send_json(500, {"success": False, "error": str(e)})
+            self._send_json(500, {"success": False, "error": "Internal error"})
 
 
 class HttpBridgeServer:
@@ -349,16 +409,36 @@ class DiscordClientManager:
         self.poller = DiscordPollingWorker()
 
     def initialize(self) -> None:
-        if config.get("discord.http_bridge_enabled", True):
+        if config.get("discord.http_bridge_enabled", False):
+            if not _get_secret_token():
+                logger.warning(
+                    "[DiscordClientManager] HTTP bridge is enabled but 'discord.secret_token' is empty. "
+                    "Refusing to start an unauthenticated server."
+                )
+                return self._start_poller_and_subscribe()
             host = config.get("discord.http_bridge_host", "127.0.0.1")
             port = int(config.get("discord.http_bridge_port", 8765))
             self.http_server = HttpBridgeServer(host=host, port=port)
             self.http_server.start()
 
+        self._start_poller_and_subscribe()
+
+    def _start_poller_and_subscribe(self) -> None:
         if config.get("discord.enabled", False):
             self.poller.start()
 
         config.subscribe("discord", self._on_config_changed)
+
+    def shutdown(self) -> None:
+        """Stop the Discord poller and the HTTP bridge (called when the profile closes)."""
+        try:
+            config.unsubscribe("discord", self._on_config_changed)
+        except Exception:
+            pass
+        self.poller.stop()
+        if self.http_server is not None:
+            self.http_server.stop()
+            self.http_server = None
 
     def _on_config_changed(self, *args: Any) -> None:
         if config.get("discord.enabled", False):

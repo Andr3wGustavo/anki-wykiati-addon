@@ -4,6 +4,7 @@ Receives raw Discord messages/events, runs security verification,
 handles automatic image channel ingestion, parses payloads, and enqueues card jobs.
 """
 
+import html
 import re
 from typing import Dict, List, Optional, Tuple
 
@@ -162,10 +163,12 @@ class DiscordBridge:
                 logger.error(f"[DiscordBridge] Could not download image '{url}': {img_hash}")
                 continue
 
-            img_tag = f'<img src="{filename}">'
+            img_tag = f'<img src="{html.escape(filename, quote=True)}">'
             caption = raw_text.strip() if raw_text else ""
-            # Strip image URL from caption text
-            clean_caption = IMAGE_URL_REGEX.sub("", caption).strip()
+            # Strip image URL from caption text, then escape it: it is untrusted user input
+            # and is inserted into the card as HTML.
+            clean_caption = html.escape(IMAGE_URL_REGEX.sub("", caption).strip(), quote=False)
+            clean_caption = clean_caption.replace("\n", "<br>")
 
             if layout in ("image_only_front", "image_front_empty_back", "front_only"):
                 front = img_tag

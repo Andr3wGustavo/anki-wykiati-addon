@@ -4,9 +4,11 @@ Handles image downloading, hashing, duplication check, and saving to Anki media 
 """
 
 import hashlib
+import ipaddress
 import mimetypes
 import os
 import re
+import socket
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -42,6 +44,49 @@ except ImportError:
             QT_GUI_AVAILABLE = True
         except ImportError:
             QT_GUI_AVAILABLE = False
+
+
+MAX_IMAGE_DOWNLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+
+
+class UnsafeURLError(ValueError):
+    """Raised when a URL points at a non-public (loopback / private / link-local) address."""
+
+
+def _assert_public_url(url: str) -> None:
+    """
+    SSRF guard: refuse URLs whose host resolves to loopback, private, link-local,
+    multicast or reserved addresses. Image URLs come from untrusted input.
+    """
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        raise UnsafeURLError(f"Unsupported URL: {url}")
+    try:
+        infos = socket.getaddrinfo(parsed.hostname, parsed.port or (443 if parsed.scheme == "https" else 80))
+    except socket.gaierror as e:
+        raise UnsafeURLError(f"Could not resolve host '{parsed.hostname}': {e}")
+    for info in infos:
+        ip = ipaddress.ip_address(info[4][0].split("%")[0])
+        if (
+            ip.is_private
+            or ip.is_loopback
+            or ip.is_link_local
+            or ip.is_multicast
+            or ip.is_reserved
+            or ip.is_unspecified
+        ):
+            raise UnsafeURLError(f"Refusing to fetch non-public address {ip} for host '{parsed.hostname}'")
+
+
+class _SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Re-validates every redirect target so a public URL cannot bounce to an internal one."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # type: ignore[override]
+        _assert_public_url(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+_SAFE_OPENER = urllib.request.build_opener(_SafeRedirectHandler)
 
 
 class MediaManager:
@@ -156,13 +201,24 @@ class MediaManager:
             return False, "", "Invalid image URL"
 
         try:
+            _assert_public_url(image_url)
             req = urllib.request.Request(
                 image_url,
                 headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AnkiDiscordToolkit/1.0"},
             )
-            with urllib.request.urlopen(req, timeout=12) as response:
-                raw_data = response.read()
+            with _SAFE_OPENER.open(req, timeout=12) as response:
                 content_type = response.headers.get("Content-Type", "")
+                main_type = content_type.split(";")[0].strip().lower()
+                if not main_type.startswith("image/"):
+                    return False, "", f"Refused non-image content type '{main_type or 'unknown'}'"
+
+                declared = response.headers.get("Content-Length")
+                if declared and declared.isdigit() and int(declared) > MAX_IMAGE_DOWNLOAD_BYTES:
+                    return False, "", "Image exceeds maximum download size"
+
+                raw_data = response.read(MAX_IMAGE_DOWNLOAD_BYTES + 1)
+                if len(raw_data) > MAX_IMAGE_DOWNLOAD_BYTES:
+                    return False, "", "Image exceeds maximum download size"
 
             if not raw_data:
                 return False, "", "Empty image data received"

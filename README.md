@@ -297,6 +297,10 @@ tags: networking, transport-layer
 
 The integrated HTTP REST bridge runs locally on `127.0.0.1:8765`, enabling scriptable card ingestion from any programming language or workflow manager.
 
+> **Security:** the bridge is **disabled by default**. To use it, set `discord.http_bridge_enabled` to `true` **and** set a long random `discord.secret_token`. The server refuses to start without a token, and every `POST` must send `Authorization: Bearer <token>` (or `X-AWT-Token: <token>`). No CORS headers are sent, so web pages cannot use the API; raw HTML in card text is escaped; image URLs pointing to private/loopback addresses are refused, and downloads are limited to 10 MB of `image/*` content.
+>
+> Port `8765` is also AnkiConnect's default. If you use AnkiConnect, change `discord.http_bridge_port` (e.g. `8766`).
+
 ### Ingest a Standard Flashcard (JSON POST)
 
 **Endpoint**: `POST http://127.0.0.1:8765/api/card`
@@ -335,6 +339,8 @@ curl -X POST http://127.0.0.1:8765/api/card \
 curl http://127.0.0.1:8765/health
 ```
 
+Without the token the response is just `{"status": "healthy"}`; with `-H "Authorization: Bearer $AWT_TOKEN"` it also includes version and stats.
+
 **Response**:
 ```json
 {
@@ -367,7 +373,8 @@ All settings can be adjusted via GUI dialogs under **Tools -> Anki Wykiati Toolk
 | `discord.max_image_dimension` | `integer` | `1920` | Maximum pixel width or height before automatic downscaling is applied. |
 | `discord.image_quality` | `integer` | `85` | WebP compression quality level (1 to 100). |
 | `discord.convert_to_webp` | `boolean` | `true` | Converts incoming PNG and JPEG attachments to the WebP container. |
-| `discord.http_bridge_enabled` | `boolean` | `true` | Launches the local HTTP REST Webhook server. |
+| `discord.http_bridge_enabled` | `boolean` | `false` | Launches the local HTTP REST Webhook server (requires `discord.secret_token`). |
+| `discord.secret_token` | `string` | `""` | Shared secret required in the `Authorization: Bearer` header of every HTTP request. |
 | `discord.http_bridge_port` | `integer` | `8765` | Port number bound by the local HTTP server (`127.0.0.1:8765`). |
 | `anki.default_deck` | `string` | `"Default"` | Fallback deck assignment when no routing rule or metadata matches. |
 

@@ -52,7 +52,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "authorized_users": [],
         "guild_ids": [],
         "polling_interval_seconds": 5,
-        "http_bridge_enabled": True,
+        "http_bridge_enabled": False,
         "http_bridge_host": "127.0.0.1",
         "http_bridge_port": 8765,
         "secret_token": "",

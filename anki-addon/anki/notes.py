@@ -34,21 +34,25 @@ def _format_markdown_to_anki_html(text: str) -> str:
     """
     Lightweight, deterministic converter for Discord markdown formatting into HTML for Anki cards.
     Handles bold, italics, code blocks, inline code, and line breaks.
+
+    Security: the input is untrusted (Discord / HTTP bridge), so ALL raw HTML is escaped
+    first. Only the tags generated here (<b>, <i>, <code>, <pre>, <br>) end up as markup,
+    which prevents script injection into the reviewer webview.
     """
     if not text:
         return ""
 
-    # Replace code blocks ```lang ... ```
+    text = html.escape(text, quote=False)
+
+    # Replace code blocks ```lang ... ``` (content already escaped above)
     def _code_block_sub(match):
-        code_text = html.escape(match.group(1).strip(), quote=False)
-        return f"<pre><code>{code_text}</code></pre>"
+        return f"<pre><code>{match.group(1).strip()}</code></pre>"
 
     text = re.sub(r"```(?:\w+)?\n?(.*?)```", _code_block_sub, text, flags=re.DOTALL)
 
     # Replace inline code `code`
     def _inline_code_sub(match):
-        code_text = html.escape(match.group(1), quote=False)
-        return f"<code>{code_text}</code>"
+        return f"<code>{match.group(1)}</code>"
 
     text = re.sub(r"`([^`\n]+)`", _inline_code_sub, text)
 
@@ -100,13 +104,19 @@ class NoteAdapter:
             note = mw.col.new_note(model)
 
             # 3. Format & Map Fields
+            if payload.source == "discord_image":
+                # Fields were assembled by DiscordBridge from a generated media filename
+                # plus an already-escaped caption, so they are safe HTML as-is.
+                formatter = lambda value: value or ""
+            else:
+                formatter = _format_markdown_to_anki_html
             formatted_payload = CardPayload(
-                front=_format_markdown_to_anki_html(payload.front),
-                back=_format_markdown_to_anki_html(payload.back),
+                front=formatter(payload.front),
+                back=formatter(payload.back),
                 deck=payload.deck,
                 tags=payload.tags,
                 note_type=payload.note_type,
-                extra=_format_markdown_to_anki_html(payload.extra),
+                extra=formatter(payload.extra),
             )
 
             field_map = template_manager.map_fields_to_model(formatted_payload, model)

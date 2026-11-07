@@ -31,7 +31,7 @@ O arquivo `config.json` gerencia todas as preferências, conexões e regras de r
     "authorized_users": [],
     "guild_ids": [],
     "polling_interval_seconds": 5,
-    "http_bridge_enabled": true,
+    "http_bridge_enabled": false,
     "http_bridge_host": "127.0.0.1",
     "http_bridge_port": 8765,
     "secret_token": "",
